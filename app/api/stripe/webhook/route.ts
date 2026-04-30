@@ -1,0 +1,618 @@
+import { NextResponse } from "next/server"
+import { headers } from "next/headers"
+import { prisma } from "@/lib/prisma"
+import Stripe from "stripe"
+import { Resend } from "resend"
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+/**
+ * POST /api/stripe/webhook
+ * 
+ * Stripe webhook handler for subscription events.
+ * 
+ * CRITICAL: This is the ONLY place where pages get published after payment.
+ * Publishing happens ONLY after Stripe confirms successful payment via webhook.
+ * 
+ * Events handled:
+ * - checkout.session.completed: Payment successful, publish page
+ * - customer.subscription.created: New subscription created
+ * - customer.subscription.updated: Subscription status changed
+ * - customer.subscription.deleted: Subscription canceled
+ * - invoice.payment_succeeded: Recurring payment successful
+ * - invoice.payment_failed: Payment failed (for logging)
+ */
+export async function POST(req: Request) {
+  const startTime = Date.now()
+  
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+  console.log("[STRIPE WEBHOOK] 🔔 Incoming webhook request")
+  console.log("[STRIPE WEBHOOK] 📅 Timestamp:", new Date().toISOString())
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+  
+  let body: string
+  let signature: string | null
+  
+  try {
+    // Get raw body (required for signature verification)
+    body = await req.text()
+    
+    // Get Stripe signature from headers
+    const headersList = await headers()
+    signature = headersList.get("stripe-signature")
+    
+    console.log("[STRIPE WEBHOOK] ✅ Raw body received:", body.substring(0, 100) + "...")
+    console.log("[STRIPE WEBHOOK] ✅ Signature present:", !!signature)
+    
+    if (!signature) {
+      console.error("[STRIPE WEBHOOK] ❌ Missing stripe-signature header")
+      return NextResponse.json(
+        { error: "Missing stripe-signature header" }, 
+        { status: 400 }
+      )
+    }
+  } catch (error: any) {
+    console.error("[STRIPE WEBHOOK] ❌ Error reading request:", error.message)
+    return NextResponse.json(
+      { error: "Failed to read request" }, 
+      { status: 400 }
+    )
+  }
+
+  let event: Stripe.Event
+
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    
+    console.log("[STRIPE WEBHOOK] 🔑 Webhook secret present:", !!webhookSecret)
+    
+    if (!webhookSecret) {
+      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.warn("[STRIPE WEBHOOK] ⚠️  WARNING: No STRIPE_WEBHOOK_SECRET set!")
+      console.warn("[STRIPE WEBHOOK] ⚠️  Signature verification DISABLED (insecure!)")
+      console.warn("[STRIPE WEBHOOK] ⚠️  Set STRIPE_WEBHOOK_SECRET in production!")
+      console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      
+      // Parse without verification (development only)
+      event = JSON.parse(body) as Stripe.Event
+    } else {
+      // Verify webhook signature (production)
+      console.log("[STRIPE WEBHOOK] 🔐 Verifying webhook signature...")
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      console.log("[STRIPE WEBHOOK] ✅ Signature verified!")
+    }
+  } catch (err: any) {
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    console.error("[STRIPE WEBHOOK] ❌ Signature verification failed!")
+    console.error("[STRIPE WEBHOOK] Error:", err.message)
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    return NextResponse.json(
+      { error: "Webhook signature verification failed" }, 
+      { status: 400 }
+    )
+  }
+
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+  console.log(`[STRIPE WEBHOOK] 📨 Event Type: ${event.type}`)
+  console.log(`[STRIPE WEBHOOK] 🆔 Event ID: ${event.id}`)
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        console.log("[STRIPE WEBHOOK] 💳 Processing checkout.session.completed...")
+        const session = event.data.object as Stripe.Checkout.Session
+        await handleCheckoutCompleted(session)
+        break
+      }
+
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        console.log(`[STRIPE WEBHOOK] 🔄 Processing ${event.type}...`)
+        const subscription = event.data.object as Stripe.Subscription
+        await handleSubscriptionUpdate(subscription)
+        break
+      }
+
+      case "customer.subscription.deleted": {
+        console.log("[STRIPE WEBHOOK] ❌ Processing subscription deletion...")
+        const subscription = event.data.object as Stripe.Subscription
+        await handleSubscriptionDeleted(subscription)
+        break
+      }
+
+      case "invoice.payment_succeeded": {
+        console.log("[STRIPE WEBHOOK] 💰 Processing successful payment...")
+        const invoice = event.data.object as Stripe.Invoice
+        await handlePaymentSucceeded(invoice)
+        break
+      }
+
+      case "invoice.payment_failed": {
+        console.log("[STRIPE WEBHOOK] ⚠️  Processing failed payment...")
+        const invoice = event.data.object as Stripe.Invoice
+        await handlePaymentFailed(invoice)
+        break
+      }
+
+      default:
+        console.log(`[STRIPE WEBHOOK] ℹ️  Unhandled event type: ${event.type}`)
+    }
+
+    const duration = Date.now() - startTime
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    console.log(`[STRIPE WEBHOOK] ✅ Success! Processed in ${duration}ms`)
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    return NextResponse.json({ received: true, processed: event.type })
+
+  } catch (error: any) {
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    console.error("[STRIPE WEBHOOK] ❌ Error processing event!")
+    console.error("[STRIPE WEBHOOK] Error:", error.message)
+    console.error("[STRIPE WEBHOOK] Stack:", error.stack)
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    
+    return NextResponse.json(
+      { error: "Webhook handler failed", details: error.message }, 
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * Handle GET requests - return 405 Method Not Allowed
+ * This confirms the endpoint exists but only accepts POST
+ */
+export async function GET() {
+  console.log("[STRIPE WEBHOOK] ⚠️  GET request received - returning 405")
+  return NextResponse.json(
+    { 
+      error: "Method Not Allowed",
+      message: "This endpoint only accepts POST requests from Stripe webhooks" 
+    }, 
+    { 
+      status: 405,
+      headers: {
+        'Allow': 'POST'
+      }
+    }
+  )
+}
+
+/**
+ * Handle checkout.session.completed
+ * This fires when user completes checkout and payment succeeds
+ * 
+ * Handles:
+ * 1. Subscription purchases (publishes page)
+ * 2. Product purchases (completes order and sends download)
+ * 3. Tips (records the tip)
+ */
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {}
+  const checkoutType = metadata.type
+  
+  console.log("[STRIPE WEBHOOK] 📋 Checkout session details:")
+  console.log("  - Session ID:", session.id)
+  console.log("  - Checkout Type:", checkoutType || "subscription")
+  console.log("  - Customer ID:", session.customer)
+  console.log("  - Payment Status:", session.payment_status)
+  console.log("  - Metadata:", JSON.stringify(metadata))
+  
+  // Handle product purchase
+  if (checkoutType === "product_purchase") {
+    await handleProductPurchase(session)
+    return
+  }
+  
+  // Handle tip
+  if (checkoutType === "tip") {
+    await handleTipPayment(session)
+    return
+  }
+  
+  // Otherwise, handle subscription
+  const userId = session.client_reference_id || metadata.userId
+  
+  if (!userId) {
+    console.error("[STRIPE WEBHOOK] ❌ No userId found in checkout session!")
+    console.error("  - client_reference_id:", session.client_reference_id)
+    console.error("  - metadata:", metadata)
+    return
+  }
+
+  // Get subscription details
+  const subscriptionId = session.subscription as string
+  
+  if (!subscriptionId) {
+    console.error("[STRIPE WEBHOOK] ❌ No subscription ID in checkout session!")
+    return
+  }
+
+  console.log("[STRIPE WEBHOOK] 🔍 Fetching subscription details from Stripe...")
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
+  
+  // Determine status based on subscription
+  let status: string
+  let trialEndsAt: Date | null = null
+  let subscriptionEndsAt: Date | null = null
+  
+  console.log("[STRIPE WEBHOOK] 📊 Subscription status:", subscription.status)
+  console.log("[STRIPE WEBHOOK] 📊 Trial end:", subscription.trial_end)
+  console.log("[STRIPE WEBHOOK] 📊 Current period end:", subscription.current_period_end)
+
+  if (subscription.status === 'trialing') {
+    status = 'trial'
+    trialEndsAt = safeStripeDate(subscription.trial_end)
+  } else if (subscription.status === 'active') {
+    status = 'active'
+    subscriptionEndsAt = safeStripeDate(subscription.current_period_end)
+  } else {
+    status = subscription.status
+  }
+
+  console.log("[STRIPE WEBHOOK] 💾 Updating user in database...")
+  console.log("  - Status:", status)
+  console.log("  - Trial ends:", trialEndsAt)
+  console.log("  - Subscription ends:", subscriptionEndsAt)
+
+  // Extract plan + interval from subscription metadata
+  const subMeta = subscription.metadata || session.metadata || {}
+  const plan = subMeta.plan || 'starter'
+  const interval = subMeta.interval || 'monthly'
+
+  // Update user subscription status AND publish page
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscriptionStatus: status,
+      subscriptionPlan: plan,
+      subscriptionInterval: interval,
+      stripeSubscriptionId: subscriptionId,
+      trialEndsAt,
+      subscriptionEndsAt,
+      // 🚀 AUTO-PUBLISH PAGE AFTER SUCCESSFUL PAYMENT
+      pageStatus: 'published',
+      publishedAt: new Date(),
+    },
+    select: { 
+      username: true,
+      email: true,
+      pageStatus: true,
+      subscriptionStatus: true,
+      subscriptionPlan: true,
+    }
+  })
+
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+  console.log("[STRIPE WEBHOOK] 🎉 SUCCESS!")
+  console.log(`  - User: ${user.username} (${user.email})`)
+  console.log(`  - Subscription: ${status}`)
+  console.log(`  - Page Status: ${user.pageStatus}`)
+  console.log(`  - Published: ✅ YES`)
+  console.log(`  - Live URL: /${user.username}`)
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+}
+
+/**
+ * Handle subscription updates
+ */
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.userId
+  
+  console.log("[STRIPE WEBHOOK] 📋 Subscription update details:")
+  console.log("  - Subscription ID:", subscription.id)
+  console.log("  - User ID (from metadata):", userId)
+  console.log("  - Status:", subscription.status)
+  
+  if (!userId) {
+    // Try to find user by subscription ID
+    console.log("[STRIPE WEBHOOK] 🔍 No userId in metadata, searching by subscription ID...")
+    const user = await prisma.user.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { id: true, username: true }
+    })
+    
+    if (!user) {
+      console.error("[STRIPE WEBHOOK] ❌ Cannot find user for subscription:", subscription.id)
+      return
+    }
+    
+    console.log(`[STRIPE WEBHOOK] ✅ Found user: ${user.username} (${user.id})`)
+    await updateUserSubscription(user.id, subscription)
+  } else {
+    await updateUserSubscription(userId, subscription)
+  }
+}
+
+/**
+ * Handle subscription deletion (canceled or expired)
+ */
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const sub = subscription as any
+  const userId = sub.metadata?.userId
+  
+  console.log("[STRIPE WEBHOOK] 📋 Subscription deletion details:")
+  console.log("  - Subscription ID:", sub.id)
+  console.log("  - User ID (from metadata):", userId)
+  
+  // Find user by subscription ID if not in metadata
+  const user = userId 
+    ? await prisma.user.findUnique({ 
+        where: { id: userId },
+        select: { id: true, username: true }
+      })
+    : await prisma.user.findFirst({ 
+        where: { stripeSubscriptionId: sub.id },
+        select: { id: true, username: true }
+      })
+
+  if (!user) {
+    console.error("[STRIPE WEBHOOK] ❌ Cannot find user for deleted subscription:", sub.id)
+    return
+  }
+
+  console.log(`[STRIPE WEBHOOK] 📝 Marking subscription as canceled for: ${user.username}`)
+
+  // Mark subscription as canceled but keep page published for grace period
+  const cancelDate = safeStripeDate(sub.current_period_end) || new Date()
+  
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      subscriptionStatus: 'canceled',
+      subscriptionEndsAt: cancelDate,
+    }
+  })
+
+  console.log(`[STRIPE WEBHOOK] ✅ Subscription canceled for user ${user.username}`)
+  console.log("  - Grace period until:", cancelDate.toISOString())
+}
+
+/**
+ * Handle successful payment (recurring)
+ */
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  const inv = invoice as any
+  if (!inv.subscription) {
+    console.log("[STRIPE WEBHOOK] ℹ️  Invoice has no subscription, skipping...")
+    return
+  }
+  
+  console.log("[STRIPE WEBHOOK] 💰 Payment succeeded for subscription:", inv.subscription)
+  
+  const subscription = await stripe.subscriptions.retrieve(inv.subscription as string) as any
+  const userId = subscription.metadata?.userId
+  
+  if (!userId) {
+    console.log("[STRIPE WEBHOOK] 🔍 No userId in metadata, searching by subscription ID...")
+    const user = await prisma.user.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { id: true, username: true }
+    })
+    
+    if (user) {
+      console.log(`[STRIPE WEBHOOK] ✅ Found user: ${user.username}`)
+      await updateUserSubscription(user.id, subscription)
+    } else {
+      console.error("[STRIPE WEBHOOK] ❌ Cannot find user for subscription:", subscription.id)
+    }
+  } else {
+    await updateUserSubscription(userId, subscription)
+  }
+}
+
+/**
+ * Handle failed payment
+ */
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  const inv = invoice as any
+  if (!inv.subscription) {
+    console.log("[STRIPE WEBHOOK] ℹ️  Invoice has no subscription, skipping...")
+    return
+  }
+  
+  console.log("[STRIPE WEBHOOK] ⚠️  Payment failed for subscription:", inv.subscription)
+  
+  const subscription = await stripe.subscriptions.retrieve(inv.subscription as string) as any
+  
+  // Find user
+  const user = await prisma.user.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+    select: { id: true, username: true, email: true }
+  })
+
+  if (user) {
+    console.log(`[STRIPE WEBHOOK] ⚠️  Payment failed for user: ${user.username} (${user.email})`)
+    console.log("  - Stripe handles dunning automatically")
+    console.log("  - After multiple failures, subscription will be deleted")
+  } else {
+    console.error("[STRIPE WEBHOOK] ❌ Cannot find user for subscription:", subscription.id)
+  }
+}
+
+/**
+ * Update user's subscription status based on Stripe subscription
+ */
+async function updateUserSubscription(userId: string, subscription: Stripe.Subscription) {
+  const sub = subscription as any
+  let status: string
+  let trialEndsAt: Date | null = null
+  let subscriptionEndsAt: Date | null = null
+
+  console.log(`[STRIPE WEBHOOK] 📊 Updating subscription for user: ${userId}`)
+  console.log("  - Subscription status:", sub.status)
+
+  switch (sub.status) {
+    case 'trialing':
+      status = 'trial'
+      trialEndsAt = safeStripeDate(sub.trial_end)
+      break
+    case 'active':
+      status = 'active'
+      subscriptionEndsAt = safeStripeDate(sub.current_period_end)
+      break
+    case 'canceled':
+    case 'unpaid':
+    case 'past_due':
+      status = 'canceled'
+      break
+    default:
+      status = sub.status
+  }
+
+  // Extract plan + interval from subscription metadata
+  const subMeta = sub.metadata || {}
+  const plan = subMeta.plan || undefined
+  const interval = subMeta.interval || undefined
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscriptionStatus: status,
+      stripeSubscriptionId: sub.id,
+      trialEndsAt,
+      subscriptionEndsAt,
+      ...(plan ? { subscriptionPlan: plan } : {}),
+      ...(interval ? { subscriptionInterval: interval } : {}),
+    },
+    select: { username: true }
+  })
+
+  console.log(`[STRIPE WEBHOOK] ✅ Updated ${updatedUser.username}: ${status} (plan=${plan}, interval=${interval})`)
+}
+
+/**
+ * Handle product purchase completion
+ */
+async function handleProductPurchase(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {}
+  const purchaseId = metadata.purchaseId
+  const productId = metadata.productId
+  
+  console.log("[STRIPE WEBHOOK] 🛒 Processing product purchase:")
+  console.log("  - Purchase ID:", purchaseId)
+  console.log("  - Product ID:", productId)
+  console.log("  - Customer Email:", session.customer_details?.email)
+  
+  if (!purchaseId) {
+    console.error("[STRIPE WEBHOOK] ❌ No purchaseId in product checkout metadata!")
+    return
+  }
+  
+  try {
+    // Update purchase record
+    const purchase = await prisma.purchase.update({
+      where: { id: purchaseId },
+      data: {
+        status: "completed",
+        buyerEmail: session.customer_details?.email || "",
+      },
+      include: {
+        product: {
+          select: {
+            title: true,
+            downloadUrl: true,
+            downloadName: true,
+            user: {
+              select: { username: true, email: true }
+            }
+          }
+        }
+      }
+    })
+    
+    console.log("[STRIPE WEBHOOK] ✅ Product purchase completed!")
+    console.log("  - Product:", purchase.product.title)
+    console.log("  - Buyer:", purchase.buyerEmail)
+    console.log("  - Seller:", purchase.product.user.username)
+    
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
+    const downloadSection = purchase.product.downloadUrl
+      ? `<a href="${purchase.product.downloadUrl}"
+           style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;
+                  font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;
+                  border-radius:4px;margin-top:20px;">
+           &#8595; ${purchase.product.downloadName || "Download your file"}
+         </a>`
+      : `<p style="color:#888;font-family:monospace;font-size:13px;margin-top:20px;">
+           Visit your purchases page to access your order.
+         </p>`
+
+    await resend.emails.send({
+      from: "Paytree <noreply@paytree.to>",
+      to: purchase.buyerEmail,
+      subject: `Your purchase: ${purchase.product.title}`,
+      html: `
+        <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;font-family:monospace;">
+          <div style="color:#00ff88;font-size:20px;font-weight:bold;margin-bottom:8px;">
+            Purchase confirmed
+          </div>
+          <div style="color:#ffffff;font-size:16px;margin-bottom:24px;">
+            ${purchase.product.title}
+          </div>
+          ${downloadSection}
+          <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
+          <div style="color:#555;font-size:12px;font-family:monospace;">
+            Sold by @${purchase.product.user.username} via Paytree
+          </div>
+        </div>
+      `,
+    })
+    
+  } catch (error: any) {
+    console.error("[STRIPE WEBHOOK] ❌ Error completing product purchase:", error.message)
+  }
+}
+
+/**
+ * Handle tip payment
+ */
+async function handleTipPayment(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {}
+  const recipientUserId = metadata.recipientUserId
+  const recipientUsername = metadata.recipientUsername
+  
+  console.log("[STRIPE WEBHOOK] 💸 Processing tip payment:")
+  console.log("  - Recipient User ID:", recipientUserId)
+  console.log("  - Recipient Username:", recipientUsername)
+  console.log("  - Amount:", session.amount_total)
+  console.log("  - Tipper Email:", session.customer_details?.email)
+  
+  // Tips don't require database updates beyond what Stripe provides
+  // The creator can see tips in their Stripe dashboard
+  // In future, we could add a Tips table to track this
+  
+  console.log("[STRIPE WEBHOOK] ✅ Tip processed successfully!")
+}
+
+/**
+ * Safely convert a Stripe timestamp to a Date object
+ * Handles edge cases where the value might be undefined, null, or invalid
+ */
+function safeStripeDate(timestamp: number | null | undefined): Date | null {
+  if (timestamp === null || timestamp === undefined) {
+    return null
+  }
+  
+  if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp <= 0) {
+    console.warn(`[STRIPE WEBHOOK] ⚠️ Invalid timestamp value: ${timestamp}`)
+    return null
+  }
+  
+  const date = new Date(timestamp * 1000)
+  
+  // Verify the date is valid
+  if (isNaN(date.getTime())) {
+    console.warn(`[STRIPE WEBHOOK] ⚠️ Created invalid Date from timestamp: ${timestamp}`)
+    return null
+  }
+  
+  return date
+}
+
+// Disable body parser - Stripe needs raw body for signature verification
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'

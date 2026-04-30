@@ -1,0 +1,70 @@
+import { getCurrentUser } from "@/lib/clerk-auth"
+import { prisma } from "@/lib/prisma"
+import { redirect } from "next/navigation"
+import { StudioEditor } from "./studio-editor"
+
+interface StudioPageProps {
+  searchParams: Promise<{ 
+    checkout?: string
+  }>
+}
+
+export default async function StudioPage({ searchParams }: StudioPageProps) {
+  const user = await getCurrentUser()
+  const params = await searchParams
+  
+  if (!user) {
+    redirect("/login")
+  }
+
+  const [profile, links, socialLinks] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        bio: true,
+        image: true,
+        theme: true,
+        primaryColor: true,
+        backgroundColor: true,
+        buttonStyle: true,
+        fontFamily: true,
+        backgroundStyle: true,
+        backgroundImageUrl: true,
+        accentColor: true,
+        textColor: true,
+        socialIconPosition: true,
+        subscriptionStatus: true,
+        pageStatus: true,
+      }
+    }),
+    prisma.link.findMany({
+      where: { userId: user.id },
+      orderBy: { order: 'asc' },
+      take: 10
+    }),
+    prisma.socialLink.findMany({
+      where: { userId: user.id },
+      orderBy: { order: 'asc' }
+    }),
+  ])
+
+  if (!profile) {
+    redirect("/login")
+  }
+
+  // Check if user is coming back from Stripe checkout
+  const checkoutSuccess = params.checkout === 'success'
+
+  return (
+    <StudioEditor 
+      initialProfile={profile} 
+      initialLinks={links}
+      initialSocialLinks={socialLinks}
+      checkoutSuccess={checkoutSuccess}
+    />
+  )
+}

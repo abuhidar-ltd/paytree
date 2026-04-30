@@ -1,0 +1,339 @@
+// Prisma schema for Paytree - Obsidian Terminal Edition
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id       String  @id @default(cuid())
+  clerkId  String? @unique // Clerk user ID for authentication
+  email    String  @unique
+  password String? // Optional for backward compatibility, will be removed
+  name     String?
+  username String  @unique
+  bio      String?  @db.Text
+  image    String?  @db.Text
+
+  // Page status
+  pageStatus  String?   @default("draft") // draft, preview, published
+  publishedAt DateTime?
+
+  // Subscription fields
+  subscriptionStatus   String?   @default("free") // free, trial, active, canceled
+  subscriptionPlan     String? // starter, pro
+  subscriptionInterval String? // monthly, yearly
+  trialEndsAt          DateTime?
+  subscriptionEndsAt   DateTime?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  // Theme customization
+  theme           String? @default("dark") // dark, light, custom
+  primaryColor    String? @default("#3b82f6")
+  backgroundColor String? @default("#0f172a")
+  buttonStyle     String? @default("3d") // 3d, flat, glass
+  fontFamily      String? @default("inter")
+
+  // Enhanced customization
+  backgroundStyle    String? @default("mesh") // mesh, particles, geometric, minimal, custom
+  backgroundImageUrl String? @db.Text // For custom background uploads (supports data URLs)
+  accentColor        String? @default("#8b5cf6")
+  textColor          String? @default("#ffffff")
+  socialIconPosition String? @default("bottom") // top, bottom
+
+  // ===== OBSIDIAN TERMINAL FEATURES =====
+  
+  // Live Broadcast Mode
+  liveStatus  Boolean @default(false)
+  liveMessage String? // e.g., "TRADING ON SOLANA", "CURRENTLY LIVE"
+  
+  // Bento Authority Stats
+  statsStudents  Int     @default(0)
+  statsWinRate   Decimal @default(0) @db.Decimal(5, 2) // e.g., 98.50
+  statsFollowers Int     @default(0)
+  
+  // Custom stat labels (optional)
+  statsLabel1 String? @default("Students")
+  statsLabel2 String? @default("Win Rate")
+  statsLabel3 String? @default("Followers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  links           Link[]
+  clicks          Click[]
+  views           View[]
+  socialLinks     SocialLink[]
+  cryptoAddresses CryptoAddress[]
+  audience        Audience[]
+  modules         Module[]
+  products        Product[]
+  bioHistories    BioHistory[]
+  aiInsights      AiInsight[]
+
+  @@index([username])
+  @@index([email])
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  url       String
+  icon      String? // emoji or icon name
+  thumbnail String? // image URL
+  order     Int      @default(0)
+  enabled   Boolean  @default(true)
+  style     String?  @default("default") // default, gradient, glass, 3d
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ===== LINK TYPE (smart card detection) =====
+  type String @default("generic") // generic, instagram, tiktok, twitch, youtube, twitter, product
+
+  // ===== STARRED / PRIORITY =====
+  isStarred Boolean @default(false)
+
+  // ===== SCHEDULING =====
+  scheduledFrom DateTime? // show link starting from this time
+  scheduledTo   DateTime? // hide link after this time
+
+  // ===== DEEP PORTAL SYSTEM =====
+  isFolder Boolean @default(false) // true = this is a folder/portal
+  parentId String? // null = top-level, set = nested inside parent folder
+  
+  // Self-relation for nested folders
+  parent   Link?  @relation("LinkHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Link[] @relation("LinkHierarchy")
+
+  // ===== THE VAULT (GATED CONTENT) =====
+  isVaultItem   Boolean @default(false)  // Is this a vault/gated item?
+  isEmailLocked Boolean @default(false)  // Requires email to unlock?
+  downloadUrl   String? @db.Text         // For digital downloads (PDF, presets)
+  downloadName  String?                  // Display name for download
+  vaultContent  String? @db.Text         // Hidden text content for vault items
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clicks       Click[]
+  vaultUnlocks Audience[] // Emails that unlocked this vault item
+  unlockTokens LinkUnlockToken[] // Email verification tokens for locked links
+
+  @@index([userId])
+  @@index([userId, order])
+  @@index([parentId])
+  @@index([userId, scheduledFrom, scheduledTo, enabled])
+}
+
+model Click {
+  id        String   @id @default(cuid())
+  linkId    String
+  userId    String
+  timestamp DateTime @default(now())
+  userAgent String?
+  referrer  String?
+  country   String?
+  
+  // ===== OBSIDIAN ANALYTICS =====
+  isPortalOpen Boolean @default(false) // Track portal folder opens
+  isLiveClick  Boolean @default(false) // Track clicks during live status
+
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model View {
+  id        String   @id @default(cuid())
+  userId    String
+  timestamp DateTime @default(now())
+  userAgent String?
+  referrer  String?
+  country   String?
+  
+  // ===== OBSIDIAN ANALYTICS =====
+  wasLive     Boolean @default(false)  // Was user live when this view happened
+  isUnique    Boolean @default(true)   // First visit from this fingerprint
+  fingerprint String?                  // Browser fingerprint for unique tracking
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([fingerprint])
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  userId    String
+  platform  String // instagram, twitter, tiktok, youtube, etc.
+  url       String
+  order     Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, order])
+}
+
+// ===== CRYPTO VAULT =====
+model CryptoAddress {
+  id        String   @id @default(cuid())
+  userId    String
+  currency  String   // "BTC", "ETH", "SOL", "USDT", etc.
+  address   String
+  label     String?  // e.g., "Main Wallet", "Tips"
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  
+  // Analytics
+  copyCount Int      @default(0) // Track how many times copied
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, order])
+}
+
+// ===== AUDIENCE CRM (EMAIL CAPTURES) =====
+model Audience {
+  id          String   @id @default(cuid())
+  userId      String
+  email       String
+  source      String?  // "vault", "newsletter", "manual", etc.
+  capturedAt  DateTime @default(now())
+  vaultItemId String?  // Which vault item triggered the capture
+  
+  // Optional metadata
+  ipAddress   String?
+  userAgent   String?
+  country     String?
+  
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultItem   Link? @relation(fields: [vaultItemId], references: [id], onDelete: SetNull)
+  
+  @@unique([userId, email]) // Prevent duplicate emails per user
+  @@index([userId])
+  @@index([capturedAt])
+  @@index([vaultItemId])
+}
+
+// ===== BENTO MODULE SYSTEM =====
+model Module {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // youtube, tiktok, spotify, apple_music, image, twitch, social_hub, rss, vault_teaser, quick_tip, payment
+  title     String?
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  span      Int      @default(1) // 1=1x1, 2=2x1, 4=2x2
+  config    Json     @default("{}") // Type-specific configuration
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, order])
+}
+
+// ===== DIGITAL PRODUCTS (PAYMENT MODULE) =====
+model Product {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  description  String?  @db.Text
+  price        Int      // Price in cents
+  currency     String   @default("usd")
+  downloadUrl  String?  @db.Text // For digital delivery
+  downloadName String?
+  imageUrl     String?  @db.Text
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchases Purchase[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, enabled])
+}
+
+model Purchase {
+  id              String   @id @default(cuid())
+  productId       String
+  buyerEmail      String
+  amount          Int      // Amount paid in cents
+  stripeSessionId String?  @unique
+  status          String   @default("pending") // pending, completed, refunded
+  createdAt       DateTime @default(now())
+  
+  // Delivery tracking
+  downloadedAt    DateTime?
+  downloadCount   Int      @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([buyerEmail])
+  @@index([stripeSessionId])
+  @@index([status])
+}
+
+// ===== LOCKED LINK UNLOCK TOKENS =====
+model LinkUnlockToken {
+  id        String   @id @default(cuid())
+  linkId    String
+  email     String
+  token     String   @unique
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@unique([linkId, email])
+  @@index([token])
+  @@index([linkId])
+}
+
+// ===== AI BIO HISTORY =====
+model BioHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  bio       String   @db.Text
+  prompt    String?  @db.Text // what was used to generate
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+// ===== AI INSIGHTS =====
+model AiInsight {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "performance", "suggestion", "warning"
+  message   String   @db.Text
+  metadata  Json     @default("{}")
+  dismissed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, dismissed])
+}
