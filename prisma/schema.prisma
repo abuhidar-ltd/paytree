@@ -44,6 +44,7 @@ model User {
   accentColor        String? @default("#8b5cf6")
   textColor          String? @default("#ffffff")
   socialIconPosition String? @default("bottom") // top, bottom
+  heroStyle          String? @default("classic") // classic, cinematic
 
   // ===== OBSIDIAN TERMINAL FEATURES =====
   

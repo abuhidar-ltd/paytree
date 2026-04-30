@@ -90,8 +90,31 @@ export default async function PreviewPage({
   }))
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white relative">
+    <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
       <PremiumBackground />
+
+      {user.image && user.heroStyle === 'cinematic' && (
+        <div
+          className="absolute top-0 left-0 right-0 h-[480px] z-[1] overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
+          <img
+            src={user.image}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: 'center 35%', userSelect: 'none', pointerEvents: 'none' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: [
+                'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 25%, rgba(3,3,3,0.75) 65%, rgba(3,3,3,1) 80%)',
+                'linear-gradient(to right, rgba(3,3,3,0.55) 0%, transparent 18%, transparent 82%, rgba(3,3,3,0.55) 100%)',
+              ].join(', '),
+            }}
+          />
+        </div>
+      )}
 
       {/* Preview Banner - show to page owner */}
       {isOwner && (
@@ -149,7 +172,11 @@ export default async function PreviewPage({
       )}
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 py-8 sm:py-12 pt-24 sm:pt-28">
+      <div className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 pb-8 sm:pb-12 ${
+        user.heroStyle === 'cinematic'
+          ? "pt-[220px] sm:pt-[240px]"
+          : "pt-24 sm:pt-28"
+      }`}>
         <div className="w-full max-w-[500px] mx-auto">
           <ProfileClient
             user={{
@@ -167,6 +194,7 @@ export default async function PreviewPage({
               statsLabel2: user.statsLabel2,
               statsLabel3: user.statsLabel3,
               accentColor: user.accentColor,
+              heroStyle: user.heroStyle,
             }}
             links={portalLinks}
             socialLinks={user.socialLinks}

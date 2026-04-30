@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
@@ -17,6 +18,7 @@ const profileSchema = z.object({
   accentColor: z.string().nullable().optional(),
   textColor: z.string().nullable().optional(),
   socialIconPosition: z.string().nullable().optional(),
+  heroStyle: z.string().nullable().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
 
 export async function GET() {
@@ -46,6 +48,7 @@ export async function GET() {
         accentColor: true,
         textColor: true,
         socialIconPosition: true,
+        heroStyle: true,
         subscriptionStatus: true,
         pageStatus: true, // Include for polling after checkout
         // Obsidian Terminal fields
@@ -95,7 +98,7 @@ export async function PATCH(req: Request) {
     
     const { 
       name, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
-      backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition
+      backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle
     } = profileSchema.parse(body)
 
     const user = await prisma.user.update({
@@ -114,6 +117,7 @@ export async function PATCH(req: Request) {
         accentColor,
         textColor,
         socialIconPosition,
+        heroStyle,
       },
       select: {
         id: true,
@@ -132,9 +136,12 @@ export async function PATCH(req: Request) {
         accentColor: true,
         textColor: true,
         socialIconPosition: true,
+        heroStyle: true,
         subscriptionStatus: true,
       }
     })
+
+    revalidatePath(`/${user.username}`)
 
     return NextResponse.json(user)
   } catch (error) {

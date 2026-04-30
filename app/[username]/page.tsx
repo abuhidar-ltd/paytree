@@ -167,8 +167,31 @@ export default async function ProfilePage({
   }))
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
       <PremiumBackground variant="nebula" />
+
+      {user.image && user.heroStyle === 'cinematic' && (
+        <div
+          className="absolute top-0 left-0 right-0 h-[480px] z-[1] overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
+          <img
+            src={user.image}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: 'center 35%', userSelect: 'none', pointerEvents: 'none' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: [
+                'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 25%, rgba(3,3,3,0.75) 65%, rgba(3,3,3,1) 80%)',
+                'linear-gradient(to right, rgba(3,3,3,0.55) 0%, transparent 18%, transparent 82%, rgba(3,3,3,0.55) 100%)',
+              ].join(', '),
+            }}
+          />
+        </div>
+      )}
 
       {showPublishBanner && <PublishBanner username={user.username} />}
 
@@ -182,8 +205,14 @@ export default async function ProfilePage({
 
       {/* Content */}
       <div
-        className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 py-8 sm:py-12 ${
-          showPublishBanner ? "pt-24 sm:pt-28" : "pt-8"
+        className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 pb-8 sm:pb-12 ${
+          user.heroStyle === 'cinematic'
+            ? showPublishBanner
+              ? "pt-[220px] sm:pt-[240px]"
+              : "pt-[180px] sm:pt-[200px]"
+            : showPublishBanner
+              ? "pt-24 sm:pt-28"
+              : "pt-8 sm:pt-12"
         }`}
       >
         <div className="w-full max-w-[500px] mx-auto">
@@ -204,6 +233,7 @@ export default async function ProfilePage({
               statsLabel2: user.statsLabel2,
               statsLabel3: user.statsLabel3,
               accentColor: user.accentColor,
+              heroStyle: user.heroStyle,
             }}
             links={portalLinks}
             socialLinks={user.socialLinks}

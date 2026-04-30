@@ -37,6 +37,7 @@ export default async function StudioPage({ searchParams }: StudioPageProps) {
         accentColor: true,
         textColor: true,
         socialIconPosition: true,
+        heroStyle: true,
         subscriptionStatus: true,
         pageStatus: true,
       }

@@ -11,8 +11,7 @@ import { SocialIcon } from "@/components/social-icon"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
-import Link from "next/link"
-
+import { User, Clapperboard } from "lucide-react"
 interface Profile {
   id: string
   name: string | null
@@ -29,6 +28,7 @@ interface Profile {
   accentColor?: string | null
   textColor?: string | null
   socialIconPosition?: string | null
+  heroStyle?: string | null
   subscriptionStatus?: string | null
   pageStatus?: string | null
 }
@@ -61,11 +61,33 @@ interface StudioEditorProps {
 export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks, checkoutSuccess }: StudioEditorProps) {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile>(initialProfile)
-  const [links] = useState<LinkType[]>(initialLinks)
-  const [socialLinks] = useState<SocialLink[]>(initialSocialLinks)
+  const [links, setLinks] = useState<LinkType[]>(initialLinks)
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(initialSocialLinks)
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  
+
+  useEffect(() => {
+    const fetchFreshData = async () => {
+      try {
+        const [linksRes, socialRes] = await Promise.all([
+          fetch('/api/links'),
+          fetch('/api/social-links')
+        ])
+        if (linksRes.ok) {
+          const data = await linksRes.json()
+          setLinks(data.links || data || [])
+        }
+        if (socialRes.ok) {
+          const data = await socialRes.json()
+          setSocialLinks(data.socialLinks || data || [])
+        }
+      } catch (e) {
+        console.error('Failed to fetch fresh preview data', e)
+      }
+    }
+    fetchFreshData()
+  }, [])
+
   // Image cropping state
   const [cropImage, setCropImage] = useState<{ url: string } | null>(null)
   
@@ -248,20 +270,16 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-[#080808] text-white">
       
       {/* Fixed Header */}
-      <div className="sticky top-0 z-50 border-b border-white/10 bg-black/40 backdrop-blur-xl">
+      <div className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#080808]/80 backdrop-blur-xl">
         <div className="max-w-[1920px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-gray-400 hover:text-white">
-              ← Dashboard
-            </Link>
-            <div className="w-px h-6 bg-white/10" />
-            <h1 className="text-lg font-bold">Customize Design</h1>
-            {saving && <span className="text-xs text-blue-400 animate-pulse">● Saving...</span>}
+            <h1 className="text-sm font-mono text-[#e0e0e0]">Customize Design</h1>
+            {saving && <span className="text-[#00ff88]/50 text-xs font-mono animate-pulse">● Saving...</span>}
             {lastSaved && !saving && (
-              <span className="text-xs text-green-400">✓ Saved {lastSaved.toLocaleTimeString()}</span>
+              <span className="text-[#00ff88]/50 text-xs font-mono">✓ Saved {lastSaved.toLocaleTimeString()}</span>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -270,7 +288,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
               onClick={() => window.open(`/preview/${profile.username}`, '_blank')}
               variant="ghost"
               size="sm"
-              className="text-white/70 hover:text-white flex items-center gap-2"
+              className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -288,7 +306,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
               }}
               variant="ghost"
               size="sm"
-              className="text-white/70 hover:text-white flex items-center gap-2"
+              className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -300,7 +318,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
               <Button 
                 size="sm" 
                 disabled
-                className="bg-[#00ff88] text-[#030303]"
+                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl"
               >
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -315,14 +333,14 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   setPublishedLink(`${baseUrl}/${profile.username}`)
                 }}
                 size="sm"
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
                 ✓ Published
               </Button>
             ) : !isPro ? (
               <Button 
                 size="sm" 
-                className="bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold"
+                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
                 onClick={() => setShowPaywall(true)}
               >
                 🚀 Publish
@@ -357,7 +375,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   }
                 }}
                 size="sm"
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
                 🚀 Publish
               </Button>
@@ -374,24 +392,17 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
           <div className="space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">
             
             {/* Profile Section */}
-            <div className="glass rounded-2xl p-6 space-y-4 border border-white/10 hover:border-white/20 transition-all">
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-lg flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Profile
-                </h2>
-              </div>
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Profile</h2>
               
               {/* Profile Image */}
               <div className="flex items-center gap-4">
                 <div className="relative group">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border-2 border-white/20 group-hover:border-blue-400 transition-all">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border-2 border-white/20 group-hover:border-[#00ff88]/40 transition-all">
                     {profile.image ? (
                       <img src={profile.image} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-[#00ff88] to-[rgba(0,255,136,0.5)]">
+                      <div className="w-full h-full flex items-center justify-center text-2xl bg-[#00ff88]/20">
                         {profile.name?.charAt(0) || '?'}
                       </div>
                     )}
@@ -414,7 +425,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   <Button
                     onClick={() => document.getElementById('profile-img')?.click()}
                     size="sm"
-                    className="w-full bg-[rgba(0,255,136,0.1)] hover:bg-[rgba(0,255,136,0.2)] border border-[rgba(0,255,136,0.3)]"
+                    className="w-full bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -426,25 +437,25 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">Display Name</label>
+                  <label className="text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5 block">Display Name</label>
                   <Input
                     value={profile.name || ""}
                     onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    className="bg-white/5 border-white/10 focus:border-blue-500 transition-colors"
+                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full"
                     placeholder="Your name"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">Bio</label>
+                  <label className="text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5 block">Bio</label>
                   <Textarea
                     value={profile.bio || ""}
                     onChange={(e) => setProfile({...profile, bio: e.target.value})}
-                    className="bg-white/5 border-white/10 focus:border-blue-500 transition-colors resize-none"
+                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full resize-none"
                     rows={3}
                     placeholder="Tell your story..."
                     maxLength={200}
                   />
-                  <div className="text-xs text-gray-500 mt-1 text-right">
+                  <div className="text-[#444] text-xs font-mono mt-1 text-right">
                     {(profile.bio || '').length}/200
                   </div>
                 </div>
@@ -457,8 +468,8 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
           <div className="flex items-center justify-center">
             <div className="relative">
               {/* Phone Frame */}
-              <div className="w-[380px] h-[780px] bg-black rounded-[50px] p-4 shadow-2xl border-[10px] border-gray-900">
-                <div className="w-full h-full rounded-[42px] overflow-hidden relative bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+              <div className="w-[380px] h-[780px] bg-[#0a0a0a] rounded-[32px] p-4 border border-white/[0.08]">
+                <div className="w-full h-full rounded-[24px] overflow-hidden relative bg-[#080808]">
                   
                   {/* Background */}
                   <PremiumBackground />
@@ -467,35 +478,55 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   <div className="relative z-10 h-full overflow-y-auto scrollbar-hide p-8 text-white">
                     
                     {/* Profile */}
-                    <div className="text-center mb-8">
-                      <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden border-4 border-white/20">
-                        {profile.image ? (
-                          <img src={profile.image} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl">
-                            {profile.name?.charAt(0) || "?"}
+                    {(profile.heroStyle ?? 'classic') === 'cinematic' ? (
+                      <div className="relative mb-6 -mx-8 -mt-8">
+                        <div
+                          className="w-full h-32"
+                          style={{ background: 'linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 60%, #080808 100%)' }}
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-3 px-4">
+                          <h2 className="text-lg font-bold text-white text-center drop-shadow">{profile.name || profile.username}</h2>
+                          {profile.bio && <p className="text-[10px] text-white/50 line-clamp-1 mt-0.5 text-center">{profile.bio}</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center mb-8">
+                        <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden border-4 border-white/20">
+                          {profile.image ? (
+                            <img src={profile.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl">
+                              {profile.name?.charAt(0) || "?"}
+                            </div>
+                          )}
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">{profile.name || profile.username}</h2>
+                        {profile.bio && (
+                          <p className="text-sm text-gray-300 opacity-80 line-clamp-3">{profile.bio}</p>
+                        )}
+
+                        {/* Social Icons Top */}
+                        {profile.socialIconPosition === "top" && (
+                          <div className="flex justify-center gap-2 mt-4">
+                            {socialLinks.filter(s => s.enabled).length > 0
+                              ? socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
+                                  <SocialIcon
+                                    key={social.id}
+                                    platform={social.platform}
+                                    url={social.url}
+                                    size={36}
+                                  />
+                                ))
+                              : ['🔗', '▶', '🎵'].map((icon) => (
+                                  <div key={icon} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm opacity-40">
+                                    {icon}
+                                  </div>
+                                ))
+                            }
                           </div>
                         )}
                       </div>
-                      <h2 className="text-2xl font-bold mb-2">{profile.name || profile.username}</h2>
-                      {profile.bio && (
-                        <p className="text-sm text-gray-300 opacity-80 line-clamp-3">{profile.bio}</p>
-                      )}
-
-                      {/* Social Icons Top */}
-                      {profile.socialIconPosition === "top" && socialLinks.filter(s => s.enabled).length > 0 && (
-                        <div className="flex justify-center gap-2 mt-4">
-                          {socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
-                            <SocialIcon
-                              key={social.id}
-                              platform={social.platform}
-                              url={social.url}
-                              size={36}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    )}
 
                     {/* Links */}
                     <div className="space-y-3">
@@ -508,21 +539,41 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                           className="text-sm"
                         />
                       ))}
+                      {links.filter(l => l.enabled).length === 0 && (
+                        <div className="flex flex-col gap-2 w-full px-2">
+                          {['My first link', 'Another link', 'Click here'].map((title) => (
+                            <LinkCard3D
+                              key={title}
+                              title={title}
+                              icon="🔗"
+                              variant={(profile.buttonStyle as any) || '3d'}
+                              className="text-sm opacity-40"
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Social Icons Bottom */}
-                    {profile.socialIconPosition === "bottom" && socialLinks.filter(s => s.enabled).length > 0 && (
-                      <div className="flex justify-center gap-2 mt-8">
-                        {socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
-                          <SocialIcon
-                            key={social.id}
-                            platform={social.platform}
-                            url={social.url}
-                            size={36}
-                          />
-                        ))}
-                      </div>
-                    )}
+                      {/* Social Icons Bottom */}
+                      {profile.socialIconPosition === "bottom" && (
+                        <div className="flex justify-center gap-2 mt-8">
+                          {socialLinks.filter(s => s.enabled).length > 0
+                            ? socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
+                                <SocialIcon
+                                  key={social.id}
+                                  platform={social.platform}
+                                  url={social.url}
+                                  size={36}
+                                />
+                              ))
+                            : ['🔗', '▶', '🎵'].map((icon) => (
+                                <div key={icon} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm opacity-40">
+                                  {icon}
+                                </div>
+                              ))
+                          }
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
@@ -535,18 +586,46 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
           {/* Right Panel - Button Styles & Effects */}
           <div className="space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">
             
+            {/* Hero Style */}
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Hero Style</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { value: 'classic', label: 'Classic', sub: 'Circular avatar with card', Icon: User },
+                  { value: 'cinematic', label: 'Cinematic', sub: 'Full photo, name overlay', Icon: Clapperboard },
+                ] as const).map(({ value, label, sub, Icon }) => {
+                  const active = (profile.heroStyle ?? 'classic') === value
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setProfile({ ...profile, heroStyle: value })}
+                      className={`p-3 rounded-xl text-left font-mono transition-all ${
+                        active
+                          ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
+                          : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 mb-2 ${active ? 'text-[#00ff88]' : 'text-[#444]'}`} />
+                      <div className="text-sm leading-tight">{label}</div>
+                      <div className={`text-[10px] leading-tight mt-0.5 ${active ? 'text-[#00ff88]/60' : 'text-[#333]'}`}>{sub}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* Button Styles */}
-            <div className="glass rounded-2xl p-6 space-y-4">
-              <h2 className="font-bold text-lg">Button Style</h2>
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Button Style</h2>
               <div className="grid grid-cols-2 gap-2">
                 {buttonStyles.map(style => (
                   <button
                     key={style.value}
                     onClick={() => setProfile({...profile, buttonStyle: style.value})}
-                    className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`p-3 rounded-xl text-sm font-mono transition-all ${
                       profile.buttonStyle === style.value
-                        ? 'bg-blue-500 text-white ring-2 ring-blue-500/50'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
+                        : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
                     }`}
                   >
                     {style.name}
@@ -556,25 +635,25 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             </div>
 
             {/* Social Position */}
-            <div className="glass rounded-2xl p-6 space-y-4">
-              <h2 className="font-bold text-lg">Social Icons</h2>
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Social Icons</h2>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setProfile({...profile, socialIconPosition: "top"})}
-                  className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`p-3 rounded-xl text-sm font-mono transition-all ${
                     profile.socialIconPosition === "top"
-                      ? "bg-blue-500 text-white"
-                      : "bg-white/10 text-gray-300 hover:bg-white/20"
+                      ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
+                      : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
                   }`}
                 >
                   Top
                 </button>
                 <button
                   onClick={() => setProfile({...profile, socialIconPosition: "bottom"})}
-                  className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`p-3 rounded-xl text-sm font-mono transition-all ${
                     profile.socialIconPosition === "bottom"
-                      ? "bg-blue-500 text-white"
-                      : "bg-white/10 text-gray-300 hover:bg-white/20"
+                      ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
+                      : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
                   }`}
                 >
                   Bottom
@@ -583,34 +662,36 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             </div>
 
             {/* Stats */}
-            <div className="glass rounded-2xl p-6 space-y-4">
-              <h2 className="font-bold text-lg">Stats</h2>
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Stats</h2>
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Plan</span>
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                    isPro ? "bg-[#00ff88] text-[#030303]" : "bg-white/10"
+                <div className="flex items-center justify-between">
+                  <span className="text-[#444] text-xs font-mono">Plan</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${
+                    isPro
+                      ? "bg-[#00ff88]/10 border border-[#00ff88]/20 text-[#00ff88]"
+                      : "bg-white/5 border border-white/10 text-[#888]"
                   }`}>
                     {isPro ? "PRO" : "FREE"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Links</span>
-                  <span className="font-bold">{links.length}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#444] text-xs font-mono">Links</span>
+                  <span className="text-[#e0e0e0] text-sm font-mono">{links.length}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Social</span>
-                  <span className="font-bold">{socialLinks.length}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#444] text-xs font-mono">Social</span>
+                  <span className="text-[#e0e0e0] text-sm font-mono">{socialLinks.length}</span>
                 </div>
               </div>
             </div>
 
             {/* Manual Save Button */}
-            <div className="glass rounded-2xl p-6">
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6">
               <Button
                 onClick={saveProfile}
                 disabled={saving}
-                className="w-full bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold"
+                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
@@ -650,11 +731,11 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             onClick={() => setPublishedLink(null)}
           />
           
-          <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in">
+          <div className="relative bg-[#0a0a0a] rounded-2xl max-w-md w-full p-8 border border-white/[0.07] animate-scale-in">
             {/* Close button */}
             <button
               onClick={() => setPublishedLink(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-[#444] hover:text-[#888] transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -662,26 +743,26 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             </button>
 
             {/* Success Icon */}
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
+              <svg className="w-10 h-10 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
 
             {/* Content */}
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-3">
+              <h2 className="text-xl font-mono font-semibold text-[#e0e0e0] mb-3">
                 🎉 Your Link is Live!
               </h2>
-              <p className="text-gray-400">
+              <p className="text-[#444] text-sm font-mono">
                 Share this link with your audience to start receiving payments
               </p>
             </div>
 
             {/* Link Display */}
-            <div className="bg-white/5 rounded-xl p-4 mb-6 border border-white/10">
+            <div className="bg-white/[0.03] rounded-xl p-4 mb-6 border border-white/[0.07]">
               <div className="flex items-center gap-3">
-                <div className="flex-1 font-mono text-sm text-blue-400 truncate">
+                <div className="flex-1 font-mono text-sm text-[#00ff88] truncate">
                   {publishedLink}
                 </div>
                 <button
@@ -689,7 +770,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     navigator.clipboard.writeText(publishedLink)
                     toast.success("Link copied!")
                   }}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                  className="px-3 py-2 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-xl text-sm font-mono text-[#e0e0e0] transition-colors flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -703,14 +784,14 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             <div className="space-y-3">
               <Button
                 onClick={() => window.open(publishedLink, '_blank')}
-                className="w-full h-12 bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold"
+                className="w-full h-12 bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
               >
                 View Your Page →
               </Button>
               <Button
                 onClick={() => setPublishedLink(null)}
                 variant="ghost"
-                className="w-full h-12 text-gray-400 hover:text-white"
+                className="w-full h-12 text-[#444] hover:text-[#888] font-mono transition-colors"
               >
                 Continue Editing
               </Button>

@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react"
+import { ReactNode, CSSProperties } from "react"
 import { MediaPreview, detectMediaType, getMediaThumbnail } from "./media-preview"
 
 interface LinkCard3DProps {
@@ -13,6 +13,23 @@ interface LinkCard3DProps {
   className?: string
   clickCount?: number
   showAnalytics?: boolean
+}
+
+const VARIANT_CLASS: Record<string, string> = {
+  default:  "glass-card-hover",
+  glass:    "glass-card-hover",
+  elegant:  "glass-card-hover",
+  "3d":     "bg-[#111] border border-white/[0.12] rounded-[32px] transition-all duration-150 hover:-translate-y-0.5",
+  gradient: "bg-gradient-to-r from-[#00ff88]/15 to-[#00ff88]/5 border border-[#00ff88]/20 rounded-[32px] transition-all duration-300 hover:from-[#00ff88]/25 hover:border-[#00ff88]/35",
+  glow:     "bg-white/[0.02] border border-white/10 rounded-[32px] transition-all duration-300 hover:-translate-y-0.5",
+  neon:     "bg-transparent border-2 border-[#00ff88] rounded-[32px] transition-all duration-300 hover:border-[#00ff88]/70",
+  outline:  "bg-transparent border border-white/20 rounded-[32px] transition-all duration-300 hover:border-white/40",
+}
+
+const VARIANT_STYLE: Record<string, CSSProperties | undefined> = {
+  "3d":  { boxShadow: "4px 6px 0 rgba(255,255,255,0.06)" },
+  glow:  { boxShadow: "0 0 18px rgba(0,255,136,0.12), 0 0 36px rgba(0,255,136,0.05)" },
+  neon:  { boxShadow: "0 0 10px rgba(0,255,136,0.3), inset 0 0 10px rgba(0,255,136,0.04)" },
 }
 
 export function LinkCard3D({ 
@@ -42,6 +59,9 @@ export function LinkCard3D({
   const showMediaPreview = mediaType && !thumbnail && !icon
   const displayThumbnail = thumbnail || mediaThumbnail
 
+  const variantClass = VARIANT_CLASS[variant] ?? VARIANT_CLASS.default
+  const variantStyle = VARIANT_STYLE[variant]
+
   return (
     <a
       href={url || "#"}
@@ -49,9 +69,10 @@ export function LinkCard3D({
       rel="noopener noreferrer"
       onMouseDown={handleTrack}
       onTouchStart={handleTrack}
+      style={variantStyle}
       className={`
         group relative flex items-center gap-4 w-full p-4 sm:p-5
-        glass-card-hover
+        ${variantClass}
         active:scale-[0.98]
         cursor-pointer
         ${className}

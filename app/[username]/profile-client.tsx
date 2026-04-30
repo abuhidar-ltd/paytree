@@ -70,6 +70,7 @@ interface User {
   statsLabel2: string | null
   statsLabel3: string | null
   accentColor: string | null
+  heroStyle?: string | null
 }
 
 interface ProfileClientProps {
@@ -176,73 +177,99 @@ export function ProfileClient({
 
   return (
     <>
-      {/* Profile Header Card */}
-      <ObsidianCard 
-        variant="accent" 
-        enableTilt={true}
-        className="mb-6 p-6 sm:p-8"
-      >
-        {/* Profile Image */}
-        <div className="text-center">
-          <div className="pfp-xl mx-auto mb-4 border-2 border-[rgba(0,255,136,0.3)] shadow-[0_0_30px_rgba(0,255,136,0.2)]">
-            {user.image ? (
-              <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover rounded-full" />
-            ) : (
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00ff88] to-[#1a0b2e] flex items-center justify-center text-4xl font-bold">
-                {user.name?.charAt(0) || user.username.charAt(0).toUpperCase()}
+      {/* Profile Header */}
+      {(user.heroStyle ?? 'classic') === 'cinematic' ? (
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-1 drop-shadow-lg">
+            {user.name || user.username}
+          </h1>
+          {user.name && <p className="text-[#888888] mb-3">@{user.username}</p>}
+          {user.bio && (
+            <p className="text-white/80 text-sm leading-relaxed max-w-sm mx-auto mb-4 drop-shadow">
+              {user.bio}
+            </p>
+          )}
+          {user.liveStatus && user.liveMessage && (
+            <div className="flex justify-center mb-4">
+              <LiveStatusPill message={user.liveMessage} size="md" />
+            </div>
+          )}
+          {socialIconPosition === "top" && socialLinks.length > 0 && (
+            <div className="flex justify-center gap-3 mt-4">
+              {socialLinks.map((s) => (
+                <SocialIcon key={s.id} platform={s.platform} url={s.url} size={40} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <ObsidianCard 
+          variant="accent" 
+          enableTilt={true}
+          className="mb-6 p-6 sm:p-8"
+        >
+          {/* Profile Image */}
+          <div className="text-center">
+            <div className="pfp-xl mx-auto mb-4 border-2 border-[rgba(0,255,136,0.3)] shadow-[0_0_30px_rgba(0,255,136,0.2)]">
+              {user.image ? (
+                <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00ff88] to-[#1a0b2e] flex items-center justify-center text-4xl font-bold">
+                  {user.name?.charAt(0) || user.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            
+            {/* Verified Badge */}
+            {isPublished && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(0,255,136,0.1)] border border-[rgba(0,255,136,0.3)] mb-3">
+                <svg className="w-4 h-4 text-[#00ff88]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+                <span className="text-xs font-bold text-[#00ff88]">VERIFIED</span>
+              </div>
+            )}
+            
+            {/* Name */}
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+              {user.name || user.username}
+            </h1>
+            
+            {/* Username */}
+            {user.name && (
+              <p className="text-[#888888] mb-4">@{user.username}</p>
+            )}
+            
+            {/* Bio */}
+            {user.bio && (
+              <p className="text-[#888888] text-sm sm:text-base leading-relaxed max-w-sm mx-auto mb-4">
+                {user.bio}
+              </p>
+            )}
+            
+            {/* Live Status */}
+            {user.liveStatus && user.liveMessage && (
+              <div className="flex justify-center">
+                <LiveStatusPill message={user.liveMessage} size="md" />
               </div>
             )}
           </div>
           
-          {/* Verified Badge */}
-          {isPublished && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(0,255,136,0.1)] border border-[rgba(0,255,136,0.3)] mb-3">
-              <svg className="w-4 h-4 text-[#00ff88]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-              </svg>
-              <span className="text-xs font-bold text-[#00ff88]">VERIFIED</span>
+          {/* Social Icons - Top */}
+          {socialIconPosition === "top" && socialLinks.length > 0 && (
+            <div className="flex justify-center gap-3 mt-6 pt-6 border-t border-[rgba(255,255,255,0.1)]">
+              {socialLinks.map((social) => (
+                <SocialIcon
+                  key={social.id}
+                  platform={social.platform}
+                  url={social.url}
+                  size={40}
+                />
+              ))}
             </div>
           )}
-          
-          {/* Name */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
-            {user.name || user.username}
-          </h1>
-          
-          {/* Username */}
-          {user.name && (
-            <p className="text-[#888888] mb-4">@{user.username}</p>
-          )}
-          
-          {/* Bio */}
-          {user.bio && (
-            <p className="text-[#888888] text-sm sm:text-base leading-relaxed max-w-sm mx-auto mb-4">
-              {user.bio}
-            </p>
-          )}
-          
-          {/* Live Status */}
-          {user.liveStatus && user.liveMessage && (
-            <div className="flex justify-center">
-              <LiveStatusPill message={user.liveMessage} size="md" />
-            </div>
-          )}
-        </div>
-        
-        {/* Social Icons - Top */}
-        {socialIconPosition === "top" && socialLinks.length > 0 && (
-          <div className="flex justify-center gap-3 mt-6 pt-6 border-t border-[rgba(255,255,255,0.1)]">
-            {socialLinks.map((social) => (
-              <SocialIcon
-                key={social.id}
-                platform={social.platform}
-                url={social.url}
-                size={40}
-              />
-            ))}
-          </div>
-        )}
-      </ObsidianCard>
+        </ObsidianCard>
+      )}
 
       {/* Bento Stats */}
       {showStats && (
