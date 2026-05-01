@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const linkSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
-  url: z.string().url().optional(),
-  enabled: z.boolean().optional(),
+  title:    z.string().min(1).max(100).optional(),
+  url:      z.string().url().optional(),
+  enabled:  z.boolean().optional(),
+  style:    z.string().optional(),
+  cardSize: z.string().optional(),
 })
 
 export async function PATCH(

@@ -558,40 +558,77 @@ export default function DashboardPage() {
 
                     {/* Links List */}
                     {regularLinks.map((link) => (
-                      <GlassBrick key={link.id} className="flex items-center gap-4 !p-4">
-                        <div className="w-12 h-12 rounded-xl bg-[rgba(0,255,136,0.1)] flex items-center justify-center text-xl">
-                          {link.icon || "🔗"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-white truncate">{link.title}</div>
-                          <div className="text-sm text-[#888888] truncate">{link.url}</div>
-                        </div>
-                        {link._count?.clicks !== undefined && (
-                          <div className="px-3 py-1 rounded-full bg-[rgba(0,255,136,0.1)] text-[#00ff88] text-sm font-bold">
-                            {link._count.clicks}
+                      <GlassBrick key={link.id} className="!p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-[rgba(0,255,136,0.1)] flex items-center justify-center text-xl">
+                            {link.icon || "🔗"}
                           </div>
-                        )}
-                        <button
-                          onClick={() => toggleLink(link.id, !link.enabled)}
-                          className={`w-12 h-7 rounded-full transition-all ${
-                            link.enabled 
-                              ? "bg-[rgba(0,255,136,0.2)] border-[rgba(0,255,136,0.5)]" 
-                              : "bg-[rgba(255,255,255,0.1)]"
-                          } border relative`}
-                        >
-                          <motion.div
-                            className={`absolute top-0.5 w-6 h-6 rounded-full ${link.enabled ? "bg-[#00ff88]" : "bg-white"}`}
-                            animate={{ left: link.enabled ? "calc(100% - 26px)" : "2px" }}
-                          />
-                        </button>
-                        <button
-                          onClick={() => deleteLink(link.id)}
-                          className="p-2 text-[#888888] hover:text-red-500 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-white truncate">{link.title}</div>
+                            <div className="text-sm text-[#888888] truncate">{link.url}</div>
+                          </div>
+                          {link._count?.clicks !== undefined && (
+                            <div className="px-3 py-1 rounded-full bg-[rgba(0,255,136,0.1)] text-[#00ff88] text-sm font-bold">
+                              {link._count.clicks}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => toggleLink(link.id, !link.enabled)}
+                            className={`w-12 h-7 rounded-full transition-all ${
+                              link.enabled 
+                                ? "bg-[rgba(0,255,136,0.2)] border-[rgba(0,255,136,0.5)]" 
+                                : "bg-[rgba(255,255,255,0.1)]"
+                            } border relative`}
+                          >
+                            <motion.div
+                              className={`absolute top-0.5 w-6 h-6 rounded-full ${link.enabled ? "bg-[#00ff88]" : "bg-white"}`}
+                              animate={{ left: link.enabled ? "calc(100% - 26px)" : "2px" }}
+                            />
+                          </button>
+                          <button
+                            onClick={() => deleteLink(link.id)}
+                            className="p-2 text-[#888888] hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                        {/* Per-card style selector */}
+                        <div className="flex gap-1.5 flex-wrap pt-3 mt-3 border-t border-white/[0.05]">
+                          {(['glass','3d','gradient','glow','neon'] as const).map((s) => {
+                            const active = (link.style || 'glass') === s
+                            return (
+                              <button
+                                key={s}
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/links/${link.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ style: s }),
+                                    })
+                                    if (!res.ok) {
+                                      toast.error('Failed to update style')
+                                      return
+                                    }
+                                    setLinks(prev => prev.map(l => l.id === link.id ? { ...l, style: s } : l))
+                                    toast.success('Style updated')
+                                  } catch {
+                                    toast.error('Failed to update style')
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
+                                  active
+                                    ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
+                                    : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
+                                }`}
+                              >
+                                {s === '3d' ? '3D' : s.charAt(0).toUpperCase() + s.slice(1)}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </GlassBrick>
                     ))}
 

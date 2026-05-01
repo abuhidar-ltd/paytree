@@ -90,6 +90,7 @@ model Link {
   order     Int      @default(0)
   enabled   Boolean  @default(true)
   style     String?  @default("default") // default, gradient, glass, 3d
+  cardSize  String   @default("full") // full, half, compact
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

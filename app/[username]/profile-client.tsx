@@ -7,6 +7,7 @@ import { LiveStatusPill } from "@/components/ui/live-status-pill"
 import { CryptoVaultPortal } from "@/components/ui/crypto-vault"
 import { SocialIcon } from "@/components/social-icon"
 import { VaultPortal } from "@/components/ui/vault-portal"
+import { LinkCard3D } from "@/components/ui/link-card-3d"
 import { BentoGrid, type BentoModule } from "@/components/ui/bento-modules"
 import { useApplyAccentColor } from "@/contexts/accent-color-context"
 
@@ -18,6 +19,7 @@ interface PortalLink {
   isFolder: boolean
   isStarred?: boolean
   type?: string
+  cardStyle?: string
   children: PortalLink[]
 }
 
@@ -84,6 +86,7 @@ interface ProfileClientProps {
   socialIconPosition: string
   isPublished: boolean
   isLive?: boolean
+  buttonStyle?: string
 }
 
 export function ProfileClient({
@@ -97,6 +100,7 @@ export function ProfileClient({
   socialIconPosition,
   isPublished,
   isLive = false,
+  buttonStyle,
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -421,13 +425,13 @@ export function ProfileClient({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (topLevelFolders.length + index) * 0.1 }}
               >
-                <GlassBrick onClick={() => handleLinkClick(link)}>
-                  <div className="label flex items-center gap-1.5">
-                    {link.isStarred && <span className="text-yellow-400 text-xs">★</span>}
-                    <span>{link.type && link.type !== "generic" ? link.type.charAt(0).toUpperCase() + link.type.slice(1) : "Link"}</span>
-                  </div>
-                  <div className="title">{link.icon} {link.title}</div>
-                </GlassBrick>
+                <LinkCard3D
+                  title={link.title}
+                  url={link.url}
+                  icon={link.icon}
+                  variant={(link.cardStyle && link.cardStyle !== 'default' ? link.cardStyle : (buttonStyle || 'glass')) as any}
+                  onTrackClick={() => trackClick(link.id, false)}
+                />
               </motion.div>
             ))}
 

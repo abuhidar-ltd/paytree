@@ -57,6 +57,7 @@ export default async function PreviewPage({
     url: link.isFolder ? undefined : link.url,
     icon: link.icon || undefined,
     isFolder: link.isFolder,
+    cardStyle: link.style || undefined,
     children: link.isFolder 
       ? user.links.filter(child => child.parentId === link.id).map(child => ({
           id: child.id,
@@ -64,6 +65,7 @@ export default async function PreviewPage({
           url: child.url,
           icon: child.icon || undefined,
           isFolder: false,
+          cardStyle: child.style || undefined,
           children: []
         }))
       : []
@@ -211,6 +213,7 @@ export default async function PreviewPage({
             }))}
             socialIconPosition={socialIconPosition}
             isPublished={false}
+            buttonStyle={user.buttonStyle ?? undefined}
           />
         </div>
       </div>

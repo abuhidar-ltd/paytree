@@ -117,6 +117,7 @@ export default async function ProfilePage({
     isFolder: link.isFolder,
     isStarred: link.isStarred,
     type: link.type,
+    cardStyle: link.style || undefined,
     children: link.isFolder
       ? visibleLinks
           .filter((child) => child.parentId === link.id)
@@ -128,6 +129,7 @@ export default async function ProfilePage({
             isFolder: false,
             isStarred: child.isStarred,
             type: child.type,
+            cardStyle: child.style || undefined,
             children: [],
           }))
       : [],
@@ -252,6 +254,7 @@ export default async function ProfilePage({
             socialIconPosition={socialIconPosition}
             isPublished={isPublished}
             isLive={user.liveStatus}
+            buttonStyle={user.buttonStyle ?? undefined}
           />
         </div>
       </div>
