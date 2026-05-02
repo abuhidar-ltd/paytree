@@ -58,6 +58,7 @@ export default async function PreviewPage({
     icon: link.icon || undefined,
     isFolder: link.isFolder,
     cardStyle: link.style || undefined,
+    cardSize: link.cardSize || undefined,
     children: link.isFolder 
       ? user.links.filter(child => child.parentId === link.id).map(child => ({
           id: child.id,
@@ -89,6 +90,23 @@ export default async function PreviewPage({
     address: addr.address,
     label: addr.label || undefined,
     enabled: addr.enabled,
+  }))
+
+  // Fetch enabled drops
+  const dropsRaw = await prisma.drop.findMany({
+    where: { userId: user.id, enabled: true },
+    orderBy: { dropAt: "asc" },
+  })
+  const drops = dropsRaw.map((d) => ({
+    id: d.id,
+    title: d.title,
+    description: d.description || undefined,
+    dropAt: d.dropAt.toISOString(),
+    revealUrl: d.revealUrl || undefined,
+    revealText: d.revealText || undefined,
+    status: d.status,
+    limitedSpots: d.limitedSpots ?? undefined,
+    spotsLeft: d.spotsLeft ?? undefined,
   }))
 
   return (
@@ -214,6 +232,7 @@ export default async function PreviewPage({
             socialIconPosition={socialIconPosition}
             isPublished={false}
             buttonStyle={user.buttonStyle ?? undefined}
+            drops={drops}
           />
         </div>
       </div>

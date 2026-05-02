@@ -20,6 +20,7 @@ interface PortalLink {
   isStarred?: boolean
   type?: string
   cardStyle?: string
+  cardSize?: string
   children: PortalLink[]
 }
 
@@ -57,6 +58,18 @@ interface VaultItem {
   vaultContent?: string
 }
 
+interface Drop {
+  id: string
+  title: string
+  description?: string
+  dropAt: string
+  revealUrl?: string
+  revealText?: string
+  status: string
+  limitedSpots?: number
+  spotsLeft?: number
+}
+
 interface User {
   id: string
   name: string | null
@@ -87,6 +100,7 @@ interface ProfileClientProps {
   isPublished: boolean
   isLive?: boolean
   buttonStyle?: string
+  drops?: Drop[]
 }
 
 export function ProfileClient({
@@ -101,6 +115,7 @@ export function ProfileClient({
   isPublished,
   isLive = false,
   buttonStyle,
+  drops = [],
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -387,6 +402,15 @@ export function ProfileClient({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="bento-grid mb-6"
           >
+            {/* Drops */}
+            {drops.length > 0 && (
+              <div className="span-2 flex flex-col gap-3">
+                {drops.map((drop) => (
+                  <DropCard key={drop.id} drop={drop} />
+                ))}
+              </div>
+            )}
+
             {/* Folders First */}
             {topLevelFolders.map((link, index) => (
               <motion.div
@@ -418,22 +442,25 @@ export function ProfileClient({
             )}
             
             {/* Regular Links (starred first) */}
-            {[...topLevelLinks].sort((a, b) => (b.isStarred ? 1 : 0) - (a.isStarred ? 1 : 0)).map((link, index) => (
-              <motion.div
-                key={link.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (topLevelFolders.length + index) * 0.1 }}
-              >
-                <LinkCard3D
-                  title={link.title}
-                  url={link.url}
-                  icon={link.icon}
-                  variant={(link.cardStyle && link.cardStyle !== 'default' ? link.cardStyle : (buttonStyle || 'glass')) as any}
-                  onTrackClick={() => trackClick(link.id, false)}
-                />
-              </motion.div>
-            ))}
+            <div className="flex flex-wrap gap-3 span-2">
+              {[...topLevelLinks].sort((a, b) => (b.isStarred ? 1 : 0) - (a.isStarred ? 1 : 0)).map((link, index) => (
+                <motion.div
+                  key={link.id}
+                  className={link.cardSize === 'half' ? 'w-[calc(50%-6px)]' : 'w-full'}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: (topLevelFolders.length + index) * 0.1 }}
+                >
+                  <LinkCard3D
+                    title={link.title}
+                    url={link.url}
+                    icon={link.icon}
+                    variant={(link.cardStyle && link.cardStyle !== 'default' ? link.cardStyle : (buttonStyle || 'glass')) as any}
+                    onTrackClick={() => trackClick(link.id, false)}
+                  />
+                </motion.div>
+              ))}
+            </div>
 
             {/* Shop Products */}
             {products.length > 0 && (
@@ -536,4 +563,108 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
   if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
   return num.toString()
+}
+
+function DropCard({ drop }: { drop: Drop }) {
+  const target = new Date(drop.dropAt).getTime()
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const remaining = Math.max(0, target - now)
+  const isLive = remaining === 0
+  const days = Math.floor(remaining / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24)
+  const minutes = Math.floor((remaining / (1000 * 60)) % 60)
+  const seconds = Math.floor((remaining / 1000) % 60)
+
+  const statusLabel = isLive
+    ? drop.revealUrl || drop.revealText
+      ? "LIVE"
+      : "ENDED"
+    : "SCHEDULED"
+
+  const soldOut = drop.spotsLeft !== undefined && drop.spotsLeft <= 0
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.12)] p-5">
+      <div
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(0,255,136,0.3), transparent)",
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[#00ff88]/60 text-xs font-mono uppercase tracking-widest">
+          DROP · {statusLabel}
+        </div>
+        {drop.limitedSpots !== undefined && drop.spotsLeft !== undefined && (
+          <div
+            className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+              soldOut
+                ? "bg-red-500/10 border-red-500/30 text-red-400"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+            }`}
+          >
+            {soldOut ? "Sold out" : `${drop.spotsLeft} spots left`}
+          </div>
+        )}
+      </div>
+
+      <div className="text-xl font-semibold text-white mb-1">{drop.title}</div>
+      {drop.description && (
+        <div className="text-sm text-[#888] mb-4">{drop.description}</div>
+      )}
+
+      {!isLive ? (
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {[
+            { label: "Days", value: days },
+            { label: "Hours", value: hours },
+            { label: "Min", value: minutes },
+            { label: "Sec", value: seconds },
+          ].map((unit) => (
+            <div
+              key={unit.label}
+              className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-3 text-center"
+            >
+              <div className="text-2xl font-mono font-semibold text-white tabular-nums">
+                {unit.value.toString().padStart(2, "0")}
+              </div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
+                {unit.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : soldOut ? (
+        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+          This drop has sold out
+        </div>
+      ) : drop.revealUrl ? (
+        <a
+          href={drop.revealUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center justify-center w-full px-4 py-3 rounded-xl bg-[#00ff88] text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
+        >
+          Access now →
+        </a>
+      ) : drop.revealText ? (
+        <div className="mt-2 px-4 py-3 rounded-xl bg-[#0a0a0a] border border-white/[0.06] text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap">
+          {drop.revealText}
+        </div>
+      ) : (
+        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+          Drop ended
+        </div>
+      )}
+    </div>
+  )
 }

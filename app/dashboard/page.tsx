@@ -29,6 +29,7 @@ interface DbLink {
   order: number
   icon?: string
   style?: string
+  cardSize?: string
   isFolder: boolean
   parentId: string | null
   _count?: { clicks: number }
@@ -104,6 +105,19 @@ interface Product {
   salesCount?: number
 }
 
+interface DbDrop {
+  id: string
+  title: string
+  description?: string
+  dropAt: string
+  revealUrl?: string
+  revealText?: string
+  status: string
+  limitedSpots?: number
+  spotsLeft?: number
+  enabled: boolean
+}
+
 export default function DashboardPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
@@ -116,15 +130,25 @@ export default function DashboardPage() {
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([])
   const [modules, setModules] = useState<BentoModule[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [drops, setDrops] = useState<DbDrop[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<"links" | "portals" | "modules" | "products" | "live" | "stats" | "crypto" | "vault" | "style">("links")
+  const [activeTab, setActiveTab] = useState<"links" | "portals" | "modules" | "products" | "drops" | "live" | "stats" | "crypto" | "vault" | "style">("links")
 
   // Forms
   const [newLink, setNewLink] = useState({ title: "", url: "", icon: "💳" })
   const [isAddingLink, setIsAddingLink] = useState(false)
   const [newSocialLink, setNewSocialLink] = useState({ platform: "instagram", url: "" })
   const [isAddingSocial, setIsAddingSocial] = useState(false)
+  const [newDrop, setNewDrop] = useState({
+    title: "",
+    description: "",
+    dropAt: "",
+    revealUrl: "",
+    revealText: "",
+    limitedSpots: "",
+  })
+  const [isAddingDrop, setIsAddingDrop] = useState(false)
 
   const isPro = profile?.subscriptionStatus === 'active' || profile?.subscriptionStatus === 'trial' || profile?.subscriptionStatus === 'canceling'
 
@@ -138,7 +162,7 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [profileRes, linksRes, socialRes, cryptoRes, vaultRes, modulesRes, productsRes] = await Promise.all([
+      const [profileRes, linksRes, socialRes, cryptoRes, vaultRes, modulesRes, productsRes, dropsRes] = await Promise.all([
         fetch("/api/profile"),
         fetch("/api/links"),
         fetch("/api/social-links"),
@@ -146,6 +170,7 @@ export default function DashboardPage() {
         fetch("/api/vault/items"),
         fetch("/api/modules"),
         fetch("/api/products"),
+        fetch("/api/drops"),
       ])
 
       if (profileRes.ok) setProfile(await profileRes.json())
@@ -155,6 +180,7 @@ export default function DashboardPage() {
       if (vaultRes.ok) setVaultItems(await vaultRes.json())
       if (modulesRes.ok) setModules(await modulesRes.json())
       if (productsRes.ok) setProducts(await productsRes.json())
+      if (dropsRes.ok) setDrops(await dropsRes.json())
     } catch (error) {
       console.error("Failed to load data:", error)
       toast.error("Failed to load dashboard data. Please refresh.")
@@ -213,6 +239,73 @@ export default function DashboardPage() {
     } catch (error) {
       setLinks(previousLinks)
       toast.error("Failed to delete link. Please try again.")
+    }
+  }
+
+  // Drop handlers
+  const addDrop = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newDrop.title || !newDrop.dropAt) return
+    setSaving(true)
+    try {
+      const limitedSpotsNum = newDrop.limitedSpots ? parseInt(newDrop.limitedSpots, 10) : undefined
+      const payload = {
+        title: newDrop.title,
+        description: newDrop.description || undefined,
+        dropAt: new Date(newDrop.dropAt).toISOString(),
+        revealUrl: newDrop.revealUrl || undefined,
+        revealText: newDrop.revealText || undefined,
+        limitedSpots: Number.isFinite(limitedSpotsNum as number) ? limitedSpotsNum : undefined,
+        spotsLeft: Number.isFinite(limitedSpotsNum as number) ? limitedSpotsNum : undefined,
+      }
+      const res = await fetch("/api/drops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        const drop = await res.json()
+        setDrops(prev => [...prev, drop])
+        setNewDrop({ title: "", description: "", dropAt: "", revealUrl: "", revealText: "", limitedSpots: "" })
+        setIsAddingDrop(false)
+        toast.success("Drop scheduled!")
+      } else {
+        const error = await res.json()
+        toast.error(error.error || "Failed to add drop")
+      }
+    } catch (error) {
+      toast.error("Failed to add drop")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleDrop = async (id: string, enabled: boolean) => {
+    const previous = drops
+    setDrops(prev => prev.map(d => d.id === id ? { ...d, enabled } : d))
+    try {
+      const res = await fetch(`/api/drops/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      })
+      if (!res.ok) throw new Error("toggle failed")
+    } catch (error) {
+      setDrops(previous)
+      toast.error("Failed to update drop. Please try again.")
+    }
+  }
+
+  const deleteDrop = async (id: string) => {
+    if (!confirm("Delete this drop?")) return
+    const previous = drops
+    setDrops(prev => prev.filter(d => d.id !== id))
+    try {
+      const res = await fetch(`/api/drops/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("delete failed")
+    } catch (error) {
+      setDrops(previous)
+      toast.error("Failed to delete drop. Please try again.")
     }
   }
 
@@ -468,6 +561,7 @@ export default function DashboardPage() {
                 { id: "portals", label: "Portals", icon: "🚪" },
                 { id: "modules", label: "Modules", icon: "🧩" },
                 { id: "products", label: "Products", icon: "🛒" },
+                { id: "drops", label: "Drops", icon: "⏳" },
                 { id: "vault", label: "Vault", icon: "🔒" },
                 { id: "live", label: "Live", icon: "📡" },
                 { id: "stats", label: "Stats", icon: "📊" },
@@ -629,6 +723,41 @@ export default function DashboardPage() {
                             )
                           })}
                         </div>
+                        {/* Per-card size selector */}
+                        <div className="flex gap-1.5 pt-2">
+                          {(['full','half'] as const).map((size) => {
+                            const active = (link.cardSize || 'full') === size
+                            return (
+                              <button
+                                key={size}
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/links/${link.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ cardSize: size }),
+                                    })
+                                    if (!res.ok) {
+                                      toast.error('Failed to update size')
+                                      return
+                                    }
+                                    setLinks(prev => prev.map(l => l.id === link.id ? { ...l, cardSize: size } : l))
+                                    toast.success('Size updated')
+                                  } catch {
+                                    toast.error('Failed to update size')
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
+                                  active
+                                    ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
+                                    : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
+                                }`}
+                              >
+                                {size === 'full' ? 'Full' : 'Half'}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </GlassBrick>
                     ))}
 
@@ -771,6 +900,150 @@ export default function DashboardPage() {
                     onProductsChange={setProducts}
                     isPro={isPro}
                   />
+                )}
+
+                {/* Drops Tab */}
+                {activeTab === "drops" && (
+                  <div className="space-y-4">
+                    {!isAddingDrop ? (
+                      <button
+                        onClick={() => setIsAddingDrop(true)}
+                        className="w-full glass-brick text-center group py-8"
+                      >
+                        <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">⏳</div>
+                        <div className="font-bold text-white">Schedule a Drop</div>
+                        <div className="text-sm text-[#888888] mt-1">Countdown card with reveal at zero</div>
+                      </button>
+                    ) : (
+                      <ObsidianCard variant="accent" className="p-6">
+                        <h3 className="font-bold text-xl mb-4 text-white">Schedule Drop</h3>
+                        <form onSubmit={addDrop} className="space-y-4">
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Title</label>
+                            <input
+                              value={newDrop.title}
+                              onChange={(e) => setNewDrop({ ...newDrop, title: e.target.value })}
+                              className="input-obsidian w-full"
+                              placeholder="Album Drop"
+                              autoFocus
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Description (optional)</label>
+                            <input
+                              value={newDrop.description}
+                              onChange={(e) => setNewDrop({ ...newDrop, description: e.target.value })}
+                              className="input-obsidian w-full"
+                              placeholder="Limited release. Don't miss it."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Drop Date & Time</label>
+                            <input
+                              type="datetime-local"
+                              value={newDrop.dropAt}
+                              onChange={(e) => setNewDrop({ ...newDrop, dropAt: e.target.value })}
+                              className="input-obsidian w-full"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Reveal URL (optional)</label>
+                            <input
+                              value={newDrop.revealUrl}
+                              onChange={(e) => setNewDrop({ ...newDrop, revealUrl: e.target.value })}
+                              className="input-obsidian w-full"
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Reveal Text (optional)</label>
+                            <textarea
+                              value={newDrop.revealText}
+                              onChange={(e) => setNewDrop({ ...newDrop, revealText: e.target.value })}
+                              className="input-obsidian w-full min-h-[80px]"
+                              placeholder="Code: PAYTREE25"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5">Limited Spots (optional)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={newDrop.limitedSpots}
+                              onChange={(e) => setNewDrop({ ...newDrop, limitedSpots: e.target.value })}
+                              className="input-obsidian w-full"
+                              placeholder="100"
+                            />
+                          </div>
+                          <div className="flex gap-3">
+                            <Button type="submit" variant="accent-solid" className="flex-1" disabled={!newDrop.title || !newDrop.dropAt || saving}>
+                              {saving ? "Scheduling..." : "Schedule Drop"}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setIsAddingDrop(false)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </ObsidianCard>
+                    )}
+
+                    {/* Drops list */}
+                    {drops.map((drop) => {
+                      const dropDate = new Date(drop.dropAt)
+                      const isPast = dropDate.getTime() <= Date.now()
+                      return (
+                        <GlassBrick key={drop.id} className="!p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[rgba(0,255,136,0.1)] flex items-center justify-center text-xl">
+                              ⏳
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-white truncate">{drop.title}</div>
+                              <div className="text-sm text-[#888888] truncate font-mono">
+                                {isPast ? "Released" : "Drops"} · {dropDate.toLocaleString()}
+                              </div>
+                            </div>
+                            {drop.limitedSpots !== undefined && drop.spotsLeft !== undefined && (
+                              <div className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono">
+                                {drop.spotsLeft}/{drop.limitedSpots}
+                              </div>
+                            )}
+                            <button
+                              onClick={() => toggleDrop(drop.id, !drop.enabled)}
+                              className={`w-12 h-7 rounded-full transition-all ${
+                                drop.enabled
+                                  ? "bg-[rgba(0,255,136,0.2)] border-[rgba(0,255,136,0.5)]"
+                                  : "bg-[rgba(255,255,255,0.1)]"
+                              } border relative`}
+                            >
+                              <motion.div
+                                className={`absolute top-0.5 w-6 h-6 rounded-full ${drop.enabled ? "bg-[#00ff88]" : "bg-white"}`}
+                                animate={{ left: drop.enabled ? "calc(100% - 26px)" : "2px" }}
+                              />
+                            </button>
+                            <button
+                              onClick={() => deleteDrop(drop.id)}
+                              className="p-2 text-[#888888] hover:text-red-500 transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </GlassBrick>
+                      )
+                    })}
+
+                    {drops.length === 0 && !isAddingDrop && (
+                      <GlassBrick className="text-center py-12">
+                        <div className="text-5xl mb-4 opacity-40">⏳</div>
+                        <div className="font-bold text-white mb-1">No drops yet</div>
+                        <div className="text-sm text-[#888888]">Build hype with a countdown card</div>
+                      </GlassBrick>
+                    )}
+                  </div>
                 )}
 
                 {/* Live Status Tab */}

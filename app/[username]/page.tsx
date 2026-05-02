@@ -118,6 +118,7 @@ export default async function ProfilePage({
     isStarred: link.isStarred,
     type: link.type,
     cardStyle: link.style || undefined,
+    cardSize: link.cardSize || undefined,
     children: link.isFolder
       ? visibleLinks
           .filter((child) => child.parentId === link.id)
@@ -166,6 +167,23 @@ export default async function ProfilePage({
     currency: p.currency,
     imageUrl: p.imageUrl || undefined,
     downloadUrl: p.downloadUrl || undefined,
+  }))
+
+  // Fetch enabled drops
+  const dropsRaw = await prisma.drop.findMany({
+    where: { userId: user.id, enabled: true },
+    orderBy: { dropAt: "asc" },
+  })
+  const drops = dropsRaw.map((d) => ({
+    id: d.id,
+    title: d.title,
+    description: d.description || undefined,
+    dropAt: d.dropAt.toISOString(),
+    revealUrl: d.revealUrl || undefined,
+    revealText: d.revealText || undefined,
+    status: d.status,
+    limitedSpots: d.limitedSpots ?? undefined,
+    spotsLeft: d.spotsLeft ?? undefined,
   }))
 
   return (
@@ -255,6 +273,7 @@ export default async function ProfilePage({
             isPublished={isPublished}
             isLive={user.liveStatus}
             buttonStyle={user.buttonStyle ?? undefined}
+            drops={drops}
           />
         </div>
       </div>

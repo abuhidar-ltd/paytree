@@ -75,6 +75,7 @@ model User {
   products        Product[]
   bioHistories    BioHistory[]
   aiInsights      AiInsight[]
+  drops           Drop[]
 
   @@index([username])
   @@index([email])
@@ -338,4 +339,25 @@ model AiInsight {
 
   @@index([userId])
   @@index([userId, dismissed])
+}
+
+// ===== DROPS (countdown reveal cards) =====
+model Drop {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?  @db.Text
+  dropAt       DateTime
+  revealUrl    String?  @db.Text
+  revealText   String?  @db.Text
+  status       String   @default("scheduled") // scheduled | live | ended
+  limitedSpots Int?
+  spotsLeft    Int?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, enabled])
 }
