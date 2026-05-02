@@ -2,6 +2,8 @@
 
 // Module Components
 export { YouTubeModule } from "./youtube-module"
+export { YoutubeChannelModule } from "./youtube-channel-module"
+export { PodcastModule } from "./podcast-module"
 export { SpotifyModule, AppleMusicModule } from "./spotify-module"
 export { ImageModule } from "./image-module"
 export { LiveStreamModule } from "./live-stream-module"

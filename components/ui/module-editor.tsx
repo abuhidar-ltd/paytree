@@ -23,10 +23,11 @@ interface ModuleEditorProps {
 }
 
 const MODULE_TYPES: { type: ModuleType; label: string; icon: string; span: number; proOnly?: boolean }[] = [
-  { type: "youtube", label: "YouTube Video", icon: "📹", span: 2 },
+  { type: "youtube", label: "YouTube Channel", icon: "📹", span: 2 },
   { type: "tiktok", label: "TikTok Video", icon: "🎵", span: 2 },
   { type: "spotify", label: "Spotify Track", icon: "🎧", span: 2 },
   { type: "apple_music", label: "Apple Music", icon: "🎶", span: 2 },
+  { type: "podcast", label: "Podcast", icon: "🎙️", span: 2 },
   { type: "image", label: "Image Showcase", icon: "🖼️", span: 1 },
   { type: "twitch", label: "Twitch Live", icon: "🎮", span: 1 },
   { type: "youtube_live", label: "YouTube Live", icon: "🔴", span: 1 },
@@ -144,13 +145,28 @@ export function ModuleEditor({ modules, onModulesChange, isPro }: ModuleEditorPr
     
     switch (selectedType) {
       case "youtube":
+        return (
+          <>
+            <input
+              value={moduleConfig.channelId || ""}
+              onChange={(e) => setModuleConfig({ ...moduleConfig, channelId: e.target.value })}
+              placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
+              className="input-obsidian w-full"
+              autoFocus
+            />
+            <p className="text-xs font-mono text-[#444]">
+              Find this in your channel URL: youtube.com/channel/UC...
+            </p>
+          </>
+        )
+
       case "tiktok":
         return (
           <>
             <input
               value={moduleConfig.videoUrl || ""}
               onChange={(e) => setModuleConfig({ ...moduleConfig, videoUrl: e.target.value })}
-              placeholder="Video URL (YouTube or TikTok)"
+              placeholder="TikTok video URL"
               className="input-obsidian w-full"
               autoFocus
             />
@@ -160,6 +176,22 @@ export function ModuleEditor({ modules, onModulesChange, isPro }: ModuleEditorPr
               placeholder="Title (optional)"
               className="input-obsidian w-full"
             />
+          </>
+        )
+
+      case "podcast":
+        return (
+          <>
+            <input
+              value={moduleConfig.rssUrl || ""}
+              onChange={(e) => setModuleConfig({ ...moduleConfig, rssUrl: e.target.value })}
+              placeholder="https://feeds.example.com/podcast.xml"
+              className="input-obsidian w-full"
+              autoFocus
+            />
+            <p className="text-xs font-mono text-[#444]">
+              Your podcast RSS feed URL
+            </p>
           </>
         )
       

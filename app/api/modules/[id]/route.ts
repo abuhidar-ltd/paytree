@@ -9,7 +9,7 @@ const updateModuleSchema = z.object({
   type: z.enum([
     "youtube", "tiktok", "spotify", "apple_music", "image",
     "twitch", "youtube_live", "social_hub", "rss",
-    "vault_teaser", "quick_tip", "payment"
+    "vault_teaser", "quick_tip", "payment", "podcast"
   ]).optional(),
   title: z.string().optional().nullable(),
   span: z.number().min(1).max(4).optional(),

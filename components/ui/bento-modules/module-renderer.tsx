@@ -1,6 +1,8 @@
 "use client"
 
 import { YouTubeModule } from "./youtube-module"
+import { YoutubeChannelModule } from "./youtube-channel-module"
+import { PodcastModule } from "./podcast-module"
 import { SpotifyModule, AppleMusicModule } from "./spotify-module"
 import { ImageModule } from "./image-module"
 import { LiveStreamModule } from "./live-stream-module"
@@ -24,6 +26,7 @@ export type ModuleType =
   | "vault_teaser" 
   | "quick_tip" 
   | "payment"
+  | "podcast"
 
 export interface BentoModule {
   id: string
@@ -51,11 +54,37 @@ export function ModuleRenderer({ module, userId, onVaultUnlock }: ModuleRenderer
       : ""
   
   switch (module.type) {
-    case "youtube":
+    case "youtube": {
+      // New: channel-based latest-video card when channelId is set.
+      // Backward compat: existing video-URL configs still render the old YouTubeModule.
+      const cfg = module.config as { channelId?: string; videoUrl?: string; title?: string }
+      if (cfg.channelId) {
+        return (
+          <YoutubeChannelModule
+            config={{ channelId: cfg.channelId }}
+            span={module.span === 4 ? 4 : 2}
+          />
+        )
+      }
+      return (
+        <YouTubeModule
+          config={module.config as { videoUrl: string; title?: string }}
+          span={module.span === 4 ? 4 : 2}
+        />
+      )
+    }
     case "tiktok":
       return (
         <YouTubeModule
           config={module.config as { videoUrl: string; title?: string }}
+          span={module.span === 4 ? 4 : 2}
+        />
+      )
+
+    case "podcast":
+      return (
+        <PodcastModule
+          config={module.config as { rssUrl?: string }}
           span={module.span === 4 ? 4 : 2}
         />
       )

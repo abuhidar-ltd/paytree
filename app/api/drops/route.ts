@@ -49,35 +49,6 @@ export async function POST(req: Request) {
     const body = await req.json()
     const data = dropSchema.parse(body)
 
-    // #region agent log
-    try {
-      const prismaKeys = Object.keys(prisma as unknown as Record<string, unknown>).filter(k => !k.startsWith('_') && !k.startsWith('$'))
-      let resolvedClientPath = ''
-      try { resolvedClientPath = require.resolve('@prisma/client') } catch {}
-      fetch('http://127.0.0.1:7441/ingest/3c6a1684-3cb1-4052-b2b4-537764f95ede', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '66da0d' },
-        body: JSON.stringify({
-          sessionId: '66da0d',
-          runId: 'run1',
-          hypothesisId: 'A,B,C',
-          location: 'app/api/drops/route.ts:POST',
-          message: 'prisma client introspection at runtime',
-          data: {
-            hasDrop: typeof (prisma as any).drop !== 'undefined',
-            hasLink: typeof (prisma as any).link !== 'undefined',
-            hasUser: typeof (prisma as any).user !== 'undefined',
-            modelKeys: prismaKeys,
-            modelCount: prismaKeys.length,
-            resolvedClientPath,
-            nodeEnv: process.env.NODE_ENV,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-    } catch {}
-    // #endregion
-
     const drop = await prisma.drop.create({
       data: {
         userId: currentUser.id,

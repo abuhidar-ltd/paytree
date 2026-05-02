@@ -10,7 +10,7 @@ const createModuleSchema = z.object({
   type: z.enum([
     "youtube", "tiktok", "spotify", "apple_music", "image",
     "twitch", "youtube_live", "social_hub", "rss",
-    "vault_teaser", "quick_tip", "payment"
+    "vault_teaser", "quick_tip", "payment", "podcast"
   ]),
   title: z.string().optional(),
   span: z.number().min(1).max(4).default(1),
