@@ -47,3 +47,5 @@ prisma/dev.db-journal
 
 # clerk configuration (can include secrets)
 /.clerk/
+.env
+.env.local
