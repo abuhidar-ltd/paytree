@@ -647,9 +647,13 @@ export default function DashboardPage() {
           const res = await fetch("/api/products", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "Untitled product", price: 0 }),
+            body: JSON.stringify({ title: "Untitled product", price: 100 }),
           })
-          if (!res.ok) throw new Error()
+          if (!res.ok) {
+            const errorData = await res.json()
+            toast.error(errorData.error || "Failed to add product")
+            return
+          }
           const p = await res.json()
           setProducts(prev => [...prev, p])
           setExpandedBlockId(p.id)
@@ -707,11 +711,6 @@ export default function DashboardPage() {
     if (fields.url !== undefined) body.url = fields.url
     if (fields.icon !== undefined) body.icon = fields.icon
 
-    // Optimistic: update preview immediately, clear edit state
-    const previousLinks = links.slice()
-    setLinks(prev => prev.map(l => (l.id === id ? { ...l, ...body } as DbLink : l)))
-    clearFields(blockKey)
-
     try {
       const res = await fetch(`/api/links/${id}`, {
         method: "PATCH",
@@ -719,9 +718,10 @@ export default function DashboardPage() {
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
+      setLinks(prev => prev.map(l => (l.id === id ? { ...l, ...body } as DbLink : l)))
+      clearFields(blockKey)
       toast.success("Saved")
     } catch {
-      setLinks(previousLinks)
       toast.error("Failed to save")
     }
   }
@@ -747,8 +747,7 @@ export default function DashboardPage() {
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
-      const updated = await res.json()
-      setDrops(prev => prev.map(d => (d.id === id ? { ...d, ...updated, dropAt: updated.dropAt } : d)))
+      setDrops(prev => prev.map(d => (d.id === id ? { ...d, ...body } as DbDrop : d)))
       clearFields(blockKey)
       toast.success("Saved")
     } catch {
@@ -1106,7 +1105,7 @@ export default function DashboardPage() {
 
               {/* Dynamic blocks */}
               {allBlocks.map((block) => {
-                const blockKey = `${block.kind}:${block.id}`
+                const blockKey = block.id
                 let icon = "•"
                 let label = ""
                 let badge = ""
