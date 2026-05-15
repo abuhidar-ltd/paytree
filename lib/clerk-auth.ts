@@ -43,6 +43,7 @@ export async function getCurrentUser() {
         image: user.image,
         subscriptionStatus: user.subscriptionStatus,
         pageStatus: user.pageStatus,
+        onboarded: user.onboarded,
       };
     }
 
@@ -79,7 +80,7 @@ export async function getCurrentUser() {
       });
 
       console.log("[clerk-auth] Updated existing user:", user.id);
-      
+
       return {
         id: user.id,
         clerkId: userId,
@@ -89,6 +90,7 @@ export async function getCurrentUser() {
         image: user.image,
         subscriptionStatus: user.subscriptionStatus,
         pageStatus: user.pageStatus,
+        onboarded: user.onboarded,
       };
     }
 
@@ -156,6 +158,7 @@ export async function getCurrentUser() {
       image: user.image,
       subscriptionStatus: user.subscriptionStatus,
       pageStatus: user.pageStatus,
+      onboarded: user.onboarded,
     };
   } catch (error: any) {
     console.error("[clerk-auth] Error in getCurrentUser:", error.message);

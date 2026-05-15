@@ -57,7 +57,7 @@ export function ShareButton({
     return (
       <button
         onClick={handleShare}
-        className={`fixed top-6 right-6 z-50 glass rounded-full p-4 hover:bg-white/20 transition-all group btn-3d ${className}`}
+        className={`fixed top-4 right-4 z-50 glass rounded-full p-3 hover:bg-white/20 transition-all group btn-3d ${className}`}
         aria-label="Share profile"
       >
         {copied ? (

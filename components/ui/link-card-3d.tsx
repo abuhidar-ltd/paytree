@@ -109,7 +109,7 @@ export function LinkCard3D({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-white text-base sm:text-lg truncate group-hover:text-[#00ff88] transition-colors">
+        <h3 className="font-semibold text-white text-base sm:text-lg break-words group-hover:text-[#00ff88] transition-colors">
           {title}
         </h3>
         

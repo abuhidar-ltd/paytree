@@ -6,6 +6,7 @@ import { z } from "zod"
 
 const profileSchema = z.object({
   name: z.string().nullable().optional(),
+  username: z.string().min(3).max(30).regex(/^[a-z0-9_-]+$/).optional(),
   bio: z.string().max(200).nullable().optional(),
   image: z.string().nullable().optional().or(z.literal("")), // Allow data URLs and null
   theme: z.string().nullable().optional(),
@@ -19,6 +20,7 @@ const profileSchema = z.object({
   textColor: z.string().nullable().optional(),
   socialIconPosition: z.string().nullable().optional(),
   heroStyle: z.string().nullable().optional(),
+  onboarded: z.boolean().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
 
 export async function GET() {
@@ -96,15 +98,25 @@ export async function PATCH(req: Request) {
       )
     }
     
-    const { 
-      name, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
-      backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle
+    const {
+      name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
+      backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
+      onboarded,
     } = profileSchema.parse(body)
+
+    // Check username uniqueness if being changed
+    if (username && username !== currentUser.username) {
+      const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } })
+      if (existing) {
+        return NextResponse.json({ error: "Username already taken" }, { status: 409 })
+      }
+    }
 
     const user = await prisma.user.update({
       where: { id: currentUser.id },
       data: {
         name,
+        ...(username !== undefined && { username }),
         bio,
         image: image || null,
         theme,
@@ -118,6 +130,7 @@ export async function PATCH(req: Request) {
         textColor,
         socialIconPosition,
         heroStyle,
+        ...(onboarded !== undefined && { onboarded }),
       },
       select: {
         id: true,

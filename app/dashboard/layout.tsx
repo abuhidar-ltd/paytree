@@ -13,6 +13,10 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
+  if (!user.onboarded) {
+    redirect("/onboarding")
+  }
+
   return (
     <DashboardSidebar
       user={{
