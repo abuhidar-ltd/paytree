@@ -21,6 +21,7 @@ const profileSchema = z.object({
   socialIconPosition: z.string().nullable().optional(),
   heroStyle: z.string().nullable().optional(),
   onboarded: z.boolean().optional(),
+  aiAgentEnabled: z.boolean().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
 
 export async function GET() {
@@ -62,6 +63,7 @@ export async function GET() {
         statsLabel1: true,
         statsLabel2: true,
         statsLabel3: true,
+        aiAgentEnabled: true,
       }
     })
     
@@ -101,7 +103,7 @@ export async function PATCH(req: Request) {
     const {
       name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
       backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
-      onboarded,
+      onboarded, aiAgentEnabled,
     } = profileSchema.parse(body)
 
     // Check username uniqueness if being changed
@@ -131,6 +133,7 @@ export async function PATCH(req: Request) {
         socialIconPosition,
         heroStyle,
         ...(onboarded !== undefined && { onboarded }),
+        ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
       },
       select: {
         id: true,

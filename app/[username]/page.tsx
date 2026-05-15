@@ -7,7 +7,7 @@ import { ProfileClient } from "./profile-client"
 import { ShareButton } from "@/components/share-button"
 import { ProfileLocked } from "./profile-locked"
 import { PublishBanner } from "./publish-banner"
-import { resolveUserPlan } from "@/lib/plans"
+import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
 
 export const revalidate = 60
 
@@ -114,6 +114,8 @@ export default async function ProfilePage({
   const isPublished = user.pageStatus === "published"
   const userPlan = resolveUserPlan(user)
   const isPaid = userPlan !== "free"
+  const userFeatures = getUserFeatures(user)
+  const showAiAgent = !isOwner && userFeatures.hasAiFeatures && user.aiAgentEnabled
 
   if (!isOwner && (!isPublished || !isPaid)) {
     return <ProfileLocked username={user.username} />
@@ -303,6 +305,8 @@ export default async function ProfilePage({
             isLive={user.liveStatus}
             buttonStyle={user.buttonStyle ?? undefined}
             drops={drops}
+            showAiAgent={showAiAgent}
+            accentColor={user.accentColor ?? undefined}
           />
         </div>
       </div>

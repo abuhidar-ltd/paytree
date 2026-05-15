@@ -80,6 +80,7 @@ interface Profile {
   statsLabel2: string | null
   statsLabel3: string | null
   accentColor: string | null
+  aiAgentEnabled: boolean
 }
 
 interface BentoModule {
@@ -378,6 +379,25 @@ export default function DashboardPage() {
       setProfile(prev => prev ? { ...prev, liveMessage: message } : null)
     } catch (error) {
       toast.error("Failed to update message")
+    }
+  }
+
+  // AI Agent handler
+  const toggleAiAgent = async (enabled: boolean) => {
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiAgentEnabled: enabled }),
+      })
+      if (!res.ok) {
+        toast.error("Failed to update AI Agent")
+        return
+      }
+      setProfile((prev) => (prev ? { ...prev, aiAgentEnabled: enabled } : null))
+      toast.success(enabled ? "AI Agent enabled" : "AI Agent disabled")
+    } catch {
+      toast.error("Failed to update AI Agent")
     }
   }
 
@@ -1100,6 +1120,53 @@ export default function DashboardPage() {
                       }
                     }}
                   />
+                </BlockRow>
+              )}
+
+              {/* Singleton: AI Agent */}
+              {profile && (
+                <BlockRow
+                  id="__aiagent__"
+                  icon="✦"
+                  label="AI Agent"
+                  badge="AI"
+                  enabled={profile.aiAgentEnabled}
+                  expanded={expandedBlockId === "__aiagent__"}
+                  onToggle={() => toggleExpand("__aiagent__")}
+                  onEnableToggle={(v) => toggleAiAgent(v)}
+                >
+                  <div className="px-4 pb-4 pt-1 space-y-3">
+                    {isPro ? (
+                      <>
+                        <p className="text-xs font-mono text-[#888]">
+                          Your AI agent answers visitor questions and guides them to your products 24/7.
+                        </p>
+                        <span
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border ${
+                            profile.aiAgentEnabled
+                              ? "bg-[#00ff88]/10 border-[#00ff88]/20 text-[#00ff88]"
+                              : "bg-white/[0.03] border-white/[0.08] text-[#444]"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              profile.aiAgentEnabled ? "bg-[#00ff88] animate-pulse" : "bg-[#444]"
+                            }`}
+                          />
+                          {profile.aiAgentEnabled ? "Active on your page" : "Hidden from visitors"}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs font-mono text-[#888]">
+                          Your AI agent answers visitor questions and guides them to your products 24/7.
+                        </p>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-[#00ff88]/10 border border-[#00ff88]/20 text-[#00ff88]">
+                          Pro feature — upgrade to activate
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </BlockRow>
               )}
 

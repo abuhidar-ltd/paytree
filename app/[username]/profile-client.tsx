@@ -10,6 +10,7 @@ import { VaultPortal } from "@/components/ui/vault-portal"
 import { LinkCard3D } from "@/components/ui/link-card-3d"
 import { BentoGrid, type BentoModule } from "@/components/ui/bento-modules"
 import { useApplyAccentColor } from "@/contexts/accent-color-context"
+import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 
 interface PortalLink {
   id: string
@@ -101,6 +102,8 @@ interface ProfileClientProps {
   isLive?: boolean
   buttonStyle?: string
   drops?: Drop[]
+  showAiAgent?: boolean
+  accentColor?: string
 }
 
 export function ProfileClient({
@@ -116,6 +119,8 @@ export function ProfileClient({
   isLive = false,
   buttonStyle,
   drops = [],
+  showAiAgent = false,
+  accentColor,
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -540,8 +545,8 @@ export function ProfileClient({
 
       {/* Branding */}
       <div className="text-center">
-        <a 
-          href="/" 
+        <a
+          href="/"
           className="inline-flex items-center gap-3 px-6 py-3 glass-brick rounded-full hover:bg-[rgba(255,255,255,0.05)] transition-all group"
         >
           <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-110 transition-transform" />
@@ -550,11 +555,20 @@ export function ProfileClient({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </a>
-        
+
         <p className="text-xs text-[#555555] mt-6">
           0% commissions by PayTree. Third-party fees may apply.
         </p>
       </div>
+
+      {/* AI Agent chat */}
+      {showAiAgent && (
+        <AiAgentChat
+          username={user.username}
+          creatorName={user.name || user.username}
+          accentColor={accentColor || user.accentColor || "#00ff88"}
+        />
+      )}
     </>
   )
 }
