@@ -162,7 +162,10 @@ model View {
   userAgent String?
   referrer  String?
   country   String?
-  
+  city      String?
+  lat       Float?
+  lng       Float?
+
   // ===== OBSIDIAN ANALYTICS =====
   wasLive     Boolean @default(false)  // Was user live when this view happened
   isUnique    Boolean @default(true)   // First visit from this fingerprint

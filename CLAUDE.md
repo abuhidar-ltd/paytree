@@ -362,6 +362,7 @@ CRON_SECRET=...                    # Used by /api/cron/optimize-links
 - **Stripe integration** — subscription checkout, webhooks, post-purchase delivery email via Resend, cancel/reactivate
 - **Analytics dashboard** — views, clicks, CTR, referrals (Pro), vault unlocks, audience CRM, CSV export
 - **Settings page** — subscription management, cancel/reactivate, account deletion
+- **Onboarding flow** — 5-step wizard at `/onboarding`; identity, accent color, category, first link, publish; live phone preview; auto-redirects new users from `/dashboard`; marks `user.onboarded=true` on completion
 
 ## Recently Fixed / Changed
 
@@ -475,3 +476,4 @@ if (plan === "free") return NextResponse.json({ error: "Upgrade required" }, { s
 | **Resend for email** | Simple API, good deliverability; `from` always `Paytree <noreply@paytree.to>` |
 | **Vercel Blob for uploads** | Tight Vercel integration; falls back gracefully if `BLOB_READ_WRITE_TOKEN` missing |
 | **No `pageStatus` via profile PATCH** | Zod schema uses `.strict()` to block injection; only `/api/publish` can set status |
+| **Auto-redirect to onboarding** | New users with `onboarded=false` are redirected from `/dashboard` to `/onboarding` automatically |

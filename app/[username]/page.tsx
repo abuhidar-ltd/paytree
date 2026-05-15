@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
@@ -23,13 +24,36 @@ export async function generateStaticParams() {
   }
 }
 
-async function trackView(userId: string, wasLive: boolean) {
+const PRIVATE_IP = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::ffff:127\.)/
+
+async function lookupGeo(ip: string): Promise<{ country?: string; city?: string; lat?: number; lng?: number }> {
+  if (!ip || PRIVATE_IP.test(ip)) return {}
   try {
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=country,city,lat,lon`, {
+      signal: AbortSignal.timeout(3000),
+    })
+    if (!res.ok) return {}
+    const data = await res.json()
+    return {
+      country: data.country || undefined,
+      city: data.city || undefined,
+      lat: typeof data.lat === "number" ? data.lat : undefined,
+      lng: typeof data.lon === "number" ? data.lon : undefined,
+    }
+  } catch {
+    return {}
+  }
+}
+
+async function trackView(userId: string, wasLive: boolean, ip: string | null) {
+  try {
+    const geo = ip ? await lookupGeo(ip) : {}
     await prisma.view.create({
       data: {
         userId,
         userAgent: "server-side",
         wasLive,
+        ...geo,
       },
     })
   } catch (error) {
@@ -95,9 +119,14 @@ export default async function ProfilePage({
     return <ProfileLocked username={user.username} />
   }
 
-  // Track view for non-owners
+  // Track view for non-owners (with geo lookup)
   if (!isOwner && isPublished) {
-    trackView(user.id, user.liveStatus).catch(console.error)
+    const reqHeaders = await headers()
+    const forwarded = reqHeaders.get("x-forwarded-for")
+    const ip = forwarded
+      ? forwarded.split(",")[0].trim()
+      : (reqHeaders.get("x-real-ip") ?? null)
+    trackView(user.id, user.liveStatus, ip).catch(console.error)
   }
 
   const socialIconPosition = user.socialIconPosition || "bottom"
