@@ -561,7 +561,41 @@ async function handleProductPurchase(session: Stripe.Checkout.Session) {
         </div>
       `,
     })
-    
+
+    // Notify the creator of their sale (fire-and-forget so buyer delivery isn't affected)
+    const saleAmount = session.amount_total
+      ? `$${(session.amount_total / 100).toFixed(2)}`
+      : "—"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"
+
+    resend.emails.send({
+      from: "Paytree <noreply@paytree.to>",
+      to: purchase.product.user.email,
+      subject: "You just made a sale 🎉",
+      html: `
+        <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;font-family:monospace;">
+          <div style="color:#00ff88;font-size:20px;font-weight:bold;margin-bottom:24px;">You just made a sale</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;border-bottom:1px solid #1a1a1a;">Product</td>
+              <td style="color:#e0e0e0;font-size:13px;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${purchase.product.title}</td>
+            </tr>
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;border-bottom:1px solid #1a1a1a;">Amount</td>
+              <td style="color:#00ff88;font-size:16px;font-weight:bold;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${saleAmount}</td>
+            </tr>
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;">Buyer</td>
+              <td style="color:#e0e0e0;font-size:13px;padding:10px 0;text-align:right;">${purchase.buyerEmail}</td>
+            </tr>
+          </table>
+          <a href="${appUrl}/dashboard/analytics" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:32px;">View your sales →</a>
+          <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
+          <div style="color:#444;font-size:11px;">@${purchase.product.user.username} on Paytree</div>
+        </div>
+      `,
+    }).catch(() => {})
+
   } catch (error: any) {
     console.error("[STRIPE WEBHOOK] ❌ Error completing product purchase:", error.message)
   }

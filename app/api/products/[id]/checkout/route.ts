@@ -4,7 +4,6 @@ import Stripe from "stripe"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
-// POST - Create a Stripe checkout session for a product
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,7 +11,6 @@ export async function POST(
   try {
     const { id: productId } = await params
 
-    // Get the product
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -21,6 +19,8 @@ export async function POST(
             username: true,
             name: true,
             stripeCustomerId: true,
+            stripeAccountId: true,
+            platformFeePercent: true,
           },
         },
       },
@@ -34,49 +34,60 @@ export async function POST(
       return NextResponse.json({ error: "Product is not available" }, { status: 400 })
     }
 
-    // Create a pending purchase record
+    if (!product.user.stripeAccountId) {
+      return NextResponse.json(
+        { error: "Creator hasn't connected their Stripe account yet" },
+        { status: 400 }
+      )
+    }
+
     const purchase = await prisma.purchase.create({
       data: {
         productId: product.id,
-        buyerEmail: "", // Will be updated from webhook
+        buyerEmail: "",
         amount: product.price,
         status: "pending",
       },
     })
 
-    // Get the origin for redirect URLs
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const feePercent = product.user.platformFeePercent ?? 8
+    const applicationFeeAmount = Math.round(product.price * feePercent / 100)
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: product.currency,
-            product_data: {
-              name: product.title,
-              description: product.description || undefined,
-              images: product.imageUrl ? [product.imageUrl] : undefined,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: product.currency,
+              product_data: {
+                name: product.title,
+                description: product.description || undefined,
+                images: product.imageUrl ? [product.imageUrl] : undefined,
+              },
+              unit_amount: product.price,
             },
-            unit_amount: product.price,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        payment_intent_data: {
+          application_fee_amount: applicationFeeAmount,
         },
-      ],
-      metadata: {
-        type: "product_purchase",
-        purchaseId: purchase.id,
-        productId: product.id,
-        sellerId: product.userId,
+        metadata: {
+          type: "product_purchase",
+          purchaseId: purchase.id,
+          productId: product.id,
+          sellerId: product.userId,
+        },
+        success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/${product.user.username}`,
+        customer_email: undefined,
       },
-      success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/${product.user.username}`,
-      customer_email: undefined, // Let user enter their email
-    })
+      { stripeAccount: product.user.stripeAccountId }
+    )
 
-    // Update purchase with session ID
     await prisma.purchase.update({
       where: { id: purchase.id },
       data: { stripeSessionId: session.id },

@@ -104,6 +104,7 @@ interface ProfileClientProps {
   drops?: Drop[]
   showAiAgent?: boolean
   accentColor?: string
+  creatorStripeReady?: boolean
 }
 
 export function ProfileClient({
@@ -121,6 +122,7 @@ export function ProfileClient({
   drops = [],
   showAiAgent = false,
   accentColor,
+  creatorStripeReady = false,
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -477,7 +479,7 @@ export function ProfileClient({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: (topLevelFolders.length + topLevelLinks.length + index) * 0.1 }}
                   >
-                    <GlassBrick onClick={() => handleProductCheckout(product.id)}>
+                    <GlassBrick onClick={creatorStripeReady ? () => handleProductCheckout(product.id) : undefined}>
                       {product.imageUrl && (
                         <div className="w-full h-24 rounded-lg overflow-hidden mb-3 -mt-1">
                           <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
@@ -488,9 +490,15 @@ export function ProfileClient({
                       {product.description && (
                         <p className="text-xs text-[#888888] mt-1 line-clamp-2">{product.description}</p>
                       )}
-                      <div className="mt-2 text-[#00ff88] font-bold text-sm">
-                        ${(product.price / 100).toFixed(2)} {product.currency.toUpperCase()}
-                      </div>
+                      {creatorStripeReady ? (
+                        <div className="mt-2 text-[#00ff88] font-bold text-sm">
+                          ${(product.price / 100).toFixed(2)} {product.currency.toUpperCase()}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-[#444] font-mono text-xs">
+                          Payments not set up
+                        </div>
+                      )}
                     </GlassBrick>
                   </motion.div>
                 ))}

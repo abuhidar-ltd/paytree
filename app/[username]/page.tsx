@@ -307,6 +307,7 @@ export default async function ProfilePage({
             drops={drops}
             showAiAgent={showAiAgent}
             accentColor={user.accentColor ?? undefined}
+            creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
           />
         </div>
       </div>

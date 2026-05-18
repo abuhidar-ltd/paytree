@@ -31,6 +31,11 @@ model User {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
+  // Stripe Connect (creator direct payments)
+  stripeAccountId     String?
+  stripeAccountStatus String?  @default("not_connected")
+  platformFeePercent  Int?     @default(8)
+
   // Theme customization
   theme           String? @default("dark") // dark, light, custom
   primaryColor    String? @default("#3b82f6")

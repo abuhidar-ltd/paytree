@@ -12,7 +12,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/stripe/webhook",  // Stripe webhook endpoint (correct path)
   "/api/track-click",
   "/api/health",
-  "/api/ai/agent",      // Public AI agent for public profiles
+  "/api/ai/agent",        // Public AI agent for public profiles
+  "/api/social/youtube",  // YouTube social card (no auth needed)
+  "/api/social/podcast",  // Podcast social card (no auth needed)
   "/:username",
   "/preview/:username",
 ]);

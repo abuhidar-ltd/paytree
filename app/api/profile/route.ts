@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
+import { Resend } from "resend"
 import { z } from "zod"
 
 const profileSchema = z.object({
@@ -64,6 +65,9 @@ export async function GET() {
         statsLabel2: true,
         statsLabel3: true,
         aiAgentEnabled: true,
+        stripeAccountId: true,
+        stripeAccountStatus: true,
+        subscriptionPlan: true,
       }
     })
     
@@ -158,6 +162,48 @@ export async function PATCH(req: Request) {
     })
 
     revalidatePath(`/${user.username}`)
+
+    // Send welcome email on first onboarding completion (fire-and-forget)
+    if (onboarded === true && !currentUser.onboarded) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"
+      const profileUrl = `${appUrl}/${user.username}`
+
+      resend.emails.send({
+        from: "Paytree <noreply@paytree.to>",
+        to: user.email,
+        subject: "Your Paytree page is live",
+        html: `
+          <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;font-family:monospace;">
+            <div style="color:#00ff88;font-size:22px;font-weight:bold;margin-bottom:6px;">Your page is ready.</div>
+            <div style="color:#888;font-size:13px;margin-bottom:32px;">Share it with your audience.</div>
+
+            <a href="${profileUrl}" style="display:inline-block;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;padding:12px 24px;border-radius:999px;margin-bottom:40px;">${profileUrl.replace("https://", "")}</a>
+
+            <div style="color:#e0e0e0;font-size:13px;margin-bottom:16px;">Here's what to do next:</div>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr style="border-bottom:1px solid #1a1a1a;">
+                <td style="padding:12px 0;font-size:16px;width:32px;">🔒</td>
+                <td style="padding:12px 0;color:#e0e0e0;font-size:13px;">Add a vault to capture emails</td>
+              </tr>
+              <tr style="border-bottom:1px solid #1a1a1a;">
+                <td style="padding:12px 0;font-size:16px;">⚡</td>
+                <td style="padding:12px 0;color:#e0e0e0;font-size:13px;">Create a drop for your next launch</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 0;font-size:16px;">📺</td>
+                <td style="padding:12px 0;color:#e0e0e0;font-size:13px;">Connect YouTube to show your latest video</td>
+              </tr>
+            </table>
+
+            <a href="${appUrl}/dashboard" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:32px;">Go to dashboard →</a>
+
+            <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
+            <div style="color:#444;font-size:11px;">Paytree · paytree.to</div>
+          </div>
+        `,
+      }).catch(() => {})
+    }
 
     return NextResponse.json(user)
   } catch (error) {

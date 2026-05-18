@@ -52,9 +52,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "AI agent is disabled" }, { status: 403 })
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: "AI not configured" }, { status: 500 })
+      return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set" }, { status: 503 })
     }
 
     const vaultItems = await prisma.link.findMany({
@@ -95,35 +95,33 @@ ${vaultList}
 
 Always end with a clear next step. Keep responses concise — under 3 sentences.`
 
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "claude-haiku-4-5-20251001",
+        system: systemPrompt,
+        messages: messages.slice(-10).map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        max_tokens: 1024,
         stream: true,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages.slice(-10).map((m: { role: string; content: string }) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        ],
-        max_tokens: 300,
-        temperature: 0.7,
       }),
     })
 
-    if (!openaiRes.ok || !openaiRes.body) {
-      console.error("[ai/agent] OpenAI error:", await openaiRes.text().catch(() => "unknown"))
+    if (!anthropicRes.ok || !anthropicRes.body) {
+      console.error("[ai/agent] Anthropic error:", await anthropicRes.text().catch(() => "unknown"))
       return NextResponse.json({ error: "AI service unavailable" }, { status: 502 })
     }
 
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
-    const upstreamReader = openaiRes.body.getReader()
+    const upstreamReader = anthropicRes.body.getReader()
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -138,15 +136,14 @@ Always end with a clear next step. Keep responses concise — under 3 sentences.
             for (const line of lines) {
               if (!line.startsWith("data: ")) continue
               const data = line.slice(6).trim()
-              if (data === "[DONE]") {
-                controller.close()
-                return
-              }
               try {
                 const parsed = JSON.parse(data)
-                const content = parsed.choices?.[0]?.delta?.content
-                if (content) {
-                  controller.enqueue(encoder.encode(content))
+                if (
+                  parsed.type === "content_block_delta" &&
+                  parsed.delta?.type === "text_delta" &&
+                  parsed.delta.text
+                ) {
+                  controller.enqueue(encoder.encode(parsed.delta.text))
                 }
               } catch {
                 // Skip malformed SSE lines

@@ -8,6 +8,12 @@ import Link from "next/link"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { toast } from "sonner"
 
+function feeForPlan(plan: string | null | undefined): number {
+  if (plan === "pro") return 0
+  if (plan === "starter") return 3
+  return 8
+}
+
 interface SubscriptionInfo {
   status: string
   endsAt?: string
@@ -24,6 +30,7 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [disconnecting, setDisconnecting] = useState(false)
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -32,6 +39,44 @@ export default function SettingsPage() {
       loadProfile()
     }
   }, [isLoaded, user, router])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stripeParam = params.get("stripe")
+    if (stripeParam === "success") {
+      const checkAndRefresh = async () => {
+        try {
+          const res = await fetch("/api/stripe/connect/status")
+          const data = await res.json()
+          if (data.status === "active") {
+            toast.success("Stripe account connected!")
+          } else {
+            toast.success("Stripe onboarding started. Finish setup in Stripe to activate payments.")
+          }
+        } catch {
+          toast.success("Stripe account connected!")
+        }
+        loadProfile()
+      }
+      checkAndRefresh()
+    } else if (stripeParam === "error") {
+      toast.error("Failed to connect Stripe account. Please try again.")
+    }
+  }, [])
+
+  useEffect(() => {
+    if (profile?.stripeAccountStatus !== "pending") return
+    const checkStatus = async () => {
+      try {
+        const res = await fetch("/api/stripe/connect/status")
+        const data = await res.json()
+        if (data.status === "active") {
+          await loadProfile()
+        }
+      } catch {}
+    }
+    checkStatus()
+  }, [profile?.stripeAccountStatus])
 
   const loadProfile = async () => {
     try {
@@ -96,6 +141,24 @@ export default function SettingsPage() {
     }
   }
 
+  const handleDisconnectStripe = async () => {
+    if (!confirm("Disconnect your Stripe account? Buyers will no longer be able to purchase your products.")) return
+    setDisconnecting(true)
+    try {
+      const res = await fetch("/api/stripe/connect/disconnect", { method: "POST" })
+      if (res.ok) {
+        toast.success("Stripe account disconnected.")
+        await loadProfile()
+      } else {
+        toast.error("Failed to disconnect Stripe account.")
+      }
+    } catch {
+      toast.error("Failed to disconnect Stripe account.")
+    } finally {
+      setDisconnecting(false)
+    }
+  }
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "DELETE") {
       toast.error('Please type "DELETE" to confirm')
@@ -142,6 +205,8 @@ export default function SettingsPage() {
   const isPro = profile?.subscriptionStatus === 'active' || profile?.subscriptionStatus === 'trial' || profile?.subscriptionStatus === 'canceling'
   const isCanceling = profile?.subscriptionStatus === 'canceling'
   const isCanceled = profile?.subscriptionStatus === 'canceled'
+  const stripeStatus = profile?.stripeAccountStatus ?? "not_connected"
+  const feePercent = feeForPlan(profile?.subscriptionPlan)
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
@@ -280,6 +345,82 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {/* Payments */}
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 sm:p-6">
+            <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">Payments</h2>
+
+            {stripeStatus === "active" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse" />
+                  <span className="text-[#00ff88] text-sm font-mono font-semibold">Stripe Connected</span>
+                </div>
+                <p className="text-[#888] text-sm">
+                  Buyers pay directly to your Stripe account. Paytree takes {feePercent}% per transaction.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="https://dashboard.stripe.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl px-4 py-2.5 text-sm hover:border-white/20 transition-colors"
+                  >
+                    View Stripe Dashboard →
+                  </a>
+                  <button
+                    onClick={handleDisconnectStripe}
+                    disabled={disconnecting}
+                    className="flex-1 bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-4 py-2.5 text-sm hover:border-red-500/60 transition-colors disabled:opacity-50"
+                  >
+                    {disconnecting ? "Disconnecting..." : "Disconnect"}
+                  </button>
+                </div>
+              </div>
+            ) : stripeStatus === "pending" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                  <span className="text-yellow-400 text-sm font-mono font-semibold">Onboarding Pending</span>
+                </div>
+                <p className="text-[#888] text-sm">
+                  Your Stripe account is created but onboarding isn't complete yet. Finish setup to start accepting payments.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="/api/stripe/connect"
+                    className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
+                  >
+                    Continue Onboarding →
+                  </a>
+                  <button
+                    onClick={handleDisconnectStripe}
+                    disabled={disconnecting}
+                    className="flex-1 bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-4 py-2.5 text-sm hover:border-red-500/60 transition-colors disabled:opacity-50"
+                  >
+                    {disconnecting ? "Disconnecting..." : "Disconnect"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-[#888] text-sm">
+                  Connect your Stripe account to sell products and receive payments directly.
+                </p>
+                <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
+                  <p className="text-xs font-mono text-[#555]">
+                    Paytree takes {feePercent}% per transaction based on your plan · Free: 8% · Starter: 3% · Pro: 0%
+                  </p>
+                </div>
+                <a
+                  href="/api/stripe/connect"
+                  className="block w-full text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
+                >
+                  Connect Stripe →
+                </a>
+              </div>
+            )}
+          </div>
 
           {/* Danger Zone */}
           <div className="bg-red-500/[0.04] border border-red-500/20 rounded-2xl p-5 sm:p-6">
