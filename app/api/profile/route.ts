@@ -118,6 +118,14 @@ export async function PATCH(req: Request) {
       }
     }
 
+    // Generate referral code on first onboarding completion
+    const isFirstOnboarding = onboarded === true && !currentUser.onboarded
+    let referralCode: string | undefined
+    if (isFirstOnboarding) {
+      const effectiveUsername = username ?? currentUser.username
+      referralCode = `${effectiveUsername}-${Math.random().toString(36).substring(2, 8)}`
+    }
+
     const user = await prisma.user.update({
       where: { id: currentUser.id },
       data: {
@@ -138,6 +146,7 @@ export async function PATCH(req: Request) {
         heroStyle,
         ...(onboarded !== undefined && { onboarded }),
         ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
+        ...(referralCode !== undefined && { referralCode }),
       },
       select: {
         id: true,

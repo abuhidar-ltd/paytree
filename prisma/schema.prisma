@@ -73,6 +73,11 @@ model User {
   // AI Agent
   aiAgentEnabled Boolean @default(true)
 
+  // Referral / affiliate
+  referralCode     String?  @unique
+  referredBy       String?
+  referralEarnings Int      @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -87,7 +92,9 @@ model User {
   bioHistories    BioHistory[]
   aiInsights      AiInsight[]
   drops           Drop[]
-  socialProofs    SocialProof[]
+  socialProofs      SocialProof[]
+  referralsGiven    Referral[] @relation("ReferrerReferrals")
+  referralsReceived Referral[] @relation("ReferredReferrals")
 
   @@index([username])
   @@index([email])
@@ -375,6 +382,20 @@ model Drop {
 
   @@index([userId])
   @@index([userId, enabled])
+}
+
+// ===== REFERRAL / AFFILIATE =====
+model Referral {
+  id          String    @id @default(cuid())
+  referrerId  String
+  referrer    User      @relation("ReferrerReferrals", fields: [referrerId], references: [id])
+  referredId  String    @unique
+  referred    User      @relation("ReferredReferrals", fields: [referredId], references: [id])
+  status      String    @default("pending") // "pending" | "converted"
+  createdAt   DateTime  @default(now())
+  convertedAt DateTime?
+
+  @@index([referrerId])
 }
 
 // ===== SOCIAL PROOF NOTIFICATIONS =====

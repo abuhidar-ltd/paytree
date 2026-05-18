@@ -238,6 +238,20 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         body: JSON.stringify({ onboarded: true }),
       })
 
+      // Record referral if user arrived via a ref link
+      const refCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("paytree_ref="))
+        ?.split("=")[1]
+      if (refCookie) {
+        fetch("/api/referral", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referralCode: decodeURIComponent(refCookie) }),
+        }).catch(() => {})
+        document.cookie = "paytree_ref=; path=/; max-age=0"
+      }
+
       setIsSaved(true)
       router.push("/dashboard")
     } catch (err) {

@@ -1,10 +1,19 @@
 "use client"
 
+import { useEffect } from "react"
 import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
 
 export default function RegisterPage() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get("ref")
+    if (ref) {
+      document.cookie = `paytree_ref=${encodeURIComponent(ref)}; path=/; max-age=604800; SameSite=Lax`
+    }
+  }, [])
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />

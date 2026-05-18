@@ -134,6 +134,13 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [drops, setDrops] = useState<DbDrop[]>([])
   const [loading, setLoading] = useState(true)
+  const [referralStats, setReferralStats] = useState<{
+    referralCode: string | null
+    referralLink: string | null
+    totalReferrals: number
+    convertedReferrals: number
+    totalEarnings: string
+  } | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Blocks UI state
@@ -162,6 +169,15 @@ export default function DashboardPage() {
   void newDrop; void setNewDrop; void isAddingDrop; void setIsAddingDrop
 
   const isPro = profile?.subscriptionStatus === 'active' || profile?.subscriptionStatus === 'trial' || profile?.subscriptionStatus === 'canceling'
+
+  useEffect(() => {
+    fetch("/api/referral")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) setReferralStats(data)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -578,6 +594,16 @@ export default function DashboardPage() {
       void _gone
       return rest
     })
+
+  const handleCopyReferralLink = async () => {
+    if (!referralStats?.referralLink) return
+    try {
+      await navigator.clipboard.writeText(referralStats.referralLink)
+      toast.success("Link copied!")
+    } catch {
+      toast.error("Failed to copy link")
+    }
+  }
 
   const toggleExpand = (id: string) =>
     setExpandedBlockId(curr => (curr === id ? null : id))
@@ -1168,6 +1194,50 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </BlockRow>
+              )}
+
+              {/* Singleton: Earn */}
+              {referralStats && (
+                <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] overflow-hidden p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-base">💸</span>
+                    <span className="text-sm font-mono text-[#e0e0e0] font-semibold">Earn</span>
+                    <span className="ml-auto text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 text-[#00ff88]">
+                      Referrals
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono text-[#888] mb-3">
+                    Refer creators, earn 20% of their first payment.
+                  </p>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      readOnly
+                      value={referralStats.referralLink ?? "Complete onboarding to get your link"}
+                      className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-xs font-mono text-[#888] outline-none truncate"
+                    />
+                    <button
+                      onClick={handleCopyReferralLink}
+                      disabled={!referralStats.referralLink}
+                      className="bg-[#00ff88] text-black font-mono font-semibold rounded-lg px-3 py-2 text-xs hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white/[0.02] rounded-lg p-2.5 text-center">
+                      <div className="text-lg font-bold text-white">{referralStats.totalReferrals}</div>
+                      <div className="text-[10px] font-mono text-[#444] uppercase tracking-wider">Referrals</div>
+                    </div>
+                    <div className="bg-white/[0.02] rounded-lg p-2.5 text-center">
+                      <div className="text-lg font-bold text-white">{referralStats.convertedReferrals}</div>
+                      <div className="text-[10px] font-mono text-[#444] uppercase tracking-wider">Converted</div>
+                    </div>
+                    <div className="bg-white/[0.02] rounded-lg p-2.5 text-center">
+                      <div className="text-lg font-bold text-[#00ff88]">${referralStats.totalEarnings}</div>
+                      <div className="text-[10px] font-mono text-[#444] uppercase tracking-wider">Earned</div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Dynamic blocks */}
