@@ -11,6 +11,7 @@ import { LinkCard3D } from "@/components/ui/link-card-3d"
 import { BentoGrid, type BentoModule } from "@/components/ui/bento-modules"
 import { useApplyAccentColor } from "@/contexts/accent-color-context"
 import { AiAgentChat } from "@/components/ui/ai-agent-chat"
+import { SocialProofToast } from "@/components/ui/social-proof-toast"
 
 interface PortalLink {
   id: string
@@ -568,6 +569,9 @@ export function ProfileClient({
           0% commissions by PayTree. Third-party fees may apply.
         </p>
       </div>
+
+      {/* Social proof notifications */}
+      <SocialProofToast username={user.username} />
 
       {/* AI Agent chat */}
       {showAiAgent && (

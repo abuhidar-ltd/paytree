@@ -87,6 +87,7 @@ model User {
   bioHistories    BioHistory[]
   aiInsights      AiInsight[]
   drops           Drop[]
+  socialProofs    SocialProof[]
 
   @@index([username])
   @@index([email])
@@ -374,4 +375,17 @@ model Drop {
 
   @@index([userId])
   @@index([userId, enabled])
+}
+
+// ===== SOCIAL PROOF NOTIFICATIONS =====
+model SocialProof {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "vault_unlock" | "purchase" | "visit"
+  message   String
+  country   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

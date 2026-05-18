@@ -516,7 +516,7 @@ async function handleProductPurchase(session: Stripe.Checkout.Session) {
             downloadUrl: true,
             downloadName: true,
             user: {
-              select: { username: true, email: true }
+              select: { id: true, username: true, email: true }
             }
           }
         }
@@ -527,6 +527,15 @@ async function handleProductPurchase(session: Stripe.Checkout.Session) {
     console.log("  - Product:", purchase.product.title)
     console.log("  - Buyer:", purchase.buyerEmail)
     console.log("  - Seller:", purchase.product.user.username)
+
+    // Social proof event (fire-and-forget)
+    prisma.socialProof.create({
+      data: {
+        userId: purchase.product.user.id,
+        type: "purchase",
+        message: `Someone just purchased ${purchase.product.title}`,
+      },
+    }).catch(() => {})
     
     const resend = new Resend(process.env.RESEND_API_KEY)
 

@@ -74,6 +74,20 @@ export async function POST(req: Request) {
       },
     })
 
+    // Social proof event (fire-and-forget)
+    const country =
+      (req as Request).headers.get("x-vercel-ip-country") ||
+      (req as Request).headers.get("cf-ipcountry") ||
+      undefined
+    prisma.socialProof.create({
+      data: {
+        userId: ownerId,
+        type: "vault_unlock",
+        message: "Someone just unlocked your vault",
+        country: country ?? null,
+      },
+    }).catch(() => {})
+
     // Get the link content and creator info in parallel
     const [link, creator] = await Promise.all([
       prisma.link.findUnique({

@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/ai/agent",        // Public AI agent for public profiles
   "/api/social/youtube",  // YouTube social card (no auth needed)
   "/api/social/podcast",  // Podcast social card (no auth needed)
+  "/api/social-proof",    // Public social proof feed for profiles
   "/:username",
   "/preview/:username",
 ]);
