@@ -20,8 +20,8 @@ export async function POST(req: Request) {
     if (user?.subscriptionStatus === 'free') {
       return NextResponse.json(
         { 
-          error: "Background image upload is a Pro feature. Upgrade to unlock.",
-          code: "PRO_FEATURE"
+          error: "Background image upload requires a paid plan. Upgrade to unlock.",
+          code: "UPGRADE_REQUIRED"
         },
         { status: 403 }
       )

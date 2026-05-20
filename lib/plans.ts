@@ -3,19 +3,19 @@
  *
  * Plans:
  *  - free:    No subscription (default)
- *  - starter: $4.99/mo  or $39.99/yr
- *  - pro:     $29/mo    or $249/yr
+ *  - starter: $7/mo or $59/yr
+ *  - ultra:   $19/mo or $159/yr
  *
  * Subscription intervals: "monthly" | "yearly"
  *
  * Env vars (set in .env):
  *  STRIPE_STARTER_MONTHLY_PRICE_ID
  *  STRIPE_STARTER_YEARLY_PRICE_ID
- *  STRIPE_PRO_MONTHLY_PRICE_ID
- *  STRIPE_PRO_YEARLY_PRICE_ID
+ *  STRIPE_ULTRA_MONTHLY_PRICE_ID
+ *  STRIPE_ULTRA_YEARLY_PRICE_ID
  */
 
-export type PlanId = "free" | "starter" | "pro"
+export type PlanId = "free" | "starter" | "ultra"
 export type BillingInterval = "monthly" | "yearly"
 
 export interface PlanDefinition {
@@ -32,12 +32,16 @@ export interface PlanDefinition {
     vaultItems: number  // -1 = unlimited
   }
   canPublish: boolean
+  platformFeePercent: number
   hasAnalytics: boolean
   hasAdvancedAnalytics: boolean
   hasAiFeatures: boolean
   hasScheduling: boolean
   hasLockedLinks: boolean
   hasEmailExport: boolean
+  hasDrops: boolean
+  hasCustomStyle: boolean
+  removeBranding: boolean
 }
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
@@ -47,90 +51,92 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     monthly: 0,
     yearly: 0,
     features: [
-      "Up to 5 links",
-      "Basic profile page",
-      "3 modules",
-    ],
-    limits: {
-      links: 5,
-      modules: 3,
-      products: 0,
-      folders: 1,
-      vaultItems: 0,
-    },
-    canPublish: false,
-    hasAnalytics: false,
-    hasAdvancedAnalytics: false,
-    hasAiFeatures: false,
-    hasScheduling: false,
-    hasLockedLinks: false,
-    hasEmailExport: false,
-  },
-  starter: {
-    id: "starter",
-    name: "Starter",
-    monthly: 499,   // $4.99
-    yearly: 3999,    // $39.99 ($3.33/mo)
-    features: [
-      "Publish your live terminal",
-      "Unlimited links",
-      "Unlimited modules",
-      "Deep Portals (nested folders)",
-      "Live Broadcast Mode",
-      "Authority Stats counters",
-      "Basic analytics (views, clicks, CTR)",
-      "1 shop product",
-      "Link scheduling",
-      "Locked links (email capture)",
-      "Audience email export",
+      "Unlimited links and blocks",
+      "All block types (YouTube, Vault, Drop, etc.)",
+      "Full customization",
+      "Cinematic hero mode",
     ],
     limits: {
       links: -1,
       modules: -1,
-      products: 1,
+      products: -1,
+      vaultItems: -1,
       folders: -1,
-      vaultItems: 5,
+    },
+    canPublish: false,
+    platformFeePercent: 0,
+    hasAnalytics: false,
+    hasAdvancedAnalytics: false,
+    hasAiFeatures: false,
+    hasScheduling: true,
+    hasLockedLinks: true,
+    hasEmailExport: false,
+    hasDrops: true,
+    hasCustomStyle: true,
+    removeBranding: false,
+  },
+  starter: {
+    id: "starter",
+    name: "Starter",
+    monthly: 700,    // $7
+    yearly: 5900,    // $59 (~$4.92/mo)
+    features: [
+      "Everything in Free",
+      "Publish your page",
+      "Analytics dashboard",
+      "Email audience export",
+      "5% transaction fee on sales",
+    ],
+    limits: {
+      links: -1,
+      modules: -1,
+      products: -1,
+      vaultItems: -1,
+      folders: -1,
     },
     canPublish: true,
+    platformFeePercent: 5,
     hasAnalytics: true,
     hasAdvancedAnalytics: false,
     hasAiFeatures: false,
     hasScheduling: true,
     hasLockedLinks: true,
     hasEmailExport: true,
+    hasDrops: true,
+    hasCustomStyle: true,
+    removeBranding: false,
   },
-  pro: {
-    id: "pro",
-    name: "Pro",
-    monthly: 2900,   // $29
-    yearly: 24900,    // $249 ($20.75/mo)
+  ultra: {
+    id: "ultra",
+    name: "Ultra",
+    monthly: 1900,   // $19
+    yearly: 15900,   // $159 (~$13.25/mo)
     features: [
       "Everything in Starter",
-      "Unlimited shop products",
-      "Unlimited vault items",
-      "Advanced analytics + referrals",
-      "AI Link Optimizer",
-      "AI Bio Generator",
-      "AI Insights Dashboard",
-      "Email follow-ups",
-      "Crypto Vault (tips in BTC/ETH/SOL)",
-      "Custom Obsidian themes",
+      "0% transaction fees",
+      "AI sales agent on your page",
+      "Globe analytics + advanced insights",
+      "Remove Paytree branding",
       "Priority support",
     ],
     limits: {
       links: -1,
       modules: -1,
       products: -1,
-      folders: -1,
       vaultItems: -1,
+      folders: -1,
     },
     canPublish: true,
+    platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: true,
     hasAiFeatures: true,
     hasScheduling: true,
     hasLockedLinks: true,
     hasEmailExport: true,
+    hasDrops: true,
+    hasCustomStyle: true,
+    removeBranding: true,
   },
 }
 
@@ -141,6 +147,17 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 export function getStripePriceId(plan: PlanId, interval: BillingInterval): string | null {
   const key = `STRIPE_${plan.toUpperCase()}_${interval.toUpperCase()}_PRICE_ID`
   return process.env[key] || null
+}
+
+/**
+ * Map legacy DB values (e.g. "pro") to current PlanId.
+ */
+function normalizePlanId(raw: string | null | undefined): PlanId {
+  if (!raw || raw === "free") return "free"
+  if (raw === "pro") return "ultra"
+  if (raw === "ultra") return "ultra"
+  if (raw === "starter") return "starter"
+  return "free"
 }
 
 /**
@@ -155,10 +172,9 @@ export function resolveUserPlan(user: {
 }): PlanId {
   const status = user.subscriptionStatus
   if (!status || status === "free" || status === "canceled") {
-    // Check if canceled but still within grace period
     if (status === "canceled" && user.subscriptionEndsAt) {
       if (new Date() < new Date(user.subscriptionEndsAt)) {
-        return (user.subscriptionPlan as PlanId) || "starter"
+        return normalizePlanId(user.subscriptionPlan) || "starter"
       }
     }
     return "free"
@@ -168,11 +184,11 @@ export function resolveUserPlan(user: {
     if (user.trialEndsAt && new Date() > new Date(user.trialEndsAt)) {
       return "free"
     }
-    return (user.subscriptionPlan as PlanId) || "starter"
+    return normalizePlanId(user.subscriptionPlan) || "starter"
   }
 
   if (status === "active" || status === "canceling") {
-    return (user.subscriptionPlan as PlanId) || "starter"
+    return normalizePlanId(user.subscriptionPlan) || "starter"
   }
 
   return "free"

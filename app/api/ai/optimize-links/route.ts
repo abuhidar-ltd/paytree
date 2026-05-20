@@ -17,7 +17,7 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check Pro plan
+    // Check Ultra plan
     const user = await prisma.user.findUnique({
       where: { id: currentUser.id },
       select: {
@@ -31,7 +31,7 @@ export async function POST() {
     const features = getUserFeatures(user || {})
     if (!features.hasAiFeatures) {
       return NextResponse.json(
-        { error: "AI features require a Pro plan.", code: "UPGRADE_REQUIRED" },
+        { error: "AI features require an Ultra plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }

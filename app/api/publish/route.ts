@@ -8,7 +8,7 @@ import { getUserFeatures } from "@/lib/plans"
  * 
  * CRITICAL MONETIZATION ENDPOINT
  * 
- * Publishes a user's page. Only users on Starter or Pro (active/trial) can publish.
+ * Publishes a user's page. Only users on Starter or Ultra (active/trial) can publish.
  * Enforced server-side — frontend cannot bypass.
  */
 export async function POST() {
@@ -51,9 +51,9 @@ export async function POST() {
       console.log(`[PUBLISH BLOCKED] User ${user.id} on ${features.name} attempted to publish`)
       return NextResponse.json(
         { 
-          error: "Subscription required", 
+          error: "Upgrade to Starter to publish your page", 
           code: "UPGRADE_REQUIRED",
-          message: "Subscribe to a Starter or Pro plan to publish your page."
+          upgrade: true,
         },
         { status: 403 }
       )

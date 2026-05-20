@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     
     if (!isPro) {
       return NextResponse.json(
-        { error: "Upgrade to Pro to sell digital products" },
+        { error: "Upgrade to sell digital products" },
         { status: 403 }
       )
     }

@@ -2,50 +2,30 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 interface PublishBannerProps {
   username: string
+  canPublish: boolean
 }
 
-export function PublishBanner({ username }: PublishBannerProps) {
+export function PublishBanner({ username, canPublish }: PublishBannerProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handlePublish = async () => {
     setIsLoading(true)
     
     try {
-      // First try to publish (will fail for free users)
       const res = await fetch('/api/publish', { method: 'POST' })
       const data = await res.json()
       
       if (res.ok) {
-        // Successfully published!
         toast.success("Your terminal is now live!")
         window.location.reload()
       } else if (data.code === 'UPGRADE_REQUIRED') {
-        // Need to upgrade - create checkout session via API
-        toast.info("Redirecting to checkout...")
-        
-        const checkoutRes = await fetch('/api/create-checkout-session', { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        
-        if (checkoutRes.ok) {
-          const checkoutData = await checkoutRes.json()
-          if (checkoutData.url) {
-            // Redirect to Stripe checkout
-            window.location.href = checkoutData.url
-          } else {
-            throw new Error('No checkout URL received')
-          }
-        } else {
-          const errorData = await checkoutRes.json()
-          toast.error(errorData.error || "Failed to create checkout session")
-          setIsLoading(false)
-        }
+        toast.info("Upgrade to Starter to publish your page")
       } else {
-        toast.error(data.message || "Failed to publish")
+        toast.error(data.error || "Failed to publish")
         setIsLoading(false)
       }
     } catch (error) {
@@ -53,6 +33,31 @@ export function PublishBanner({ username }: PublishBannerProps) {
       toast.error("Something went wrong")
       setIsLoading(false)
     }
+  }
+
+  if (!canPublish) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[rgba(0,255,136,0.1)] backdrop-blur-xl border-b border-[rgba(0,255,136,0.2)] text-white py-4 px-4">
+        <div className="container mx-auto flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[rgba(0,255,136,0.2)] flex items-center justify-center">
+              <span className="text-xl">👀</span>
+            </div>
+            <div>
+              <p className="font-bold text-white">Your page is built — upgrade to publish it</p>
+              <p className="text-sm text-[#888888]">paytree.to/{username}</p>
+            </div>
+          </div>
+          
+          <Link
+            href="/pricing"
+            className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 py-2.5 text-sm hover:opacity-90 transition-opacity"
+          >
+            Upgrade to Starter →
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -78,11 +83,11 @@ export function PublishBanner({ username }: PublishBannerProps) {
           <button
             onClick={handlePublish}
             disabled={isLoading}
-            className="btn-accent-solid px-6 py-2.5 disabled:opacity-70"
+            className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-70"
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
@@ -95,7 +100,7 @@ export function PublishBanner({ username }: PublishBannerProps) {
           
           <a
             href="/dashboard/studio"
-            className="btn-obsidian px-4 py-2 text-sm"
+            className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl px-4 py-2.5 text-sm hover:border-white/20 transition-colors"
           >
             Edit
           </a>

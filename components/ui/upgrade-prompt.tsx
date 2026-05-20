@@ -27,7 +27,7 @@ export function UpgradePrompt({
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-white mb-1">
-              Upgrade to Pro for {feature}
+              Upgrade for {feature}
             </div>
             {description && (
               <div className="text-sm text-gray-400 mb-3">
@@ -62,7 +62,7 @@ export function UpgradePrompt({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
         </svg>
       </div>
-      <h3 className="text-2xl font-bold mb-2">Upgrade to Pro</h3>
+      <h3 className="text-2xl font-bold mb-2">Upgrade Your Plan</h3>
       <p className="text-gray-400 mb-6">
         Unlock {feature} and more premium features
       </p>

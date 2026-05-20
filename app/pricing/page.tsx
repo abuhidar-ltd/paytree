@@ -88,7 +88,7 @@ export default async function PricingPage() {
                 a: "After 7 days you\u2019ll be billed at the rate you chose (monthly or annual). Cancel before the trial ends to avoid any charges.",
               },
               {
-                q: "Can I switch between Starter and Pro?",
+                q: "Can I switch between Starter and Ultra?",
                 a: "Yes! You can upgrade or downgrade at any time. When upgrading, you\u2019ll be prorated for the remainder of your billing cycle.",
               },
               {
@@ -97,7 +97,7 @@ export default async function PricingPage() {
               },
               {
                 q: "Do you take a cut of my payments?",
-                a: "No! We never process your payments or take transaction fees. You keep 100% of what you earn through payment links.",
+                a: "Starter has a 5% platform fee on sales. Ultra has 0% fees — you keep everything. Stripe\u2019s standard processing fees still apply.",
               },
             ].map((faq, i) => (
               <div key={i} className="glass-brick !cursor-default">
@@ -111,7 +111,7 @@ export default async function PricingPage() {
         {/* Bottom CTA */}
         <div className="mt-16 sm:mt-24 text-center">
           <p className="text-xs sm:text-sm text-[#555555]">
-            0% commissions by PayTree. Third-party fees may apply.
+            0% platform fees on Ultra. Stripe processing fees apply on all plans.
           </p>
         </div>
       </div>

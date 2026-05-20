@@ -9,9 +9,9 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { toast } from "sonner"
 
 function feeForPlan(plan: string | null | undefined): number {
-  if (plan === "pro") return 0
-  if (plan === "starter") return 3
-  return 8
+  if (plan === "ultra" || plan === "pro") return 0
+  if (plan === "starter") return 5
+  return 0
 }
 
 interface SubscriptionInfo {
@@ -201,7 +201,6 @@ export default function SettingsPage() {
     )
   }
 
-  // Users who are canceling still have Pro access until billing period ends
   const isPro = profile?.subscriptionStatus === 'active' || profile?.subscriptionStatus === 'trial' || profile?.subscriptionStatus === 'canceling'
   const isCanceling = profile?.subscriptionStatus === 'canceling'
   const isCanceled = profile?.subscriptionStatus === 'canceled'
@@ -270,7 +269,7 @@ export default function SettingsPage() {
                     ? 'bg-red-500/10 border-red-500/20 text-red-400'
                     : 'bg-white/5 border-white/10 text-[#888]'
                 }`}>
-                  {isPro ? '⭐ Pro' : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
+                  {isPro ? (profile?.subscriptionPlan === 'ultra' || profile?.subscriptionPlan === 'pro' ? '⭐ Ultra' : '⭐ Starter') : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
                 </span>
               </div>
             </div>
@@ -333,13 +332,13 @@ export default function SettingsPage() {
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
                   <p className="text-red-400 font-mono text-sm mb-2">❌ Subscription Ended</p>
                   <p className="text-sm text-[#e0e0e0]">
-                    Your Pro subscription has ended. Upgrade again to publish your page and access Pro features.
+                    Your subscription has ended. Upgrade again to publish your page and access paid features.
                   </p>
                 </div>
                 
-                <Link href="/upgrade">
+                <Link href="/pricing">
                   <Button className="w-full min-h-[48px] bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity">
-                    Resubscribe to Pro
+                    Resubscribe
                   </Button>
                 </Link>
               </div>
@@ -409,7 +408,7 @@ export default function SettingsPage() {
                 </p>
                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
                   <p className="text-xs font-mono text-[#555]">
-                    Paytree takes {feePercent}% per transaction based on your plan · Free: 8% · Starter: 3% · Pro: 0%
+                    Paytree takes {feePercent}% per transaction based on your plan · Starter: 5% · Ultra: 0%
                   </p>
                 </div>
                 <a

@@ -9,7 +9,7 @@ import { getStripePriceId, type PlanId, type BillingInterval } from "@/lib/plans
  *
  * Creates a Stripe checkout session for a Starter or Pro subscription.
  *
- * Body: { plan: "starter" | "pro", interval: "monthly" | "yearly" }
+ * Body: { plan: "starter" | "ultra", interval: "monthly" | "yearly" }
  *
  * IMPORTANT: Does NOT publish the page — publishing happens via webhook.
  */
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     // Parse plan + interval from body
     const body = await req.json().catch(() => ({}))
-    const plan: PlanId = body.plan === "pro" ? "pro" : "starter"
+    const plan: PlanId = body.plan === "ultra" ? "ultra" : "starter"
     const interval: BillingInterval = body.interval === "yearly" ? "yearly" : "monthly"
 
     // Get user

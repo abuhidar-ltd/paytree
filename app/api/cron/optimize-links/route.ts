@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     // Find all Pro users with active subscriptions
     const proUsers = await prisma.user.findMany({
       where: {
-        subscriptionPlan: "pro",
+        subscriptionPlan: { in: ["ultra", "pro"] },
         subscriptionStatus: { in: ["active", "trial"] },
       },
       select: { id: true, username: true },

@@ -232,11 +232,19 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       await Promise.all(calls)
 
-      await fetch("/api/profile", {
+      console.log("[onboarding] Sending onboarded: true to /api/profile...")
+      const onboardRes = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ onboarded: true }),
       })
+      console.log("[onboarding] onboarded save response:", onboardRes.status, onboardRes.ok)
+
+      if (!onboardRes.ok) {
+        const errorBody = await onboardRes.text()
+        console.error("[onboarding] Onboarding save failed:", onboardRes.status, errorBody)
+        throw new Error(`Failed to save onboarding completion (status ${onboardRes.status})`)
+      }
 
       // Record referral if user arrived via a ref link
       const refCookie = document.cookie
@@ -324,7 +332,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       } else {
         const data = await res.json().catch(() => ({}))
         if (res.status === 403) {
-          toast.error(data.error ?? "Upgrade to Starter or Pro to publish your page.")
+          toast.error(data.error ?? "Upgrade to Starter to publish your page.")
           router.push("/pricing")
         } else {
           toast.error(data.error ?? "Something went wrong.")
@@ -716,7 +724,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       </div>
 
       <p className="text-xs text-[#444] font-mono">
-        Publishing requires a Starter or Pro plan.
+        Publishing requires a Starter or Ultra plan.
       </p>
     </div>
   )

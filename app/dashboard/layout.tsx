@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation"
+import { unstable_noStore as noStore } from "next/cache"
+import { headers } from "next/headers"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { DashboardSidebar } from "@/components/ui/dashboard-sidebar"
 
@@ -7,6 +9,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  noStore()
+
   const user = await getCurrentUser()
 
   if (!user) {
@@ -14,7 +18,13 @@ export default async function DashboardLayout({
   }
 
   if (!user.onboarded) {
-    redirect("/onboarding")
+    // Don't redirect if we just came from onboarding — the DB write may
+    // still be propagating and we'd create an infinite loop.
+    const headersList = await headers()
+    const referer = headersList.get("referer") ?? ""
+    if (!referer.includes("/onboarding")) {
+      redirect("/onboarding")
+    }
   }
 
   return (

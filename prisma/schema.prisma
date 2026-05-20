@@ -92,6 +92,7 @@ model User {
   bioHistories    BioHistory[]
   aiInsights      AiInsight[]
   drops           Drop[]
+  blocks          Block[]
   socialProofs      SocialProof[]
   referralsGiven    Referral[] @relation("ReferrerReferrals")
   referralsReceived Referral[] @relation("ReferredReferrals")
@@ -409,4 +410,47 @@ model SocialProof {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ===== UNIFIED BLOCK SYSTEM =====
+model Block {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String    @default("Untitled")
+  type          String    @default("link")
+  enabled       Boolean   @default(true)
+  position      Int       @default(0)
+
+  url           String?
+  description   String?
+  thumbnail     String?
+
+  config        Json      @default("{}")
+
+  layout        String    @default("classic")
+  style         String    @default("glass")
+  size          String    @default("full")
+
+  priority      String    @default("none")
+
+  scheduleStart DateTime?
+  scheduleEnd   DateTime?
+
+  lockType      String    @default("none")
+  lockValue     String?
+
+  parentId      String?
+  parent        Block?    @relation("BlockChildren", fields: [parentId], references: [id])
+  children      Block[]   @relation("BlockChildren")
+
+  clickCount    Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, enabled])
+  @@index([parentId])
 }

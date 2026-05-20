@@ -104,7 +104,7 @@ export async function GET() {
     const features = getUserFeatures(user || {})
     if (!features.hasAiFeatures) {
       return NextResponse.json(
-        { error: "AI Insights require a Pro plan.", code: "UPGRADE_REQUIRED" },
+        { error: "AI Insights require an Ultra plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }

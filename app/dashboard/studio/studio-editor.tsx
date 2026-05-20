@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { LinkCard3D } from "@/components/ui/link-card-3d"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { SocialIcon } from "@/components/social-icon"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
-import { User, Clapperboard } from "lucide-react"
+import { Check, ChevronDown, Upload } from "lucide-react"
+
 interface Profile {
   id: string
   name: string | null
@@ -58,100 +57,116 @@ interface StudioEditorProps {
   checkoutSuccess?: boolean
 }
 
+// ── Button style mini-preview ──────────────────────────────────────────────────
+
+function ButtonStylePreview({ style, accent }: { style: string; accent: string }) {
+  const base = "px-3 py-1 text-[10px] font-mono rounded-lg whitespace-nowrap"
+  switch (style) {
+    case "glass":
+      return <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}>Button</div>
+    case "3d":
+      return (
+        <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}
+          style={{ boxShadow: "0 3px 0 rgba(0,0,0,0.6)" }}>
+          Button
+        </div>
+      )
+    case "gradient":
+      return (
+        <div className={`${base} text-white/80 border`}
+          style={{ background: `linear-gradient(135deg, ${accent}55, ${accent}22)`, borderColor: `${accent}40` }}>
+          Button
+        </div>
+      )
+    case "glow":
+      return (
+        <div className={`${base} bg-white/[0.04] border text-white/60`}
+          style={{ borderColor: `${accent}55`, boxShadow: `0 0 10px ${accent}28` }}>
+          Button
+        </div>
+      )
+    case "neon":
+      return (
+        <div className={`${base} bg-transparent border`} style={{ borderColor: accent, color: accent }}>
+          Button
+        </div>
+      )
+    case "outline":
+      return <div className={`${base} bg-transparent border border-white/30 text-white/50`}>Button</div>
+    default:
+      return <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}>Button</div>
+  }
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks, checkoutSuccess }: StudioEditorProps) {
   const router = useRouter()
+
+  // ── state (unchanged) ──────────────────────────────────────────────────────
   const [profile, setProfile] = useState<Profile>(initialProfile)
   const [links, setLinks] = useState<LinkType[]>(initialLinks)
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(initialSocialLinks)
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [cropImage, setCropImage] = useState<{ url: string } | null>(null)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [publishedLink, setPublishedLink] = useState<string | null>(null)
+  const [processingPayment, setProcessingPayment] = useState(checkoutSuccess || false)
+  const [cornerRadius, setCornerRadius] = useState("xl")
 
+  const isPro =
+    profile.subscriptionStatus === "active" ||
+    profile.subscriptionStatus === "trial" ||
+    profile.subscriptionStatus === "canceling"
+  const isPublished = profile.pageStatus === "published"
+  const accent = profile.accentColor || "#00ff88"
+
+  // ── fetch fresh data (unchanged) ───────────────────────────────────────────
   useEffect(() => {
     const fetchFreshData = async () => {
       try {
-        const [linksRes, socialRes] = await Promise.all([
-          fetch('/api/links'),
-          fetch('/api/social-links')
-        ])
-        if (linksRes.ok) {
-          const data = await linksRes.json()
-          setLinks(data.links || data || [])
-        }
-        if (socialRes.ok) {
-          const data = await socialRes.json()
-          setSocialLinks(data.socialLinks || data || [])
-        }
+        const [linksRes, socialRes] = await Promise.all([fetch("/api/links"), fetch("/api/social-links")])
+        if (linksRes.ok) { const d = await linksRes.json(); setLinks(d.links || d || []) }
+        if (socialRes.ok) { const d = await socialRes.json(); setSocialLinks(d.socialLinks || d || []) }
       } catch (e) {
-        console.error('Failed to fetch fresh preview data', e)
+        console.error("Failed to fetch fresh preview data", e)
       }
     }
     fetchFreshData()
   }, [])
 
-  // Image cropping state
-  const [cropImage, setCropImage] = useState<{ url: string } | null>(null)
-  
-  // Paywall modal state
-  const [showPaywall, setShowPaywall] = useState(false)
-  
-  // Published link modal state
-  const [publishedLink, setPublishedLink] = useState<string | null>(null)
-  
-  // Processing payment state
-  const [processingPayment, setProcessingPayment] = useState(checkoutSuccess || false)
-
-  // Users who are canceling still have Pro access until billing period ends
-  const isPro = profile.subscriptionStatus === 'active' || profile.subscriptionStatus === 'trial' || profile.subscriptionStatus === 'canceling'
-  const isPublished = profile.pageStatus === 'published'
-
-  // Handle checkout success - poll for subscription update
+  // ── payment polling (unchanged) ────────────────────────────────────────────
   useEffect(() => {
     if (!checkoutSuccess) return
-    
     let pollCount = 0
-    const maxPolls = 20 // Poll for up to 20 seconds
-    
+    const maxPolls = 20
     const pollSubscription = async () => {
       try {
-        const res = await fetch('/api/profile')
+        const res = await fetch("/api/profile")
         const data = await res.json()
-        
-        if (data.subscriptionStatus === 'active' || data.subscriptionStatus === 'trial' || data.subscriptionStatus === 'canceling') {
-          // Subscription confirmed! Check if page is published
-          if (data.pageStatus === 'published') {
-            // Page was published by webhook
-            setProfile(data)
-            setProcessingPayment(false)
+        if (data.subscriptionStatus === "active" || data.subscriptionStatus === "trial" || data.subscriptionStatus === "canceling") {
+          if (data.pageStatus === "published") {
+            setProfile(data); setProcessingPayment(false)
             toast.success("🎉 Your page is now live!")
-            const baseUrl = window.location.origin
-            setPublishedLink(`${baseUrl}/${data.username}`)
-            router.replace('/dashboard/studio')
+            setPublishedLink(`${window.location.origin}/${data.username}`)
+            router.replace("/dashboard/studio")
           } else {
-            // Subscription active but page not published - publish it now
-            const publishRes = await fetch('/api/publish', { method: 'POST' })
+            const publishRes = await fetch("/api/publish", { method: "POST" })
             if (publishRes.ok) {
-              setProfile({ ...data, pageStatus: 'published' })
-              setProcessingPayment(false)
+              setProfile({ ...data, pageStatus: "published" }); setProcessingPayment(false)
               toast.success("🎉 Your page is now live!")
-              const baseUrl = window.location.origin
-              setPublishedLink(`${baseUrl}/${data.username}`)
-              router.replace('/dashboard/studio')
+              setPublishedLink(`${window.location.origin}/${data.username}`)
+              router.replace("/dashboard/studio")
             }
           }
-          return true // Stop polling
+          return true
         }
-        
-        return false // Continue polling
-      } catch (error) {
-        console.error("Poll error:", error)
         return false
-      }
+      } catch { return false }
     }
-    
-    // Initial check
     pollSubscription().then(done => {
       if (!done) {
-        // Start polling
         const interval = setInterval(async () => {
           pollCount++
           const done = await pollSubscription()
@@ -159,641 +174,618 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             clearInterval(interval)
             if (pollCount >= maxPolls) {
               setProcessingPayment(false)
-              toast.error("Payment processing taking longer than expected. Please refresh the page.")
+              toast.error("Payment processing taking longer than expected. Please refresh.")
             }
           }
         }, 1000)
-        
         return () => clearInterval(interval)
       }
     })
   }, [checkoutSuccess, router])
 
-  // Auto-save with debounce
+  // ── autosave debounce (unchanged) ──────────────────────────────────────────
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (JSON.stringify(profile) !== JSON.stringify(initialProfile)) {
-        saveProfile()
-      }
+      if (JSON.stringify(profile) !== JSON.stringify(initialProfile)) saveProfile()
     }, 1500)
     return () => clearTimeout(timer)
   }, [profile])
 
+  // ── handlers (unchanged) ───────────────────────────────────────────────────
   const saveProfile = async () => {
     setSaving(true)
     try {
-      // Filter out ALL non-editable fields before sending
-      const { 
-        id, email, username, subscriptionStatus, pageStatus, 
-        publishedAt, clerkId, ...editableFields 
-      } = profile as any
-      
+      const { id, email, username, subscriptionStatus, pageStatus, publishedAt, clerkId, ...editableFields } = profile as any
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editableFields),
       })
-      
-      if (res.ok) {
-        setLastSaved(new Date())
-        toast.success("Changes saved!")
-      } else {
-        const error = await res.json()
-        toast.error(error.error || "Failed to save")
-      }
-    } catch (error) {
-      console.error("Save failed:", error)
-      toast.error("Save failed")
-    } finally {
-      setSaving(false)
-    }
+      if (res.ok) { setLastSaved(new Date()); toast.success("Changes saved!") }
+      else { const e = await res.json(); toast.error(e.error || "Failed to save") }
+    } catch { toast.error("Save failed") }
+    finally { setSaving(false) }
   }
 
   const handleProfileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error("Please select an image file")
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
-      return
-    }
-
-    // Create URL for cropping
-    const imageUrl = URL.createObjectURL(file)
-    setCropImage({ url: imageUrl })
-    
-    // Reset input
-    e.target.value = ''
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be less than 5MB"); return }
+    setCropImage({ url: URL.createObjectURL(file) })
+    e.target.value = ""
   }
 
   const handleCroppedImageUpload = async (blob: Blob) => {
     const formData = new FormData()
     formData.append("file", blob, "profile-image.jpg")
-
     const toastId = toast.loading("Uploading profile image...")
-    
     try {
-      const res = await fetch('/api/upload/profile-image', {
-        method: "POST",
-        body: formData,
-      })
-
+      const res = await fetch("/api/upload/profile-image", { method: "POST", body: formData })
       const data = await res.json()
-
       if (res.ok) {
-        setProfile({...profile, image: data.url})
+        setProfile({ ...profile, image: data.url })
         toast.success("Profile image uploaded!", { id: toastId })
         setCropImage(null)
-        // Force save immediately
         await saveProfile()
-      } else {
-        toast.error(data.error || "Upload failed", { id: toastId })
-      }
-    } catch (error) {
-      console.error("Upload error:", error)
-      toast.error("Upload failed", { id: toastId })
-    }
+      } else { toast.error(data.error || "Upload failed", { id: toastId }) }
+    } catch { toast.error("Upload failed", { id: toastId }) }
   }
 
-  const buttonStyles = [
-    { name: "3D", value: "3d" },
-    { name: "Gradient", value: "gradient" },
-    { name: "Glass", value: "glass" },
-    { name: "Glow", value: "glow" },
-    { name: "Neon", value: "neon" },
+  const handlePublish = async () => {
+    await saveProfile()
+    const toastId = toast.loading("Publishing your page...")
+    try {
+      const res = await fetch("/api/publish", { method: "POST" })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Your page is live!", { id: toastId })
+        setProfile({ ...profile, pageStatus: "published" })
+        setPublishedLink(`${window.location.origin}/${profile.username}`)
+      } else {
+        if (data.code === "UPGRADE_REQUIRED") setShowPaywall(true)
+        toast.error(data.message || "Failed to publish", { id: toastId })
+      }
+    } catch { toast.error("Failed to publish", { id: toastId }) }
+  }
+
+  // ── data ───────────────────────────────────────────────────────────────────
+  const ACCENT_COLORS = ["#00ff88", "#9146ff", "#ff5555", "#378add", "#ff9500", "#ff2d78"]
+
+  const BUTTON_STYLES = [
+    { value: "glass", label: "Glass" },
+    { value: "3d", label: "3D" },
+    { value: "gradient", label: "Gradient" },
+    { value: "glow", label: "Glow" },
+    { value: "neon", label: "Neon" },
+    { value: "outline", label: "Outline" },
   ]
 
+  const RADIUS_OPTIONS = [
+    { value: "none", label: "None", tw: "rounded-none" },
+    { value: "md", label: "Small", tw: "rounded-md" },
+    { value: "xl", label: "Medium", tw: "rounded-xl" },
+    { value: "full", label: "Full", tw: "rounded-full" },
+  ]
+
+  const FONTS = [
+    { value: "inter", label: "Inter" },
+    { value: "space-mono", label: "Space Mono" },
+    { value: "syne", label: "Syne" },
+    { value: "outfit", label: "Outfit" },
+    { value: "cal-sans", label: "Cal Sans" },
+  ]
+
+  const BACKGROUNDS = [
+    { value: "none", label: "None" },
+    { value: "mesh", label: "Mesh" },
+    { value: "particles", label: "Particles" },
+  ]
+
+  // ── section label (simple, no sticky) ─────────────────────────────────────
+  const SL = ({ children }: { children: string }) => (
+    <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">{children}</h2>
+  )
+
+  // ── section wrapper class ──────────────────────────────────────────────────
+  const sectionCls = "pb-8 mb-8 border-b border-white/[0.06]"
+
+  // ──────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#080808] text-white">
-      
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#080808]/80 backdrop-blur-xl">
-        <div className="max-w-[1920px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-sm font-mono text-[#e0e0e0]">Customize Design</h1>
-            {saving && <span className="text-[#00ff88]/50 text-xs font-mono animate-pulse">● Saving...</span>}
-            {lastSaved && !saving && (
-              <span className="text-[#00ff88]/50 text-xs font-mono">✓ Saved {lastSaved.toLocaleTimeString()}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {/* View Live Button - opens preview in new tab */}
-            <Button
-              onClick={() => window.open(`/preview/${profile.username}`, '_blank')}
-              variant="ghost"
-              size="sm"
-              className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 flex items-center gap-2"
+    <div className="flex flex-col h-screen bg-[#080808] text-white overflow-hidden">
+
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
+      <div className="h-14 flex-shrink-0 flex items-center justify-between px-5 border-b border-white/[0.07] bg-[#080808]/90 backdrop-blur-xl z-50">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-mono text-[#e0e0e0]">Design</span>
+          {saving && <span className="text-[#00ff88]/50 text-xs font-mono animate-pulse">● Saving...</span>}
+          {lastSaved && !saving && <span className="text-[#00ff88]/40 text-xs font-mono">✓ Saved</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.open(`/preview/${profile.username}`, "_blank")}
+            className="bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/preview/${profile.username}`); toast.success("Preview link copied!") }}
+            className="bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
+          >
+            Copy link
+          </button>
+          {processingPayment ? (
+            <button disabled className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-1.5 text-xs opacity-70">
+              Processing...
+            </button>
+          ) : isPublished ? (
+            <button
+              onClick={() => setPublishedLink(`${window.location.origin}/${profile.username}`)}
+              className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-1.5 text-xs hover:opacity-90 transition-opacity"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              View Live
-            </Button>
-            
-            {/* Copy Preview Link Button */}
-            <Button
-              onClick={() => {
-                const previewUrl = `${window.location.origin}/preview/${profile.username}`
-                navigator.clipboard.writeText(previewUrl)
-                toast.success("Preview link copied! Share it to show others your page.")
-              }}
-              variant="ghost"
-              size="sm"
-              className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 flex items-center gap-2"
+              ✓ Published
+            </button>
+          ) : (
+            <button
+              onClick={isPro ? handlePublish : () => setShowPaywall(true)}
+              className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-1.5 text-xs hover:opacity-90 transition-opacity"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-              </svg>
-              Copy Link
-            </Button>
-            {/* Publish/Status Button */}
-            {processingPayment ? (
-              <Button 
-                size="sm" 
-                disabled
-                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl"
-              >
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Processing...
-              </Button>
-            ) : isPublished ? (
-              <Button
-                onClick={() => {
-                  const baseUrl = window.location.origin
-                  setPublishedLink(`${baseUrl}/${profile.username}`)
-                }}
-                size="sm"
-                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
-              >
-                ✓ Published
-              </Button>
-            ) : !isPro ? (
-              <Button 
-                size="sm" 
-                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
-                onClick={() => setShowPaywall(true)}
-              >
-                🚀 Publish
-              </Button>
-            ) : (
-              <Button
-                onClick={async () => {
-                  // First save any pending changes
-                  await saveProfile()
-                  
-                  // Then publish via API (backend enforcement)
-                  const toastId = toast.loading("Publishing your page...")
-                  try {
-                    const res = await fetch('/api/publish', { method: 'POST' })
-                    const data = await res.json()
-                    
-                    if (res.ok) {
-                      toast.success("Your page is live!", { id: toastId })
-                      setProfile({ ...profile, pageStatus: 'published' })
-                      const baseUrl = window.location.origin
-                      setPublishedLink(`${baseUrl}/${profile.username}`)
-                    } else {
-                      // Handle upgrade required (shouldn't happen for Pro users)
-                      if (data.code === 'UPGRADE_REQUIRED') {
-                        setShowPaywall(true)
-                      }
-                      toast.error(data.message || "Failed to publish", { id: toastId })
-                    }
-                  } catch (error) {
-                    console.error("Publish error:", error)
-                    toast.error("Failed to publish", { id: toastId })
-                  }
-                }}
-                size="sm"
-                className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
-              >
-                🚀 Publish
-              </Button>
-            )}
-          </div>
+              🚀 Publish
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Editor */}
-      <div className="max-w-[1920px] mx-auto p-6">
-        <div className="grid grid-cols-[400px_1fr_400px] gap-6" style={{ height: 'calc(100vh - 120px)' }}>
-          
-          {/* Left Panel - Profile & Themes */}
-          <div className="space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">
-            
-            {/* Profile Section */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Profile</h2>
-              
-              {/* Profile Image */}
-              <div className="flex items-center gap-4">
-                <div className="relative group">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border-2 border-white/20 group-hover:border-[#00ff88]/40 transition-all">
-                    {profile.image ? (
-                      <img src={profile.image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl bg-[#00ff88]/20">
-                        {profile.name?.charAt(0) || '?'}
-                      </div>
-                    )}
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── LEFT: scrollable settings + fixed save footer ─────────────────── */}
+        <div className="flex-1 flex flex-col overflow-hidden border-r border-white/[0.05]">
+
+          {/* Scroll area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6 max-w-[540px] mx-auto w-full">
+
+              {/* ── Section 1: Profile ──────────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Profile</SL>
+
+                {/* Avatar upload */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group mb-2.5">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-white/[0.06] border-2 border-white/[0.10] group-hover:border-[#00ff88]/50 transition-all">
+                      {profile.image ? (
+                        <img src={profile.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
+                          style={{ background: `${accent}22`, color: accent }}>
+                          {profile.name?.charAt(0) || "?"}
+                        </div>
+                      )}
+                    </div>
+                    <label
+                      htmlFor="studio-profile-img"
+                      className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer border-2 border-[#080808] hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: accent }}
+                    >
+                      <Upload size={11} className="text-black" />
+                    </label>
+                    <input id="studio-profile-img" type="file" accept="image/*" className="hidden" onChange={handleProfileImageSelect} />
                   </div>
-                  <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                  <p className="text-[11px] font-mono text-[#444]">JPG, PNG or GIF · max 5MB</p>
+                </div>
+
+                {/* Name + bio */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">Display name</label>
+                    <input
+                      value={profile.name || ""}
+                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      placeholder="Your name"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">Bio</label>
+                    <textarea
+                      value={profile.bio || ""}
+                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                      placeholder="Tell your story..."
+                      rows={3}
+                      maxLength={160}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none resize-none"
+                    />
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[11px] font-mono text-[#444]">@{profile.username}</span>
+                      <span className="text-[11px] font-mono text-[#333]">{(profile.bio || "").length}/160</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <input
-                    id="profile-img"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleProfileImageSelect}
-                  />
-                  <Button
-                    onClick={() => document.getElementById('profile-img')?.click()}
-                    size="sm"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl hover:border-white/20 transition-colors"
+              </div>
+
+              {/* ── Section 2: Header style ──────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Header</SL>
+                <div className="grid grid-cols-2 gap-3">
+
+                  {/* Classic */}
+                  <button
+                    onClick={() => setProfile({ ...profile, heroStyle: "classic" })}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      (profile.heroStyle ?? "classic") === "classic"
+                        ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.02]"
+                        : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]"
+                    }`}
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Change Photo
-                  </Button>
+                    <div className="h-[60px] bg-black/30 rounded-lg mb-2.5 flex flex-col items-center justify-center gap-1.5">
+                      <div className="w-8 h-8 rounded-full bg-white/[0.1] border border-white/[0.15]" />
+                      <div className="w-12 h-1.5 bg-white/[0.07] rounded" />
+                      <div className="w-8 h-1 bg-white/[0.04] rounded" />
+                    </div>
+                    <div className={`text-[12px] font-mono font-medium ${(profile.heroStyle ?? "classic") === "classic" ? "text-[#00ff88]" : "text-[#888]"}`}>
+                      Classic
+                    </div>
+                    <div className="text-[10px] text-[#444] mt-0.5">Circular avatar</div>
+                  </button>
+
+                  {/* Cinematic */}
+                  <button
+                    onClick={() => setProfile({ ...profile, heroStyle: "cinematic" })}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      profile.heroStyle === "cinematic"
+                        ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.02]"
+                        : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]"
+                    }`}
+                  >
+                    <div className="h-[60px] bg-black/30 rounded-lg mb-2.5 overflow-hidden relative">
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <div className="w-12 h-1.5 bg-white/25 rounded mb-1" />
+                        <div className="w-8 h-1 bg-white/10 rounded" />
+                      </div>
+                    </div>
+                    <div className={`text-[12px] font-mono font-medium ${profile.heroStyle === "cinematic" ? "text-[#00ff88]" : "text-[#888]"}`}>
+                      Cinematic
+                    </div>
+                    <div className="text-[10px] text-[#444] mt-0.5">Full photo blend</div>
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5 block">Display Name</label>
-                  <Input
-                    value={profile.name || ""}
-                    onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full"
-                    placeholder="Your name"
-                  />
+              {/* ── Section 3: Accent color ──────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Accent color</SL>
+                <div className="flex items-center gap-3 flex-wrap mb-4">
+                  {ACCENT_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setProfile({ ...profile, accentColor: color })}
+                      className={`w-9 h-9 rounded-full flex-shrink-0 transition-all hover:scale-110 ${
+                        (profile.accentColor || "#00ff88") === color
+                          ? "ring-2 ring-white ring-offset-2 ring-offset-[#080808]"
+                          : ""
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
                 </div>
-                <div>
-                  <label className="text-[#444] text-xs font-mono uppercase tracking-wider mb-1.5 block">Bio</label>
-                  <Textarea
-                    value={profile.bio || ""}
-                    onChange={(e) => setProfile({...profile, bio: e.target.value})}
-                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full resize-none"
-                    rows={3}
-                    placeholder="Tell your story..."
-                    maxLength={200}
+                <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 hover:border-white/[0.14] transition-colors w-fit">
+                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: accent }} />
+                  <input
+                    type="text"
+                    value={accent}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setProfile({ ...profile, accentColor: val })
+                    }}
+                    className="w-24 bg-transparent text-[#e0e0e0] text-sm font-mono outline-none"
+                    placeholder="#00ff88"
                   />
-                  <div className="text-[#444] text-xs font-mono mt-1 text-right">
-                    {(profile.bio || '').length}/200
-                  </div>
                 </div>
               </div>
+
+              {/* ── Section 4: Background ────────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Background</SL>
+                <div className="grid grid-cols-3 gap-3">
+                  {BACKGROUNDS.map(({ value, label }) => {
+                    const active = (profile.backgroundStyle ?? "none") === value
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setProfile({ ...profile, backgroundStyle: value })}
+                        className={`rounded-xl border overflow-hidden transition-all ${
+                          active ? "border-[#00ff88]/[0.3]" : "border-white/[0.07] hover:border-white/[0.14]"
+                        }`}
+                      >
+                        <div className="h-16 relative overflow-hidden bg-[#030303]">
+                          {value === "mesh" && (
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-transparent to-emerald-900/30" />
+                          )}
+                          {value === "particles" && (
+                            <div className="absolute inset-0" style={{
+                              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
+                              backgroundSize: "10px 10px",
+                            }} />
+                          )}
+                          {active && (
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accent }}>
+                              <Check size={9} className="text-black" />
+                            </div>
+                          )}
+                        </div>
+                        <div className={`text-[11px] font-mono py-2 bg-white/[0.02] ${active ? "text-[#00ff88]" : "text-[#666]"}`}>
+                          {label}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Section 5: Buttons ───────────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Buttons</SL>
+
+                {/* Style */}
+                <div className="text-[11px] font-mono text-[#444] uppercase tracking-widest mb-2.5">Style</div>
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  {BUTTON_STYLES.map(({ value, label }) => {
+                    const active = (profile.buttonStyle ?? "3d") === value
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setProfile({ ...profile, buttonStyle: value })}
+                        className={`rounded-lg border p-2.5 flex flex-col items-center gap-2 transition-all ${
+                          active
+                            ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.03]"
+                            : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.14]"
+                        }`}
+                      >
+                        <ButtonStylePreview style={value} accent={accent} />
+                        <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#555]"}`}>{label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Corner radius */}
+                <div className="text-[11px] font-mono text-[#444] uppercase tracking-widest mb-2.5">Corner radius</div>
+                <div className="flex gap-2">
+                  {RADIUS_OPTIONS.map(({ value, label, tw }) => {
+                    const active = cornerRadius === value
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setCornerRadius(value)}
+                        className={`flex-1 rounded-lg border p-2.5 flex flex-col items-center gap-2 transition-all ${
+                          active
+                            ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.03]"
+                            : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.14]"
+                        }`}
+                      >
+                        <div className={`w-8 h-4 bg-white/[0.1] border border-white/[0.15] ${tw}`} />
+                        <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#555]"}`}>{label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Section 6: Font ──────────────────────────────────────────── */}
+              <div className={sectionCls}>
+                <SL>Font</SL>
+                <div className="relative">
+                  <select
+                    value={profile.fontFamily || "inter"}
+                    onChange={(e) => setProfile({ ...profile, fontFamily: e.target.value })}
+                    className="w-full appearance-none bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none pr-10 cursor-pointer"
+                  >
+                    {FONTS.map(({ value, label }) => (
+                      <option key={value} value={value} className="bg-[#111]">{label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
+                </div>
+              </div>
+
+              {/* ── Section 7: Social icons ──────────────────────────────────── */}
+              <div className="pb-8 mb-2">
+                <SL>Social icons</SL>
+                <div className="text-[11px] font-mono text-[#444] mb-3">Position</div>
+                <div className="flex gap-2">
+                  {["top", "bottom"].map((pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => setProfile({ ...profile, socialIconPosition: pos })}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-mono capitalize transition-all ${
+                        (profile.socialIconPosition ?? "bottom") === pos
+                          ? "bg-[#00ff88]/[0.1] border border-[#00ff88]/[0.3] text-[#00ff88]"
+                          : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </div>
-
           </div>
 
-          {/* Center - Phone Preview */}
-          <div className="flex items-center justify-center">
+          {/* ── Save footer (always visible) ──────────────────────────────── */}
+          <div className="flex-shrink-0 px-6 py-4 border-t border-white/[0.07] bg-[#080808]">
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3.5 text-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <><span className="animate-pulse">●</span> Saving...</>
+              ) : lastSaved ? (
+                <><Check size={14} /> Saved</>
+              ) : (
+                "Save changes"
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ── RIGHT: phone preview ─────────────────────────────────────────── */}
+        <div className="w-[320px] flex-shrink-0 bg-[#080808] flex flex-col">
+
+          {/* Label row */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.04] flex-shrink-0">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-white/25">Preview</span>
+            <button
+              onClick={() => window.open(`/preview/${profile.username}`, "_blank")}
+              className="text-[11px] font-mono text-[#00ff88] hover:underline"
+            >
+              Open →
+            </button>
+          </div>
+
+          {/* Phone */}
+          <div className="flex-1 flex items-center justify-center px-5 pb-5 overflow-hidden">
             <div className="relative">
-              {/* Phone Frame */}
-              <div className="w-[380px] h-[780px] bg-[#0a0a0a] rounded-[32px] p-4 border border-white/[0.08]">
-                <div className="w-full h-full rounded-[24px] overflow-hidden relative bg-[#080808]">
-                  
-                  {/* Background */}
-                  <PremiumBackground />
-                  
-                  {/* Content */}
-                  <div className="relative z-10 h-full overflow-y-auto scrollbar-hide p-8 text-white">
-                    
-                    {/* Profile */}
-                    {(profile.heroStyle ?? 'classic') === 'cinematic' ? (
-                      <div className="relative mb-6 -mx-8 -mt-8">
-                        <div
-                          className="w-full h-32"
-                          style={{ background: 'linear-gradient(to bottom, #1a1a1a 0%, #0d0d0d 60%, #080808 100%)' }}
-                        />
-                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-3 px-4">
-                          <h2 className="text-lg font-bold text-white text-center drop-shadow">{profile.name || profile.username}</h2>
-                          {profile.bio && <p className="text-[10px] text-white/50 line-clamp-1 mt-0.5 text-center">{profile.bio}</p>}
+
+              {/* Shell */}
+              <div
+                className="bg-[#0a0a0a] rounded-[38px] p-[10px] border border-white/[0.1]"
+                style={{
+                  width: 256,
+                  height: 548,
+                  boxShadow: `0 28px 64px rgba(0,0,0,0.85), 0 0 0 1px ${accent}18`,
+                }}
+              >
+                <div className="w-full h-full rounded-[30px] overflow-hidden relative bg-[#080808]">
+
+                  {profile.backgroundStyle !== "none" && <PremiumBackground />}
+
+                  <div className="relative z-10 h-full overflow-y-auto p-4 text-white" style={{ scrollbarWidth: "none" }}>
+
+                    {/* Hero */}
+                    {(profile.heroStyle ?? "classic") === "cinematic" ? (
+                      <div className="relative mb-4 -mx-4 -mt-4">
+                        <div className="w-full h-[80px]" style={{ background: "linear-gradient(to bottom, #1c1c1c, #080808)" }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2 px-4">
+                          <p className="text-[12px] font-bold text-white">{profile.name || profile.username}</p>
+                          {profile.bio && <p className="text-[9px] text-white/40 mt-0.5 line-clamp-1">{profile.bio}</p>}
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center mb-8">
-                        <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden border-4 border-white/20">
+                      <div className="text-center mb-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden mx-auto mb-2 border-2" style={{ borderColor: `${accent}44` }}>
                           {profile.image ? (
                             <img src={profile.image} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl">
+                            <div className="w-full h-full flex items-center justify-center text-lg font-bold" style={{ background: `${accent}22`, color: accent }}>
                               {profile.name?.charAt(0) || "?"}
                             </div>
                           )}
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">{profile.name || profile.username}</h2>
-                        {profile.bio && (
-                          <p className="text-sm text-gray-300 opacity-80 line-clamp-3">{profile.bio}</p>
-                        )}
-
-                        {/* Social Icons Top */}
-                        {profile.socialIconPosition === "top" && (
-                          <div className="flex justify-center gap-2 mt-4">
-                            {socialLinks.filter(s => s.enabled).length > 0
-                              ? socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
-                                  <SocialIcon
-                                    key={social.id}
-                                    platform={social.platform}
-                                    url={social.url}
-                                    size={36}
-                                  />
-                                ))
-                              : ['🔗', '▶', '🎵'].map((icon) => (
-                                  <div key={icon} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm opacity-40">
-                                    {icon}
-                                  </div>
-                                ))
-                            }
+                        <p className="text-[13px] font-bold mb-1">{profile.name || profile.username}</p>
+                        {profile.bio && <p className="text-[9px] text-gray-400 line-clamp-2 leading-relaxed">{profile.bio}</p>}
+                        {profile.socialIconPosition === "top" && socialLinks.filter(s => s.enabled).length > 0 && (
+                          <div className="flex justify-center gap-1.5 mt-2.5">
+                            {socialLinks.filter(s => s.enabled).slice(0, 5).map(s => (
+                              <SocialIcon key={s.id} platform={s.platform} url={s.url} size={20} />
+                            ))}
                           </div>
                         )}
                       </div>
                     )}
 
                     {/* Links */}
-                    <div className="space-y-3">
-                      {links.filter(l => l.enabled).slice(0, 4).map((link) => (
-                        <LinkCard3D
-                          key={link.id}
-                          title={link.title}
-                          icon={link.icon}
-                          variant={(profile.buttonStyle as any) || "3d"}
-                          className="text-sm"
-                        />
-                      ))}
-                      {links.filter(l => l.enabled).length === 0 && (
-                        <div className="flex flex-col gap-2 w-full px-2">
-                          {['My first link', 'Another link', 'Click here'].map((title) => (
-                            <LinkCard3D
-                              key={title}
-                              title={title}
-                              icon="🔗"
-                              variant={(profile.buttonStyle as any) || '3d'}
-                              className="text-sm opacity-40"
-                            />
-                          ))}
-                        </div>
-                      )}
+                    <div className="space-y-2">
+                      {links.filter(l => l.enabled).length > 0
+                        ? links.filter(l => l.enabled).slice(0, 5).map(link => (
+                            <LinkCard3D key={link.id} title={link.title} icon={link.icon} variant={(profile.buttonStyle as any) || "3d"} className="text-xs" />
+                          ))
+                        : ["First link", "Second link", "Resource"].map(title => (
+                            <LinkCard3D key={title} title={title} icon="🔗" variant={(profile.buttonStyle as any) || "3d"} className="text-xs opacity-40" />
+                          ))
+                      }
                     </div>
 
-                      {/* Social Icons Bottom */}
-                      {profile.socialIconPosition === "bottom" && (
-                        <div className="flex justify-center gap-2 mt-8">
-                          {socialLinks.filter(s => s.enabled).length > 0
-                            ? socialLinks.filter(s => s.enabled).slice(0, 5).map((social) => (
-                                <SocialIcon
-                                  key={social.id}
-                                  platform={social.platform}
-                                  url={social.url}
-                                  size={36}
-                                />
-                              ))
-                            : ['🔗', '▶', '🎵'].map((icon) => (
-                                <div key={icon} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm opacity-40">
-                                  {icon}
-                                </div>
-                              ))
-                          }
-                        </div>
-                      )}
+                    {/* Social bottom */}
+                    {(profile.socialIconPosition === "bottom" || !profile.socialIconPosition) && socialLinks.filter(s => s.enabled).length > 0 && (
+                      <div className="flex justify-center gap-1.5 mt-4">
+                        {socialLinks.filter(s => s.enabled).slice(0, 5).map(s => (
+                          <SocialIcon key={s.id} platform={s.platform} url={s.url} size={20} />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="text-center mt-5">
+                      <div className="text-[8px] text-[#1a1a1a] font-mono">paytree.to</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Notch */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-8 bg-black rounded-b-3xl z-20" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-2xl z-20" />
             </div>
           </div>
-
-          {/* Right Panel - Button Styles & Effects */}
-          <div className="space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 pr-2">
-            
-            {/* Hero Style */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Hero Style</h2>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  { value: 'classic', label: 'Classic', sub: 'Circular avatar with card', Icon: User },
-                  { value: 'cinematic', label: 'Cinematic', sub: 'Full photo, name overlay', Icon: Clapperboard },
-                ] as const).map(({ value, label, sub, Icon }) => {
-                  const active = (profile.heroStyle ?? 'classic') === value
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => setProfile({ ...profile, heroStyle: value })}
-                      className={`p-3 rounded-xl text-left font-mono transition-all ${
-                        active
-                          ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
-                          : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 mb-2 ${active ? 'text-[#00ff88]' : 'text-[#444]'}`} />
-                      <div className="text-sm leading-tight">{label}</div>
-                      <div className={`text-[10px] leading-tight mt-0.5 ${active ? 'text-[#00ff88]/60' : 'text-[#333]'}`}>{sub}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Button Styles */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Button Style</h2>
-              <div className="grid grid-cols-2 gap-2">
-                {buttonStyles.map(style => (
-                  <button
-                    key={style.value}
-                    onClick={() => setProfile({...profile, buttonStyle: style.value})}
-                    className={`p-3 rounded-xl text-sm font-mono transition-all ${
-                      profile.buttonStyle === style.value
-                        ? 'bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]'
-                        : 'bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]'
-                    }`}
-                  >
-                    {style.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Social Position */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Social Icons</h2>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setProfile({...profile, socialIconPosition: "top"})}
-                  className={`p-3 rounded-xl text-sm font-mono transition-all ${
-                    profile.socialIconPosition === "top"
-                      ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-                      : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                  }`}
-                >
-                  Top
-                </button>
-                <button
-                  onClick={() => setProfile({...profile, socialIconPosition: "bottom"})}
-                  className={`p-3 rounded-xl text-sm font-mono transition-all ${
-                    profile.socialIconPosition === "bottom"
-                      ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-                      : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                  }`}
-                >
-                  Bottom
-                </button>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">Stats</h2>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#444] text-xs font-mono">Plan</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${
-                    isPro
-                      ? "bg-[#00ff88]/10 border border-[#00ff88]/20 text-[#00ff88]"
-                      : "bg-white/5 border border-white/10 text-[#888]"
-                  }`}>
-                    {isPro ? "PRO" : "FREE"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#444] text-xs font-mono">Links</span>
-                  <span className="text-[#e0e0e0] text-sm font-mono">{links.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#444] text-xs font-mono">Social</span>
-                  <span className="text-[#e0e0e0] text-sm font-mono">{socialLinks.length}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Manual Save Button */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6">
-              <Button
-                onClick={saveProfile}
-                disabled={saving}
-                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-
-          </div>
-
         </div>
+
       </div>
 
-      {/* Image Cropper Modal */}
+      {/* ── Modals (unchanged) ──────────────────────────────────────────────── */}
+
       {cropImage && (
         <ImageCropper
           imageUrl={cropImage.url}
           onCropComplete={(blob) => handleCroppedImageUpload(blob)}
-          onCancel={() => {
-            URL.revokeObjectURL(cropImage.url)
-            setCropImage(null)
-          }}
+          onCancel={() => { URL.revokeObjectURL(cropImage.url); setCropImage(null) }}
           aspectRatio={1}
           circularCrop={true}
         />
       )}
 
-      {/* Paywall Modal */}
-      <PaywallModal 
-        isOpen={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        username={profile.username}
-      />
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} username={profile.username} />
 
-      {/* Published Link Modal */}
       {publishedLink && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setPublishedLink(null)}
-          />
-          
-          <div className="relative bg-[#0a0a0a] rounded-2xl max-w-md w-full p-8 border border-white/[0.07] animate-scale-in">
-            {/* Close button */}
-            <button
-              onClick={() => setPublishedLink(null)}
-              className="absolute top-4 right-4 text-[#444] hover:text-[#888] transition-colors"
-            >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPublishedLink(null)} />
+          <div className="relative bg-[#0a0a0a] rounded-2xl max-w-md w-full p-8 border border-white/[0.07]">
+            <button onClick={() => setPublishedLink(null)} className="absolute top-4 right-4 text-[#444] hover:text-[#888] transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-
-            {/* Success Icon */}
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
-              <svg className="w-10 h-10 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
+              <Check size={28} className="text-[#00ff88]" />
             </div>
-
-            {/* Content */}
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-mono font-semibold text-[#e0e0e0] mb-3">
-                🎉 Your Link is Live!
-              </h2>
-              <p className="text-[#444] text-sm font-mono">
-                Share this link with your audience to start receiving payments
-              </p>
+            <div className="text-center mb-5">
+              <h2 className="text-lg font-mono font-semibold text-[#e0e0e0] mb-2">🎉 Your link is live!</h2>
+              <p className="text-[#444] text-sm font-mono">Share this with your audience</p>
             </div>
-
-            {/* Link Display */}
-            <div className="bg-white/[0.03] rounded-xl p-4 mb-6 border border-white/[0.07]">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 font-mono text-sm text-[#00ff88] truncate">
-                  {publishedLink}
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(publishedLink)
-                    toast.success("Link copied!")
-                  }}
-                  className="px-3 py-2 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-xl text-sm font-mono text-[#e0e0e0] transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                  Copy
-                </button>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-3">
-              <Button
-                onClick={() => window.open(publishedLink, '_blank')}
-                className="w-full h-12 bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90 transition-opacity"
+            <div className="bg-white/[0.03] rounded-xl p-4 mb-5 border border-white/[0.07] flex items-center gap-3">
+              <div className="flex-1 font-mono text-sm text-[#00ff88] truncate">{publishedLink}</div>
+              <button
+                onClick={() => { navigator.clipboard.writeText(publishedLink!); toast.success("Link copied!") }}
+                className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-lg text-xs font-mono text-[#e0e0e0] transition-colors"
               >
-                View Your Page →
+                Copy
+              </button>
+            </div>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.open(publishedLink!, "_blank")}
+                className="w-full h-11 bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90"
+              >
+                View your page →
               </Button>
               <Button
                 onClick={() => setPublishedLink(null)}
                 variant="ghost"
-                className="w-full h-12 text-[#444] hover:text-[#888] font-mono transition-colors"
+                className="w-full h-11 text-[#444] hover:text-[#888] font-mono"
               >
-                Continue Editing
+                Continue editing
               </Button>
             </div>
           </div>

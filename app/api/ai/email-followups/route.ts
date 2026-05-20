@@ -38,7 +38,7 @@ export async function GET() {
     const features = getUserFeatures(user || {})
     if (!features.hasAiFeatures) {
       return NextResponse.json(
-        { error: "Email follow-ups require a Pro plan.", code: "UPGRADE_REQUIRED" },
+        { error: "Email follow-ups require an Ultra plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }

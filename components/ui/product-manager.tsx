@@ -118,7 +118,7 @@ export function ProductManager({ products, onProductsChange, isPro }: ProductMan
           Create and sell digital products directly from your PayTree. Accept payments via Stripe.
         </p>
         <a href="/upgrade" className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold">
-          Upgrade to Pro
+          Upgrade
         </a>
       </GlassBrick>
     )

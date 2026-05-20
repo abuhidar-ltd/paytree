@@ -19,8 +19,42 @@ import { ColorSwatchSelector } from "@/components/ui/color-swatch-selector"
 import { AccentColorProvider } from "@/contexts/accent-color-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
+import {
+  Search,
+  Folder,
+  Link as LucideLink,
+  Lock,
+  Timer,
+  Youtube,
+  ShoppingBag,
+  Music,
+  Mic,
+  Radio,
+  Share2,
+  Bitcoin,
+  BarChart2,
+  ChevronRight,
+  LayoutGrid,
+  Image as ImageIcon,
+  Star,
+  Calendar,
+  Trash2,
+  X,
+} from "lucide-react"
 
-// Types
+// Suppress "imported but never read" for components preserved for handler compatibility
+void SignOutButton
+void ObsidianCard
+void GlassBrick
+void CryptoManager
+void VaultManager
+void PortalBuilder
+void UpgradePrompt
+void ModuleEditor
+void ProductManager
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
 interface DbLink {
   id: string
   title: string
@@ -120,11 +154,36 @@ interface DbDrop {
   enabled: boolean
 }
 
+interface Block {
+  id: string
+  type: string
+  title: string
+  enabled: boolean
+  position: number
+  url: string | null
+  description: string | null
+  thumbnail: string | null
+  config: Record<string, unknown>
+  style: string
+  size: string
+  layout: string
+  priority: string
+  scheduleStart: string | null
+  scheduleEnd: string | null
+  lockType: string
+  lockValue: string | null
+  parentId: string | null
+  children: Block[]
+  clickCount: number
+}
+
+// ─── DashboardPage ──────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
-  
-  // State
+
+  // ── existing state ──
   const [profile, setProfile] = useState<Profile | null>(null)
   const [links, setLinks] = useState<DbLink[]>([])
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([])
@@ -143,13 +202,15 @@ export default function DashboardPage() {
   } | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Blocks UI state
+  // ── new blocks state ──
+  const [blocks, setBlocks] = useState<Block[]>([])
   const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null)
   const [showStylePanel, setShowStylePanel] = useState(false)
   const [showAddBlockPicker, setShowAddBlockPicker] = useState(false)
   const [editFields, setEditFields] = useState<Record<string, Record<string, string>>>({})
+  const [previewPulse, setPreviewPulse] = useState(false)
 
-  // Legacy form state (still referenced by preserved handlers)
+  // Legacy form state (kept so existing handlers compile)
   const [newLink, setNewLink] = useState({ title: "", url: "", icon: "💳" })
   const [isAddingLink, setIsAddingLink] = useState(false)
   const [newSocialLink, setNewSocialLink] = useState({ platform: "instagram", url: "" })
@@ -163,21 +224,29 @@ export default function DashboardPage() {
     limitedSpots: "",
   })
   const [isAddingDrop, setIsAddingDrop] = useState(false)
-  // Suppress unused-var warnings for the legacy form state we're keeping
   void newLink; void setNewLink; void isAddingLink; void setIsAddingLink
   void newSocialLink; void setNewSocialLink; void isAddingSocial; void setIsAddingSocial
   void newDrop; void setNewDrop; void isAddingDrop; void setIsAddingDrop
+  void saving
 
-  const isPro = profile?.subscriptionStatus === 'active' || profile?.subscriptionStatus === 'trial' || profile?.subscriptionStatus === 'canceling'
+  const isPro =
+    profile?.subscriptionStatus === "active" ||
+    profile?.subscriptionStatus === "trial" ||
+    profile?.subscriptionStatus === "canceling"
 
   useEffect(() => {
     fetch("/api/referral")
       .then((r) => r.json())
-      .then((data) => {
-        if (!data.error) setReferralStats(data)
-      })
+      .then((data) => { if (!data.error) setReferralStats(data) })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (blocks.length === 0) return
+    setPreviewPulse(true)
+    const t = setTimeout(() => setPreviewPulse(false), 500)
+    return () => clearTimeout(t)
+  }, [blocks])
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -189,16 +258,18 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [profileRes, linksRes, socialRes, cryptoRes, vaultRes, modulesRes, productsRes, dropsRes] = await Promise.all([
-        fetch("/api/profile"),
-        fetch("/api/links"),
-        fetch("/api/social-links"),
-        fetch("/api/crypto-addresses"),
-        fetch("/api/vault/items"),
-        fetch("/api/modules"),
-        fetch("/api/products"),
-        fetch("/api/drops"),
-      ])
+      const [profileRes, linksRes, socialRes, cryptoRes, vaultRes, modulesRes, productsRes, dropsRes, blocksRes] =
+        await Promise.all([
+          fetch("/api/profile"),
+          fetch("/api/links"),
+          fetch("/api/social-links"),
+          fetch("/api/crypto-addresses"),
+          fetch("/api/vault/items"),
+          fetch("/api/modules"),
+          fetch("/api/products"),
+          fetch("/api/drops"),
+          fetch("/api/blocks"),
+        ])
 
       if (profileRes.ok) setProfile(await profileRes.json())
       if (linksRes.ok) setLinks(await linksRes.json())
@@ -208,6 +279,7 @@ export default function DashboardPage() {
       if (modulesRes.ok) setModules(await modulesRes.json())
       if (productsRes.ok) setProducts(await productsRes.json())
       if (dropsRes.ok) setDrops(await dropsRes.json())
+      if (blocksRes.ok) setBlocks(await blocksRes.json())
     } catch (error) {
       console.error("Failed to load data:", error)
       toast.error("Failed to load dashboard data. Please refresh.")
@@ -216,7 +288,8 @@ export default function DashboardPage() {
     }
   }
 
-  // Link handlers
+  // ── existing link handlers ──────────────────────────────────────────────
+
   const addLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -236,23 +309,24 @@ export default function DashboardPage() {
         const error = await res.json()
         toast.error(error.error || "Failed to add link")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add link")
     } finally {
       setSaving(false)
     }
   }
+  void addLink
 
   const toggleLink = async (id: string, enabled: boolean) => {
-    setLinks(links.map(l => l.id === id ? { ...l, enabled } : l))
+    setLinks(links.map((l) => (l.id === id ? { ...l, enabled } : l)))
     try {
       await fetch(`/api/links/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled }),
       })
-    } catch (error) {
-      setLinks(links.map(l => l.id === id ? { ...l, enabled: !enabled } : l))
+    } catch {
+      setLinks(links.map((l) => (l.id === id ? { ...l, enabled: !enabled } : l)))
       toast.error("Failed to update link. Please try again.")
     }
   }
@@ -260,16 +334,17 @@ export default function DashboardPage() {
   const deleteLink = async (id: string) => {
     if (!confirm("Delete this link?")) return
     const previousLinks = [...links]
-    setLinks(links.filter(l => l.id !== id))
+    setLinks(links.filter((l) => l.id !== id))
     try {
       await fetch(`/api/links/${id}`, { method: "DELETE" })
-    } catch (error) {
+    } catch {
       setLinks(previousLinks)
       toast.error("Failed to delete link. Please try again.")
     }
   }
 
-  // Drop handlers
+  // ── drop handlers ────────────────────────────────────────────────────────
+
   const addDrop = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newDrop.title || !newDrop.dropAt) return
@@ -292,7 +367,7 @@ export default function DashboardPage() {
       })
       if (res.ok) {
         const drop = await res.json()
-        setDrops(prev => [...prev, drop])
+        setDrops((prev) => [...prev, drop])
         setNewDrop({ title: "", description: "", dropAt: "", revealUrl: "", revealText: "", limitedSpots: "" })
         setIsAddingDrop(false)
         toast.success("Drop scheduled!")
@@ -300,16 +375,17 @@ export default function DashboardPage() {
         const error = await res.json()
         toast.error(error.error || "Failed to add drop")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add drop")
     } finally {
       setSaving(false)
     }
   }
+  void addDrop
 
   const toggleDrop = async (id: string, enabled: boolean) => {
     const previous = drops
-    setDrops(prev => prev.map(d => d.id === id ? { ...d, enabled } : d))
+    setDrops((prev) => prev.map((d) => (d.id === id ? { ...d, enabled } : d)))
     try {
       const res = await fetch(`/api/drops/${id}`, {
         method: "PATCH",
@@ -317,26 +393,29 @@ export default function DashboardPage() {
         body: JSON.stringify({ enabled }),
       })
       if (!res.ok) throw new Error("toggle failed")
-    } catch (error) {
+    } catch {
       setDrops(previous)
       toast.error("Failed to update drop. Please try again.")
     }
   }
+  void toggleDrop
 
   const deleteDrop = async (id: string) => {
     if (!confirm("Delete this drop?")) return
     const previous = drops
-    setDrops(prev => prev.filter(d => d.id !== id))
+    setDrops((prev) => prev.filter((d) => d.id !== id))
     try {
       const res = await fetch(`/api/drops/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("delete failed")
-    } catch (error) {
+    } catch {
       setDrops(previous)
       toast.error("Failed to delete drop. Please try again.")
     }
   }
+  void deleteDrop
 
-  // Portal handlers
+  // ── portal handlers ──────────────────────────────────────────────────────
+
   const createFolder = async (title: string, icon?: string) => {
     try {
       const res = await fetch("/api/links/folder", {
@@ -349,10 +428,11 @@ export default function DashboardPage() {
         setLinks([...links, folder])
         toast.success("Portal created!")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to create portal")
     }
   }
+  void createFolder
 
   const createNestedLink = async (title: string, url: string, icon?: string, parentId?: string) => {
     try {
@@ -366,12 +446,14 @@ export default function DashboardPage() {
         setLinks([...links, link])
         toast.success("Link added!")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add link")
     }
   }
+  void createNestedLink
 
-  // Live status handlers
+  // ── live status handlers ──────────────────────────────────────────────────
+
   const toggleLiveStatus = async (isLive: boolean) => {
     try {
       await fetch("/api/live-status", {
@@ -379,8 +461,8 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ liveStatus: isLive }),
       })
-      setProfile(prev => prev ? { ...prev, liveStatus: isLive } : null)
-    } catch (error) {
+      setProfile((prev) => (prev ? { ...prev, liveStatus: isLive } : null))
+    } catch {
       toast.error("Failed to update live status")
     }
   }
@@ -392,13 +474,14 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ liveMessage: message }),
       })
-      setProfile(prev => prev ? { ...prev, liveMessage: message } : null)
-    } catch (error) {
+      setProfile((prev) => (prev ? { ...prev, liveMessage: message } : null))
+    } catch {
       toast.error("Failed to update message")
     }
   }
 
-  // AI Agent handler
+  // ── AI agent handler ──────────────────────────────────────────────────────
+
   const toggleAiAgent = async (enabled: boolean) => {
     try {
       const res = await fetch("/api/profile", {
@@ -406,10 +489,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aiAgentEnabled: enabled }),
       })
-      if (!res.ok) {
-        toast.error("Failed to update AI Agent")
-        return
-      }
+      if (!res.ok) { toast.error("Failed to update AI Agent"); return }
       setProfile((prev) => (prev ? { ...prev, aiAgentEnabled: enabled } : null))
       toast.success(enabled ? "AI Agent enabled" : "AI Agent disabled")
     } catch {
@@ -417,7 +497,8 @@ export default function DashboardPage() {
     }
   }
 
-  // Stats handlers
+  // ── stats handlers ────────────────────────────────────────────────────────
+
   const updateStats = async (stats: Partial<Profile>) => {
     try {
       await fetch("/api/stats", {
@@ -425,13 +506,14 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(stats),
       })
-      setProfile(prev => prev ? { ...prev, ...stats } : null)
-    } catch (error) {
+      setProfile((prev) => (prev ? { ...prev, ...stats } : null))
+    } catch {
       toast.error("Failed to update stats")
     }
   }
 
-  // Crypto handlers
+  // ── crypto handlers ───────────────────────────────────────────────────────
+
   const addCryptoAddress = async (currency: string, address: string, label?: string) => {
     try {
       const res = await fetch("/api/crypto-addresses", {
@@ -444,19 +526,21 @@ export default function DashboardPage() {
         setCryptoAddresses([...cryptoAddresses, addr])
         toast.success("Address added!")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add address")
     }
   }
+  void addCryptoAddress
 
   const removeCryptoAddress = async (id: string) => {
     try {
       await fetch(`/api/crypto-addresses/${id}`, { method: "DELETE" })
-      setCryptoAddresses(cryptoAddresses.filter(a => a.id !== id))
-    } catch (error) {
+      setCryptoAddresses(cryptoAddresses.filter((a) => a.id !== id))
+    } catch {
       toast.error("Failed to remove address")
     }
   }
+  void removeCryptoAddress
 
   const toggleCryptoAddress = async (id: string, enabled: boolean) => {
     try {
@@ -465,13 +549,15 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled }),
       })
-      setCryptoAddresses(cryptoAddresses.map(a => a.id === id ? { ...a, enabled } : a))
-    } catch (error) {
+      setCryptoAddresses(cryptoAddresses.map((a) => (a.id === id ? { ...a, enabled } : a)))
+    } catch {
       toast.error("Failed to toggle address")
     }
   }
+  void toggleCryptoAddress
 
-  // Vault handlers
+  // ── vault handlers ────────────────────────────────────────────────────────
+
   const createVaultItem = async (item: Partial<VaultItem>) => {
     try {
       const res = await fetch("/api/vault/items", {
@@ -492,20 +578,22 @@ export default function DashboardPage() {
         setVaultItems([...vaultItems, newItem])
         toast.success("Vault item created!")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to create vault item")
     }
   }
+  void createVaultItem
 
   const deleteVaultItem = async (id: string) => {
     try {
       await fetch(`/api/vault/items/${id}`, { method: "DELETE" })
-      setVaultItems(vaultItems.filter(v => v.id !== id))
+      setVaultItems(vaultItems.filter((v) => v.id !== id))
       toast.success("Vault item deleted")
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete vault item")
     }
   }
+  void deleteVaultItem
 
   const toggleVaultLock = async (id: string, locked: boolean) => {
     try {
@@ -514,13 +602,15 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isEmailLocked: locked }),
       })
-      setVaultItems(vaultItems.map(v => v.id === id ? { ...v, isEmailLocked: locked } : v))
-    } catch (error) {
+      setVaultItems(vaultItems.map((v) => (v.id === id ? { ...v, isEmailLocked: locked } : v)))
+    } catch {
       toast.error("Failed to update vault item")
     }
   }
+  void toggleVaultLock
 
-  // Social handlers
+  // ── social handlers ───────────────────────────────────────────────────────
+
   const addSocialLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -537,413 +627,31 @@ export default function DashboardPage() {
         setIsAddingSocial(false)
         toast.success("Social link added!")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add social link")
     } finally {
       setSaving(false)
     }
   }
+  void addSocialLink
 
   const deleteSocialLink = async (id: string) => {
     if (!confirm("Delete this social link?")) return
     const previous = [...socialLinks]
-    setSocialLinks(socialLinks.filter(l => l.id !== id))
+    setSocialLinks(socialLinks.filter((l) => l.id !== id))
     try {
       await fetch(`/api/social-links/${id}`, { method: "DELETE" })
-    } catch (error) {
+    } catch {
       setSocialLinks(previous)
     }
   }
+  void deleteSocialLink
 
-  // Calculate stats
-  const totalClicks = links.reduce((acc, link) => acc + (link._count?.clicks || 0), 0)
-  // Exclude vault items — they're rendered as their own block kind via /api/vault/items
-  const folders = links.filter(l => l.isFolder && !l.isVaultItem)
-  const regularLinks = links.filter(l => !l.isFolder && !l.parentId && !l.isVaultItem)
-
-  // Unified blocks list (order: drops -> links -> portals -> modules -> products -> vault -> social -> crypto)
-  type AnyBlock =
-    | { kind: "drop"; id: string; data: DbDrop }
-    | { kind: "link"; id: string; data: DbLink }
-    | { kind: "portal"; id: string; data: DbLink }
-    | { kind: "module"; id: string; data: BentoModule }
-    | { kind: "product"; id: string; data: Product }
-    | { kind: "vault"; id: string; data: VaultItem }
-    | { kind: "social"; id: string; data: SocialLink }
-    | { kind: "crypto"; id: string; data: CryptoAddress }
-
-  const allBlocks: AnyBlock[] = [
-    ...drops.map(d => ({ kind: "drop" as const, id: d.id, data: d })),
-    ...regularLinks.map(l => ({ kind: "link" as const, id: l.id, data: l })),
-    ...folders.map(f => ({ kind: "portal" as const, id: f.id, data: f })),
-    ...modules.map(m => ({ kind: "module" as const, id: m.id, data: m })),
-    ...products.map(p => ({ kind: "product" as const, id: p.id, data: p })),
-    ...vaultItems.map(v => ({ kind: "vault" as const, id: v.id, data: v })),
-    ...socialLinks.map(s => ({ kind: "social" as const, id: s.id, data: s })),
-    ...cryptoAddresses.map(c => ({ kind: "crypto" as const, id: c.id, data: c })),
-  ]
-
-  // editFields helpers — read with fallback, write per blockId/key
-  const getField = (blockId: string, key: string, fallback: string): string =>
-    editFields[blockId]?.[key] ?? fallback
-  const setField = (blockId: string, key: string, val: string) =>
-    setEditFields(prev => ({ ...prev, [blockId]: { ...(prev[blockId] || {}), [key]: val } }))
-  const clearFields = (blockId: string) =>
-    setEditFields(prev => {
-      const { [blockId]: _gone, ...rest } = prev
-      void _gone
-      return rest
-    })
-
-  const handleCopyReferralLink = async () => {
-    if (!referralStats?.referralLink) return
-    try {
-      await navigator.clipboard.writeText(referralStats.referralLink)
-      toast.success("Link copied!")
-    } catch {
-      toast.error("Failed to copy link")
-    }
-  }
-
-  const toggleExpand = (id: string) =>
-    setExpandedBlockId(curr => (curr === id ? null : id))
-
-  // Auto-expand a freshly created block + close the picker
-  const handleAddBlock = async (type: string) => {
-    setShowAddBlockPicker(false)
-    try {
-      switch (type) {
-        case "link": {
-          const res = await fetch("/api/links", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "Untitled link" }),
-          })
-          if (!res.ok) throw new Error()
-          const link = await res.json()
-          setLinks(prev => [...prev, link])
-          setExpandedBlockId(link.id)
-          toast.success("Link added")
-          break
-        }
-        case "portal": {
-          await createFolder("New portal", "📁")
-          // createFolder updates state asynchronously; expand the most recently created folder
-          // by waiting one tick for state, then picking the newest folder id.
-          setTimeout(() => {
-            const newest = [...links].filter(l => l.isFolder).slice(-1)[0]
-            if (newest) setExpandedBlockId(newest.id)
-          }, 0)
-          break
-        }
-        case "drop": {
-          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-          const res = await fetch("/api/drops", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "Untitled drop", dropAt: tomorrow }),
-          })
-          if (!res.ok) throw new Error()
-          const drop = await res.json()
-          setDrops(prev => [...prev, drop])
-          setExpandedBlockId(drop.id)
-          toast.success("Drop added")
-          break
-        }
-        case "social": {
-          const res = await fetch("/api/social-links", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform: "instagram", url: "https://" }),
-          })
-          if (!res.ok) throw new Error()
-          const social = await res.json()
-          setSocialLinks(prev => [...prev, social])
-          setExpandedBlockId(social.id)
-          toast.success("Social link added")
-          break
-        }
-        case "crypto": {
-          const res = await fetch("/api/crypto-addresses", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ currency: "BTC", address: "" }),
-          })
-          if (!res.ok) throw new Error()
-          const addr = await res.json()
-          setCryptoAddresses(prev => [...prev, addr])
-          setExpandedBlockId(addr.id)
-          toast.success("Crypto address added")
-          break
-        }
-        case "vault": {
-          const res = await fetch("/api/vault/items", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "Untitled vault item", isEmailLocked: true }),
-          })
-          if (!res.ok) throw new Error()
-          const item = await res.json()
-          setVaultItems(prev => [...prev, item])
-          setExpandedBlockId(item.id)
-          toast.success("Vault item added")
-          break
-        }
-        case "product": {
-          const res = await fetch("/api/products", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "Untitled product", price: 100 }),
-          })
-          if (!res.ok) {
-            const errorData = await res.json()
-            toast.error(errorData.error || "Failed to add product")
-            return
-          }
-          const p = await res.json()
-          setProducts(prev => [...prev, p])
-          setExpandedBlockId(p.id)
-          toast.success("Product added")
-          break
-        }
-        case "live":
-          setExpandedBlockId("__live__")
-          break
-        case "stats":
-          setExpandedBlockId("__stats__")
-          break
-        // Module sub-types
-        case "module:youtube":
-        case "module:spotify":
-        case "module:podcast":
-        case "module:twitch":
-        case "module:tiktok":
-        case "module:apple_music":
-        case "module:rss":
-        case "module:image":
-        case "module:social_hub":
-        case "module:quick_tip": {
-          const moduleType = type.replace("module:", "")
-          const res = await fetch("/api/modules", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: moduleType, span: 2, config: {} }),
-          })
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}))
-            toast.error(err.error || "Failed to add module")
-            return
-          }
-          const m = await res.json()
-          setModules(prev => [...prev, m])
-          setExpandedBlockId(m.id)
-          toast.success("Module added")
-          break
-        }
-        default:
-          toast.error("Unknown block type")
-      }
-    } catch (error) {
-      toast.error("Failed to add block")
-    }
-  }
-
-  // Generic save helpers (PATCH then update local state)
-  const saveLinkEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.title !== undefined) body.title = fields.title
-    if (fields.url !== undefined) body.url = fields.url
-    if (fields.icon !== undefined) body.icon = fields.icon
-
-    try {
-      const res = await fetch(`/api/links/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      setLinks(prev => prev.map(l => (l.id === id ? { ...l, ...body } as DbLink : l)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveDropEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.title !== undefined) body.title = fields.title
-    if (fields.description !== undefined) body.description = fields.description || null
-    if (fields.dropAt !== undefined && fields.dropAt) body.dropAt = new Date(fields.dropAt).toISOString()
-    if (fields.revealUrl !== undefined) body.revealUrl = fields.revealUrl || null
-    if (fields.revealText !== undefined) body.revealText = fields.revealText || null
-    if (fields.limitedSpots !== undefined) {
-      const n = parseInt(fields.limitedSpots, 10)
-      body.limitedSpots = Number.isFinite(n) && n > 0 ? n : null
-      body.spotsLeft = Number.isFinite(n) && n > 0 ? n : null
-    }
-    try {
-      const res = await fetch(`/api/drops/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      setDrops(prev => prev.map(d => (d.id === id ? { ...d, ...body } as DbDrop : d)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveSocialEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.url !== undefined) body.url = fields.url
-    if (fields.platform !== undefined) body.platform = fields.platform
-    try {
-      const res = await fetch(`/api/social-links/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      setSocialLinks(prev => prev.map(s => (s.id === id ? { ...s, ...body } as SocialLink : s)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveCryptoEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.address !== undefined) body.address = fields.address
-    if (fields.label !== undefined) body.label = fields.label
-    if (fields.currency !== undefined) body.currency = fields.currency
-    try {
-      const res = await fetch(`/api/crypto-addresses/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      setCryptoAddresses(prev => prev.map(c => (c.id === id ? { ...c, ...body } as CryptoAddress : c)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveVaultEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.title !== undefined) body.title = fields.title
-    if (fields.icon !== undefined) body.icon = fields.icon
-    if (fields.url !== undefined) body.url = fields.url
-    if (fields.downloadUrl !== undefined) body.downloadUrl = fields.downloadUrl
-    if (fields.downloadName !== undefined) body.downloadName = fields.downloadName
-    if (fields.vaultContent !== undefined) body.vaultContent = fields.vaultContent
-    try {
-      const res = await fetch(`/api/vault/items/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      setVaultItems(prev => prev.map(v => (v.id === id ? { ...v, ...body } as VaultItem : v)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveProductEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const body: Record<string, unknown> = {}
-    if (fields.title !== undefined) body.title = fields.title
-    if (fields.description !== undefined) body.description = fields.description
-    if (fields.imageUrl !== undefined) body.imageUrl = fields.imageUrl
-    if (fields.priceDollars !== undefined) {
-      const n = parseFloat(fields.priceDollars)
-      if (Number.isFinite(n)) body.price = Math.round(n * 100)
-    }
-    try {
-      const res = await fetch(`/api/products/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      const updated = await res.json()
-      setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...updated } : p)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const saveModuleEdits = async (id: string, blockKey: string) => {
-    const fields = editFields[blockKey]
-    if (!fields) return
-    const mod = modules.find(m => m.id === id)
-    if (!mod) return
-    const config: Record<string, unknown> = { ...mod.config }
-    Object.keys(fields).forEach(k => {
-      if (k.startsWith("config.")) {
-        config[k.slice("config.".length)] = fields[k]
-      }
-    })
-    const body: Record<string, unknown> = { config }
-    if (fields.title !== undefined) body.title = fields.title
-    try {
-      const res = await fetch(`/api/modules/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      const updated = await res.json()
-      setModules(prev => prev.map(m => (m.id === id ? { ...m, ...updated } : m)))
-      clearFields(blockKey)
-      toast.success("Saved")
-    } catch {
-      toast.error("Failed to save")
-    }
-  }
-
-  const setModuleSpan = async (id: string, span: number) => {
-    const previous = modules
-    setModules(prev => prev.map(m => (m.id === id ? { ...m, span } : m)))
-    try {
-      const res = await fetch(`/api/modules/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ span }),
-      })
-      if (!res.ok) throw new Error()
-    } catch {
-      setModules(previous)
-      toast.error("Failed to update size")
-    }
-  }
+  // ── module handlers ───────────────────────────────────────────────────────
 
   const toggleModule = async (id: string, enabled: boolean) => {
     const previous = modules
-    setModules(prev => prev.map(m => (m.id === id ? { ...m, enabled } : m)))
+    setModules((prev) => prev.map((m) => (m.id === id ? { ...m, enabled } : m)))
     try {
       const res = await fetch(`/api/modules/${id}`, {
         method: "PATCH",
@@ -956,11 +664,12 @@ export default function DashboardPage() {
       toast.error("Failed to toggle module")
     }
   }
+  void toggleModule
 
   const deleteModule = async (id: string) => {
     if (!confirm("Delete this module?")) return
     const previous = modules
-    setModules(prev => prev.filter(m => m.id !== id))
+    setModules((prev) => prev.filter((m) => m.id !== id))
     try {
       await fetch(`/api/modules/${id}`, { method: "DELETE" })
     } catch {
@@ -968,10 +677,30 @@ export default function DashboardPage() {
       toast.error("Failed to delete module")
     }
   }
+  void deleteModule
+
+  const setModuleSpan = async (id: string, span: number) => {
+    const previous = modules
+    setModules((prev) => prev.map((m) => (m.id === id ? { ...m, span } : m)))
+    try {
+      const res = await fetch(`/api/modules/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ span }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setModules(previous)
+      toast.error("Failed to update size")
+    }
+  }
+  void setModuleSpan
+
+  // ── product handlers ──────────────────────────────────────────────────────
 
   const toggleProduct = async (id: string, enabled: boolean) => {
     const previous = products
-    setProducts(prev => prev.map(p => (p.id === id ? { ...p, enabled } : p)))
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, enabled } : p)))
     try {
       const res = await fetch(`/api/products/${id}`, {
         method: "PATCH",
@@ -984,11 +713,12 @@ export default function DashboardPage() {
       toast.error("Failed to toggle product")
     }
   }
+  void toggleProduct
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Delete this product?")) return
     const previous = products
-    setProducts(prev => prev.filter(p => p.id !== id))
+    setProducts((prev) => prev.filter((p) => p.id !== id))
     try {
       await fetch(`/api/products/${id}`, { method: "DELETE" })
     } catch {
@@ -996,6 +726,92 @@ export default function DashboardPage() {
       toast.error("Failed to delete product")
     }
   }
+  void deleteProduct
+
+  // ── legacy save helpers (kept for compat) ─────────────────────────────────
+
+  const getField = (blockId: string, key: string, fallback: string): string =>
+    editFields[blockId]?.[key] ?? fallback
+  const setField = (blockId: string, key: string, val: string) =>
+    setEditFields((prev) => ({ ...prev, [blockId]: { ...(prev[blockId] || {}), [key]: val } }))
+  const clearFields = (blockId: string) =>
+    setEditFields((prev) => {
+      const { [blockId]: _gone, ...rest } = prev
+      void _gone
+      return rest
+    })
+  void getField; void setField; void clearFields
+
+  const handleCopyReferralLink = async () => {
+    if (!referralStats?.referralLink) return
+    try {
+      await navigator.clipboard.writeText(referralStats.referralLink)
+      toast.success("Link copied!")
+    } catch {
+      toast.error("Failed to copy link")
+    }
+  }
+
+  // ── blocks handlers ────────────────────────────────────────────────────────
+
+  const toggleExpand = (id: string) =>
+    setExpandedBlockId((curr) => (curr === id ? null : id))
+
+  const handleBlockToggle = async (id: string, enabled: boolean) => {
+    const previous = blocks
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, enabled } : b)))
+    try {
+      const res = await fetch(`/api/blocks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setBlocks(previous)
+      toast.error("Failed to toggle block")
+    }
+  }
+
+  const handleBlockUpdate = (id: string, data: Partial<Block>) => {
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)))
+  }
+
+  const handleBlockDelete = async (id: string) => {
+    const previous = blocks
+    setBlocks((prev) => prev.filter((b) => b.id !== id))
+    if (expandedBlockId === id) setExpandedBlockId(null)
+    try {
+      const res = await fetch(`/api/blocks/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      toast.success("Deleted")
+    } catch {
+      setBlocks(previous)
+      toast.error("Failed to delete block")
+    }
+  }
+
+  const handleAddBlock = async (type: string) => {
+    setShowAddBlockPicker(false)
+    if (type === "live_status") { setExpandedBlockId("__live__"); return }
+    if (type === "stats") { setExpandedBlockId("__stats__"); return }
+    try {
+      const res = await fetch("/api/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, title: "Untitled" }),
+      })
+      if (!res.ok) throw new Error()
+      const block = await res.json()
+      setBlocks((prev) => [...prev, block])
+      setExpandedBlockId(block.id)
+      toast.success("Block added")
+    } catch {
+      toast.error("Failed to add block")
+    }
+  }
+
+  // ── loading screen ─────────────────────────────────────────────────────────
 
   if (loading || !isLoaded) {
     return (
@@ -1009,39 +825,45 @@ export default function DashboardPage() {
     )
   }
 
+  // ── render ─────────────────────────────────────────────────────────────────
+
   return (
     <AccentColorProvider initialColor={profile?.accentColor || "#00ff88"}>
-    <div className="min-h-screen bg-[#030303] text-white relative">
-      <PremiumBackground />
+      <div className="min-h-screen bg-[#030303] text-white relative">
+        <PremiumBackground />
 
-      {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 safe-bottom">
-        <div className="grid lg:grid-cols-[1fr,380px] gap-8">
-          
-          {/* Left: Editor */}
-          <div className="space-y-6">
-            
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <GlassBrick className="!p-4 text-center">
-                <div className="text-2xl font-bold text-white">{links.length}</div>
-                <div className="label">Links</div>
-              </GlassBrick>
-              <GlassBrick className="!p-4 text-center">
-                <div className="text-2xl font-bold text-[#00ff88]">{totalClicks}</div>
-                <div className="label">Clicks</div>
-              </GlassBrick>
-              <GlassBrick className="!p-4 text-center">
-                <div className="text-2xl font-bold text-white">{folders.length}</div>
-                <div className="label">Portals</div>
-              </GlassBrick>
-            </div>
+        <div className="relative z-10 flex min-h-screen">
 
-            {/* Topbar — heading + Style toggle */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white/30">Your Page</h2>
+          {/* ── LEFT: blocks panel ─────────────────────────────── */}
+          <div className="flex-1 min-w-0 overflow-y-auto p-6">
+
+            {/* Free plan upgrade banner */}
+            {(!profile?.subscriptionStatus || profile?.subscriptionStatus === "free") && (
+              <div className="bg-gradient-to-r from-[#00ff88]/[0.08] to-transparent border border-[#00ff88]/[0.15] rounded-xl p-4 mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-mono text-[#e0e0e0]">🚀 Your page is ready to share</p>
+                  <p className="text-xs text-[#888] mt-0.5">Upgrade to Starter to publish it — $7/mo</p>
+                </div>
+                <Link href="/pricing" className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-sm hover:opacity-90 transition-opacity whitespace-nowrap">
+                  Publish my page →
+                </Link>
+              </div>
+            )}
+
+            {/* Search / paste bar */}
+            <button
+              onClick={() => setShowAddBlockPicker(true)}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3.5 flex items-center gap-2 mb-4 hover:border-white/[0.14] focus-visible:border-[#00ff88]/[0.3] focus-visible:ring-1 focus-visible:ring-[#00ff88]/[0.1] transition-colors outline-none"
+            >
+              <Search size={16} className="text-[#333] flex-shrink-0" />
+              <span className="text-[13px] font-mono text-[#333]">Paste a link or search blocks...</span>
+            </button>
+
+            {/* Style panel toggle */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono uppercase tracking-widest text-white/30">Your Page</span>
               <button
-                onClick={() => setShowStylePanel(s => !s)}
+                onClick={() => setShowStylePanel((s) => !s)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all ${
                   showStylePanel
                     ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
@@ -1052,7 +874,6 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Style panel — slide-down from old "style" tab */}
             <AnimatePresence>
               {showStylePanel && (
                 <motion.div
@@ -1061,39 +882,17 @@ export default function DashboardPage() {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden mb-4"
                 >
-                  <div className="space-y-6 pb-2">
-                    <ObsidianCard variant="accent" className="p-6">
-                      <h3 className="font-bold text-xl mb-2 text-white">Accent Color</h3>
-                      <p className="text-sm text-[#888888] mb-6">
-                        Choose a color theme for your page. This will update the glow effects and accents across your entire profile.
-                      </p>
-                      <ColorSwatchSelector showLabels />
-                    </ObsidianCard>
-
-                    <GlassBrick className="!p-6">
-                      <h3 className="font-bold text-lg mb-4 text-white">Preview</h3>
-                      <p className="text-sm text-[#888888] mb-4">
-                        Your accent color will be applied to borders, glows, and interactive elements.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="accent-glow-card !p-4 text-center">
-                          <div className="text-2xl mb-2">✨</div>
-                          <div className="text-sm font-medium text-white">Glow Card</div>
-                        </div>
-                        <div className="glass-brick !p-4 text-center hover:border-[var(--accent-color)] hover:shadow-[0_0_20px_var(--accent-glow)] transition-all">
-                          <div className="text-2xl mb-2">🔗</div>
-                          <div className="text-sm font-medium text-white">Link Card</div>
-                        </div>
-                      </div>
-                    </GlassBrick>
+                  <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 mb-2">
+                    <h3 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-4">Accent Color</h3>
+                    <ColorSwatchSelector showLabels />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Unified blocks list */}
-            <div className="space-y-1.5">
-              {/* Singleton: Live Status */}
+            {/* ── Singletons ─────────────────────────────────── */}
+            <div className="space-y-1.5 mb-4">
+
               {profile && (
                 <BlockRow
                   id="__live__"
@@ -1114,7 +913,6 @@ export default function DashboardPage() {
                 </BlockRow>
               )}
 
-              {/* Singleton: Stats */}
               {profile && (
                 <BlockRow
                   id="__stats__"
@@ -1149,7 +947,6 @@ export default function DashboardPage() {
                 </BlockRow>
               )}
 
-              {/* Singleton: AI Agent */}
               {profile && (
                 <BlockRow
                   id="__aiagent__"
@@ -1196,7 +993,6 @@ export default function DashboardPage() {
                 </BlockRow>
               )}
 
-              {/* Singleton: Earn */}
               {referralStats && (
                 <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] overflow-hidden p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -1239,729 +1035,185 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-
-              {/* Dynamic blocks */}
-              {allBlocks.map((block) => {
-                const blockKey = block.id
-                let icon = "•"
-                let label = ""
-                let badge = ""
-                let enabled: boolean | undefined = undefined
-                let onEnable: ((v: boolean) => void) | undefined = undefined
-                switch (block.kind) {
-                  case "drop":
-                    icon = "🎬"
-                    label = block.data.title || "Untitled drop"
-                    badge = "Drop"
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleDrop(block.id, v)
-                    break
-                  case "link":
-                    icon = block.data.icon || "🔗"
-                    label = block.data.title || "Untitled link"
-                    badge = "Link"
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleLink(block.id, v)
-                    break
-                  case "portal":
-                    icon = block.data.icon || "📁"
-                    label = block.data.title || "Portal"
-                    badge = "Portal"
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleLink(block.id, v)
-                    break
-                  case "module":
-                    icon = moduleIcon(block.data.type)
-                    label = block.data.title || moduleLabel(block.data.type)
-                    badge = moduleLabel(block.data.type)
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleModule(block.id, v)
-                    break
-                  case "product":
-                    icon = "🛒"
-                    label = block.data.title || "Product"
-                    badge = "Product"
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleProduct(block.id, v)
-                    break
-                  case "vault":
-                    icon = block.data.icon || "🔒"
-                    label = block.data.title || "Vault item"
-                    badge = "Vault"
-                    break
-                  case "social":
-                    icon = "🔗"
-                    label = block.data.platform.charAt(0).toUpperCase() + block.data.platform.slice(1)
-                    badge = "Social"
-                    break
-                  case "crypto":
-                    icon = "₿"
-                    label = block.data.label || block.data.currency
-                    badge = block.data.currency
-                    enabled = block.data.enabled
-                    onEnable = (v) => toggleCryptoAddress(block.id, v)
-                    break
-                }
-                return (
-                  <BlockRow
-                    key={`${block.kind}-${block.id}`}
-                    id={block.id}
-                    icon={icon}
-                    label={label}
-                    badge={badge}
-                    enabled={enabled}
-                    expanded={expandedBlockId === block.id}
-                    onToggle={() => toggleExpand(block.id)}
-                    onEnableToggle={onEnable}
-                  >
-                    {(() => {
-                      switch (block.kind) {
-                        case "link": {
-                          const link = block.data
-                          return (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-[80px,1fr] gap-2">
-                                <input
-                                  value={getField(blockKey, "icon", link.icon || "")}
-                                  onChange={(e) => setField(blockKey, "icon", e.target.value)}
-                                  className="input-obsidian text-center text-xl"
-                                  placeholder="🔗"
-                                />
-                                <input
-                                  value={getField(blockKey, "title", link.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian"
-                                  placeholder="Title"
-                                />
-                              </div>
-                              <input
-                                value={getField(blockKey, "url", link.url || "")}
-                                onChange={(e) => setField(blockKey, "url", e.target.value)}
-                                className="input-obsidian w-full"
-                                placeholder="https://..."
-                              />
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Style</div>
-                                <div className="flex gap-1.5 flex-wrap">
-                                  {(["glass","3d","gradient","glow","neon"] as const).map(s => {
-                                    const active = (link.style || "glass") === s
-                                    return (
-                                      <button
-                                        key={s}
-                                        onClick={async () => {
-                                          try {
-                                            const res = await fetch(`/api/links/${block.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ style: s }),
-                                            })
-                                            if (!res.ok) { toast.error("Failed to update style"); return }
-                                            setLinks(prev => prev.map(l => l.id === block.id ? { ...l, style: s } : l))
-                                            toast.success("Style updated")
-                                          } catch { toast.error("Failed to update style") }
-                                        }}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
-                                          active
-                                            ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-                                            : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                                        }`}
-                                      >
-                                        {s === "3d" ? "3D" : s.charAt(0).toUpperCase() + s.slice(1)}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Size</div>
-                                <div className="flex gap-1.5">
-                                  {(["full","half"] as const).map(size => {
-                                    const active = (link.cardSize || "full") === size
-                                    return (
-                                      <button
-                                        key={size}
-                                        onClick={async () => {
-                                          try {
-                                            const res = await fetch(`/api/links/${block.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ cardSize: size }),
-                                            })
-                                            if (!res.ok) { toast.error("Failed to update size"); return }
-                                            setLinks(prev => prev.map(l => l.id === block.id ? { ...l, cardSize: size } : l))
-                                            toast.success("Size updated")
-                                          } catch { toast.error("Failed to update size") }
-                                        }}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
-                                          active
-                                            ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-                                            : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                                        }`}
-                                      >
-                                        {size === "full" ? "Full" : "Half"}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveLinkEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteLink(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "portal": {
-                          const folder = block.data
-                          const children = links.filter(l => l.parentId === block.id)
-                          return (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-[80px,1fr] gap-2">
-                                <input
-                                  value={getField(blockKey, "icon", folder.icon || "")}
-                                  onChange={(e) => setField(blockKey, "icon", e.target.value)}
-                                  className="input-obsidian text-center text-xl"
-                                  placeholder="📁"
-                                />
-                                <input
-                                  value={getField(blockKey, "title", folder.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian"
-                                  placeholder="Portal name"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">
-                                  Items inside ({children.length})
-                                </div>
-                                <div className="space-y-1.5">
-                                  {children.map((child) => (
-                                    <div key={child.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                                      <span>{child.icon || "🔗"}</span>
-                                      <span className="flex-1 text-sm text-[#e0e0e0] truncate">{child.title}</span>
-                                      <span className="text-[10px] font-mono text-[#444] truncate max-w-[140px]">{child.url}</span>
-                                    </div>
-                                  ))}
-                                  {children.length === 0 && (
-                                    <div className="px-3 py-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-xs text-[#666] font-mono">
-                                      Empty portal — open Studio to add items
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveLinkEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Link href="/dashboard/studio">
-                                  <Button variant="ghost">Studio</Button>
-                                </Link>
-                                <Button onClick={() => deleteLink(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "drop": {
-                          const drop = block.data
-                          const dropAtLocal = (() => {
-                            try { return new Date(drop.dropAt).toISOString().slice(0, 16) } catch { return "" }
-                          })()
-                          return (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Title</div>
-                                <input
-                                  value={getField(blockKey, "title", drop.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Description</div>
-                                <input
-                                  value={getField(blockKey, "description", drop.description || "")}
-                                  onChange={(e) => setField(blockKey, "description", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="Limited release"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Drop date & time</div>
-                                <input
-                                  type="datetime-local"
-                                  value={getField(blockKey, "dropAt", dropAtLocal)}
-                                  onChange={(e) => setField(blockKey, "dropAt", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Reveal URL</div>
-                                <input
-                                  value={getField(blockKey, "revealUrl", drop.revealUrl || "")}
-                                  onChange={(e) => setField(blockKey, "revealUrl", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="https://..."
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Reveal text</div>
-                                <textarea
-                                  value={getField(blockKey, "revealText", drop.revealText || "")}
-                                  onChange={(e) => setField(blockKey, "revealText", e.target.value)}
-                                  className="input-obsidian w-full min-h-[60px]"
-                                  placeholder="Code: PAYTREE25"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Limited spots</div>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={getField(blockKey, "limitedSpots", drop.limitedSpots != null ? String(drop.limitedSpots) : "")}
-                                  onChange={(e) => setField(blockKey, "limitedSpots", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="100"
-                                />
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveDropEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteDrop(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "module": {
-                          const m = block.data
-                          const cfg = (m.config || {}) as Record<string, string>
-                          return (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Title (optional)</div>
-                                <input
-                                  value={getField(blockKey, "title", m.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              {renderModuleConfigInputs(blockKey, m.type, cfg, getField, setField)}
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Size</div>
-                                <div className="flex gap-1.5">
-                                  {[1, 2, 4].map(span => {
-                                    const active = m.span === span
-                                    return (
-                                      <button
-                                        key={span}
-                                        onClick={() => setModuleSpan(block.id, span)}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
-                                          active
-                                            ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-                                            : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                                        }`}
-                                      >
-                                        {span === 1 ? "1×" : span === 2 ? "2×" : "Full"}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveModuleEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteModule(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "product": {
-                          const p = block.data
-                          return (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Title</div>
-                                <input
-                                  value={getField(blockKey, "title", p.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Price (USD)</div>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={getField(blockKey, "priceDollars", (p.price / 100).toFixed(2))}
-                                  onChange={(e) => setField(blockKey, "priceDollars", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Description</div>
-                                <textarea
-                                  value={getField(blockKey, "description", p.description || "")}
-                                  onChange={(e) => setField(blockKey, "description", e.target.value)}
-                                  className="input-obsidian w-full min-h-[60px]"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Image URL</div>
-                                <input
-                                  value={getField(blockKey, "imageUrl", p.imageUrl || "")}
-                                  onChange={(e) => setField(blockKey, "imageUrl", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="https://..."
-                                />
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveProductEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteProduct(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "vault": {
-                          const v = block.data
-                          return (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-[80px,1fr] gap-2">
-                                <input
-                                  value={getField(blockKey, "icon", v.icon || "")}
-                                  onChange={(e) => setField(blockKey, "icon", e.target.value)}
-                                  className="input-obsidian text-center text-xl"
-                                  placeholder="🔒"
-                                />
-                                <input
-                                  value={getField(blockKey, "title", v.title || "")}
-                                  onChange={(e) => setField(blockKey, "title", e.target.value)}
-                                  className="input-obsidian"
-                                  placeholder="Title"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">URL</div>
-                                <input
-                                  value={getField(blockKey, "url", v.url || "")}
-                                  onChange={(e) => setField(blockKey, "url", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="https://..."
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Download URL</div>
-                                <input
-                                  value={getField(blockKey, "downloadUrl", v.downloadUrl || "")}
-                                  onChange={(e) => setField(blockKey, "downloadUrl", e.target.value)}
-                                  className="input-obsidian w-full"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Vault content</div>
-                                <textarea
-                                  value={getField(blockKey, "vaultContent", v.vaultContent || "")}
-                                  onChange={(e) => setField(blockKey, "vaultContent", e.target.value)}
-                                  className="input-obsidian w-full min-h-[60px]"
-                                  placeholder="Hidden content shown after email unlock"
-                                />
-                              </div>
-                              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                                <div className="text-xs font-mono text-[#888]">Email-locked</div>
-                                <button
-                                  onClick={() => toggleVaultLock(block.id, !v.isEmailLocked)}
-                                  className={`w-10 h-6 rounded-full transition-all relative ${
-                                    v.isEmailLocked ? "bg-[rgba(0,255,136,0.2)]" : "bg-white/10"
-                                  }`}
-                                >
-                                  <motion.div
-                                    className={`absolute top-0.5 w-5 h-5 rounded-full ${v.isEmailLocked ? "bg-[#00ff88]" : "bg-white"}`}
-                                    animate={{ left: v.isEmailLocked ? "calc(100% - 22px)" : "2px" }}
-                                  />
-                                </button>
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveVaultEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteVaultItem(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "social": {
-                          const s = block.data
-                          return (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Platform</div>
-                                <select
-                                  value={getField(blockKey, "platform", s.platform)}
-                                  onChange={(e) => setField(blockKey, "platform", e.target.value)}
-                                  className="input-obsidian w-full"
-                                >
-                                  <option value="instagram">Instagram</option>
-                                  <option value="twitter">Twitter / X</option>
-                                  <option value="youtube">YouTube</option>
-                                  <option value="tiktok">TikTok</option>
-                                  <option value="github">GitHub</option>
-                                  <option value="linkedin">LinkedIn</option>
-                                  <option value="discord">Discord</option>
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">URL</div>
-                                <input
-                                  value={getField(blockKey, "url", s.url || "")}
-                                  onChange={(e) => setField(blockKey, "url", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="https://..."
-                                />
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveSocialEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => deleteSocialLink(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                        case "crypto": {
-                          const c = block.data
-                          return (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Currency</div>
-                                <input
-                                  value={getField(blockKey, "currency", c.currency)}
-                                  onChange={(e) => setField(blockKey, "currency", e.target.value.toUpperCase())}
-                                  className="input-obsidian w-full"
-                                  placeholder="BTC"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Address</div>
-                                <input
-                                  value={getField(blockKey, "address", c.address)}
-                                  onChange={(e) => setField(blockKey, "address", e.target.value)}
-                                  className="input-obsidian w-full font-mono"
-                                />
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">Label (optional)</div>
-                                <input
-                                  value={getField(blockKey, "label", c.label || "")}
-                                  onChange={(e) => setField(blockKey, "label", e.target.value)}
-                                  className="input-obsidian w-full"
-                                  placeholder="Personal wallet"
-                                />
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button onClick={() => saveCryptoEdits(block.id, blockKey)} variant="accent-solid" className="flex-1">Save</Button>
-                                <Button onClick={() => removeCryptoAddress(block.id)} variant="outline">Delete</Button>
-                              </div>
-                            </div>
-                          )
-                        }
-                      }
-                    })()}
-                  </BlockRow>
-                )
-              })}
-
-              {/* + Add block */}
-              <button
-                onClick={() => setShowAddBlockPicker(true)}
-                className="w-full mt-3 py-3 rounded-xl border border-dashed border-white/[0.10] text-[#444] text-sm font-mono hover:border-white/20 hover:text-[#888] transition-all"
-              >
-                + Add block
-              </button>
             </div>
 
+            {/* ── Blocks list ────────────────────────────────── */}
+            {blocks.length > 0 && (
+              <div className="space-y-3 mb-3">
+                <AnimatePresence initial={false}>
+                  {blocks
+                    .filter((b) => !b.parentId)
+                    .sort((a, b) => a.position - b.position)
+                    .map((block) => (
+                      <motion.div
+                        key={block.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      >
+                        <BlockCard
+                          block={block}
+                          expanded={expandedBlockId === block.id}
+                          onExpand={(id) => setExpandedBlockId((curr) => (curr === id ? null : id))}
+                          onToggle={handleBlockToggle}
+                          onUpdate={handleBlockUpdate}
+                          onDelete={handleBlockDelete}
+                        />
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* ── Add block button ───────────────────────────── */}
+            <button
+              onClick={() => setShowAddBlockPicker((s) => !s)}
+              className="w-full border border-dashed border-white/[0.08] rounded-xl p-4 flex items-center justify-center gap-2 text-[#333] text-sm font-mono hover:border-[#00ff88]/[0.2] hover:text-[#00ff88] transition-all"
+            >
+              + Add block
+            </button>
+
+            {/* Inline AddBlockPicker */}
+            <AnimatePresence>
+              {showAddBlockPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  className="mt-2"
+                >
+                  <AddBlockPicker
+                    onClose={() => setShowAddBlockPicker(false)}
+                    onSelect={handleAddBlock}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
           </div>
 
-          {/* Right: Live Preview */}
-          <div className="hidden lg:block lg:sticky lg:top-24 h-fit">
-            <ObsidianCard variant="accent" className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-white">Live Preview</h3>
-                <Link href={`/${profile?.username}`} target="_blank" className="text-sm text-[#00ff88] hover:underline">
+          {/* ── RIGHT: phone preview ──────────────────────────── */}
+          <div className="hidden lg:flex flex-col w-60 flex-shrink-0 sticky top-0 h-screen p-3 border-l border-white/[0.05]">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-mono uppercase tracking-widest text-white/30">Preview</span>
+              {profile?.username && (
+                <Link
+                  href={`/${profile.username}`}
+                  target="_blank"
+                  className="text-[11px] font-mono text-[#00ff88] hover:underline"
+                >
                   Open →
                 </Link>
-              </div>
-              
-              {/* Phone Frame */}
-              <div className="relative mx-auto w-[280px] h-[560px] bg-[#030303] rounded-[32px] border-[6px] border-[#1a1a1a] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                <div className="absolute inset-0 overflow-y-auto scrollbar-hide p-6 pt-8">
-                  {/* Profile */}
-                  <div className="text-center mb-6">
-                    <div className="w-20 h-20 rounded-full bg-[rgba(255,255,255,0.05)] mx-auto mb-3 overflow-hidden border border-[rgba(0,255,136,0.3)]">
-                      {profile?.image ? (
-                        <img src={profile.image} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl font-bold bg-gradient-to-br from-[#00ff88] to-[#1a0b2e]">
-                          {profile?.name?.charAt(0) || "?"}
-                        </div>
-                      )}
-                    </div>
-                    <div className="font-bold text-base text-white">{profile?.name || profile?.username}</div>
-                    {profile?.bio && (
-                      <div className="text-xs text-[#888888] mt-1">{profile.bio}</div>
-                    )}
-                    
-                    {/* Live Status Preview */}
-                    {profile?.liveStatus && profile?.liveMessage && (
-                      <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[rgba(0,255,136,0.05)] border border-[rgba(0,255,136,0.2)]">
-                        <div className="beeping-dot !w-1.5 !h-1.5" />
-                        <span className="text-xs font-bold text-white uppercase">{profile.liveMessage}</span>
+              )}
+            </div>
+
+            {/* Phone frame */}
+            <div className={`mx-auto w-[190px] flex-1 max-h-[460px] bg-[#030303] rounded-[28px] border-[5px] border-[#1a1a1a] overflow-hidden transition-shadow duration-500 ${
+              previewPulse
+                ? "shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_2px_rgba(0,255,136,0.3)]"
+                : "shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(0,255,136,0.08)]"
+            }`}>
+              <div
+                className="h-full overflow-y-auto p-4 pt-6"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {/* Profile */}
+                <div className="text-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-white/[0.05] mx-auto mb-2 overflow-hidden border border-[rgba(0,255,136,0.3)]">
+                    {profile?.image ? (
+                      <img src={profile.image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-lg font-bold bg-gradient-to-br from-[#00ff88] to-[#1a0b2e]">
+                        {profile?.name?.charAt(0) || "?"}
                       </div>
                     )}
                   </div>
+                  <div className="font-bold text-[11px] text-white leading-tight">
+                    {profile?.name || profile?.username}
+                  </div>
+                  {profile?.bio && (
+                    <div className="text-[9px] text-[#888] mt-0.5 line-clamp-2">{profile.bio}</div>
+                  )}
+                  {profile?.liveStatus && (
+                    <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(0,255,136,0.05)] border border-[rgba(0,255,136,0.2)]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" />
+                      <span className="text-[8px] font-bold text-white uppercase">
+                        {profile.liveMessage || "Live"}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-                  {/* Links Preview */}
-                  <div className="space-y-2">
-                    {links.filter(l => l.enabled && !l.parentId).slice(0, 5).map(link => (
+                {/* Blocks preview */}
+                <div className="space-y-1.5">
+                  {blocks
+                    .filter((b) => b.enabled && !b.parentId)
+                    .slice(0, 5)
+                    .map((block) => (
                       <div
-                        key={link.id}
-                        className="p-3 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.1)]"
+                        key={block.id}
+                        className={`p-2 rounded-xl border ${
+                          block.type === "vault" ? "bg-yellow-500/[0.08] border-yellow-500/[0.15]" :
+                          block.type === "drop" ? "bg-[#00ff88]/[0.05] border-[#00ff88]/[0.12]" :
+                          block.type === "youtube" ? "bg-red-500/[0.06] border-red-500/[0.12]" :
+                          block.type === "product" ? "bg-blue-500/[0.06] border-blue-500/[0.12]" :
+                          block.type === "spotify" ? "bg-green-500/[0.06] border-green-500/[0.12]" :
+                          block.type === "crypto" ? "bg-orange-500/[0.06] border-orange-500/[0.12]" :
+                          "bg-white/[0.02] border-white/[0.07]"
+                        }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">{link.icon || "🔗"}</span>
-                          <span className="text-sm font-medium text-white truncate">{link.title}</span>
-                        </div>
+                        <div className="text-[10px] text-white truncate font-medium">{block.title}</div>
+                        {block.url && (
+                          <div className="text-[9px] text-[#555] truncate mt-0.5">{block.url}</div>
+                        )}
                       </div>
                     ))}
-                  </div>
+                  {blocks.length === 0 && (
+                    <div className="text-[9px] text-[#333] font-mono text-center pt-4">
+                      No blocks yet
+                    </div>
+                  )}
+                </div>
 
-                  {/* Branding */}
-                  <div className="text-center mt-8">
-                    <div className="text-xs text-[#555555]">Powered by PayTree</div>
-                  </div>
+                <div className="text-center mt-6">
+                  <div className="text-[8px] text-[#333]">Powered by PayTree</div>
                 </div>
               </div>
-            </ObsidianCard>
+            </div>
           </div>
+
         </div>
       </div>
-
-      <AddBlockPicker
-        open={showAddBlockPicker}
-        onClose={() => setShowAddBlockPicker(false)}
-        onSelect={handleAddBlock}
-      />
-    </div>
     </AccentColorProvider>
   )
 }
 
-// -------------------- Module helpers --------------------
+// ─── Helper functions ────────────────────────────────────────────────────────
 
 function moduleIcon(type: string): string {
   const map: Record<string, string> = {
-    youtube: "📺",
-    youtube_live: "🔴",
-    tiktok: "🎬",
-    podcast: "🎙️",
-    spotify: "🎵",
-    apple_music: "🎶",
-    twitch: "🎮",
-    image: "🖼️",
-    rss: "📰",
-    social_hub: "🔗",
-    quick_tip: "💸",
-    video: "🎥",
+    youtube: "📺", youtube_live: "🔴", tiktok: "🎬", podcast: "🎙️",
+    spotify: "🎵", apple_music: "🎶", twitch: "🎮", image: "🖼️",
+    rss: "📰", social_hub: "🔗", quick_tip: "💸", video: "🎥",
   }
   return map[type] || "🧩"
 }
+void moduleIcon
 
 function moduleLabel(type: string): string {
   const map: Record<string, string> = {
-    youtube: "YouTube",
-    youtube_live: "YouTube Live",
-    tiktok: "TikTok",
-    podcast: "Podcast",
-    spotify: "Spotify",
-    apple_music: "Apple Music",
-    twitch: "Twitch",
-    image: "Image",
-    rss: "RSS",
-    social_hub: "Social Hub",
-    quick_tip: "Quick Tip",
-    video: "Video",
+    youtube: "YouTube", youtube_live: "YouTube Live", tiktok: "TikTok",
+    podcast: "Podcast", spotify: "Spotify", apple_music: "Apple Music",
+    twitch: "Twitch", image: "Image", rss: "RSS", social_hub: "Social Hub",
+    quick_tip: "Quick Tip", video: "Video",
   }
   return map[type] || type.charAt(0).toUpperCase() + type.slice(1)
 }
+void moduleLabel
 
-function renderModuleConfigInputs(
-  blockId: string,
-  type: string,
-  cfg: Record<string, string>,
-  getField: (id: string, key: string, fallback: string) => string,
-  setField: (id: string, key: string, val: string) => void,
-) {
-  const lbl = (text: string) => (
-    <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1.5">{text}</div>
-  )
-  const text = (key: string, placeholder: string, label: string) => (
-    <div>
-      {lbl(label)}
-      <input
-        value={getField(blockId, `config.${key}`, cfg[key] || "")}
-        onChange={(e) => setField(blockId, `config.${key}`, e.target.value)}
-        className="input-obsidian w-full"
-        placeholder={placeholder}
-      />
-    </div>
-  )
-
-  switch (type) {
-    case "youtube":
-      return text("channelId", "UCxxxxxxxxxxxxxxxxxxxxxx", "Channel ID")
-    case "tiktok":
-      return (
-        <>
-          {text("videoUrl", "TikTok video URL", "Video URL")}
-          {text("title", "Title (optional)", "Title")}
-        </>
-      )
-    case "podcast":
-      return text("rssUrl", "https://feeds.example.com/podcast.xml", "Podcast RSS feed URL")
-    case "spotify":
-      return text("spotifyUrl", "Spotify track/album/playlist URL", "Spotify URL")
-    case "apple_music":
-      return text("appleMusicUrl", "Apple Music URL", "Apple Music URL")
-    case "image":
-      return (
-        <>
-          {text("imageUrl", "https://...", "Image URL")}
-          {text("title", "Title (optional)", "Title")}
-          {text("caption", "Caption (optional)", "Caption")}
-        </>
-      )
-    case "twitch":
-    case "youtube_live":
-      return (
-        <>
-          {text("channelId", type === "twitch" ? "Twitch username" : "YouTube channel ID", "Channel")}
-          {text("channelName", "Display name (optional)", "Display name")}
-        </>
-      )
-    case "social_hub":
-      return (
-        <>
-          {text("instagramUrl", "Instagram URL", "Instagram")}
-          {text("twitterUrl", "Twitter URL", "Twitter")}
-          {text("youtubeUrl", "YouTube URL", "YouTube")}
-          {text("tiktokUrl", "TikTok URL", "TikTok")}
-        </>
-      )
-    case "rss":
-      return text("feedUrl", "RSS feed URL", "Feed URL")
-    case "quick_tip":
-      return (
-        <>
-          {text("amount", "5", "Default amount")}
-          {text("currency", "USD", "Currency")}
-        </>
-      )
-    default:
-      return null
-  }
-}
-
-// -------------------- BlockRow --------------------
+// ─── BlockRow (singletons) ────────────────────────────────────────────────────
 
 interface BlockRowProps {
   id: string
@@ -1975,56 +1227,36 @@ interface BlockRowProps {
   children: React.ReactNode
 }
 
-function BlockRow({
-  icon,
-  label,
-  badge,
-  enabled,
-  expanded,
-  onToggle,
-  onEnableToggle,
-  children,
-}: BlockRowProps) {
+function BlockRow({ icon, label, badge, enabled, expanded, onToggle, onEnableToggle, children }: BlockRowProps) {
   return (
     <div className="rounded-xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
       <div
         className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-white/[0.01] transition-colors"
         onClick={onToggle}
       >
-        <span className="text-[#444] text-sm cursor-grab select-none" onClick={(e) => e.stopPropagation()}>⠿</span>
-        <span className="text-lg w-7 flex-shrink-0 text-center">{icon}</span>
-        <span className="flex-1 text-sm text-[#e0e0e0] font-medium truncate">{label}</span>
-        <span className="text-[10px] font-mono uppercase tracking-widest text-[#444] bg-white/[0.04] px-2 py-0.5 rounded-md">
-          {badge}
+        <span className="text-[#222] text-sm cursor-grab select-none flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          ⠿
         </span>
+        <span className="text-lg w-7 flex-shrink-0 text-center">{icon}</span>
+        <span className="flex-1 text-sm text-[#d8d8d8] font-medium truncate">{label}</span>
+        <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-white/[0.04] text-[#444]">{badge}</span>
         {onEnableToggle !== undefined && enabled !== undefined && (
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onEnableToggle(!enabled)
-            }}
-            className={`w-9 h-5 rounded-full transition-all relative ${
+            onClick={(e) => { e.stopPropagation(); onEnableToggle(!enabled) }}
+            className={`w-8 h-[18px] rounded-full transition-all relative flex-shrink-0 ${
               enabled ? "bg-[rgba(0,255,136,0.2)]" : "bg-white/10"
             }`}
-            aria-label={enabled ? "Disable" : "Enable"}
           >
             <motion.div
-              className={`absolute top-0.5 w-4 h-4 rounded-full ${enabled ? "bg-[#00ff88]" : "bg-white"}`}
-              animate={{ left: enabled ? "calc(100% - 18px)" : "2px" }}
+              className={`absolute top-0.5 w-3.5 h-3.5 rounded-full ${enabled ? "bg-[#00ff88]" : "bg-white/50"}`}
+              animate={{ left: enabled ? "calc(100% - 16px)" : "2px" }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             />
           </button>
         )}
-        <motion.svg
-          className="w-4 h-4 text-[#444] flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          animate={{ rotate: expanded ? 90 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </motion.svg>
+        <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }} className="flex-shrink-0">
+          <ChevronRight size={14} className="text-[#444]" />
+        </motion.div>
       </div>
       <AnimatePresence initial={false}>
         {expanded && (
@@ -2032,7 +1264,7 @@ function BlockRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 40 }}
             className="overflow-hidden border-t border-white/[0.05]"
           >
             <div className="p-4">{children}</div>
@@ -2043,114 +1275,757 @@ function BlockRow({
   )
 }
 
-// -------------------- AddBlockPicker --------------------
+// ─── BlockTypeIcon ────────────────────────────────────────────────────────────
+
+function BlockTypeIcon({ type }: { type: string }) {
+  const p = { size: 14, strokeWidth: 2 }
+  switch (type) {
+    case "link":
+      return <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center"><LucideLink {...p} className="text-[#888]" /></div>
+    case "collection":
+      return <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center"><Folder {...p} className="text-[#888]" /></div>
+    case "vault":
+      return <div className="w-7 h-7 rounded-lg bg-yellow-500/[0.08] flex items-center justify-center"><Lock {...p} className="text-yellow-400" /></div>
+    case "drop":
+      return <div className="w-7 h-7 rounded-lg bg-[#00ff88]/[0.08] flex items-center justify-center"><Timer {...p} className="text-[#00ff88]" /></div>
+    case "youtube":
+      return <div className="w-7 h-7 rounded-lg bg-red-500/[0.08] flex items-center justify-center"><Youtube {...p} className="text-red-400" /></div>
+    case "product":
+      return <div className="w-7 h-7 rounded-lg bg-blue-500/[0.08] flex items-center justify-center"><ShoppingBag {...p} className="text-blue-400" /></div>
+    case "spotify":
+      return <div className="w-7 h-7 rounded-lg bg-green-500/[0.08] flex items-center justify-center"><Music {...p} className="text-green-400" /></div>
+    case "podcast":
+      return <div className="w-7 h-7 rounded-lg bg-orange-500/[0.08] flex items-center justify-center"><Mic {...p} className="text-orange-400" /></div>
+    case "twitch":
+      return <div className="w-7 h-7 rounded-lg bg-purple-500/[0.08] flex items-center justify-center"><Radio {...p} className="text-purple-400" /></div>
+    case "social_link":
+      return <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center"><Share2 {...p} className="text-[#888]" /></div>
+    case "crypto":
+      return <div className="w-7 h-7 rounded-lg bg-orange-500/[0.08] flex items-center justify-center"><Bitcoin {...p} className="text-orange-400" /></div>
+    case "stats":
+      return <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center"><BarChart2 {...p} className="text-[#888]" /></div>
+    case "live_status":
+      return <div className="w-7 h-7 rounded-lg bg-red-500/[0.08] flex items-center justify-center"><Radio {...p} className="text-red-400" /></div>
+    default:
+      return <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center"><LucideLink {...p} className="text-[#888]" /></div>
+  }
+}
+
+function blockSubtitle(block: Block): string {
+  const cfg = (block.config as Record<string, unknown> | null) ?? {}
+  switch (block.type) {
+    case "link": return block.url || "No URL set"
+    case "vault": return "email gated"
+    case "drop": return "countdown drop"
+    case "youtube": return (cfg.channelId as string) || "No channel set"
+    case "product": return cfg.price != null ? `$${(Number(cfg.price) / 100).toFixed(2)}` : "Free"
+    case "collection": return `${block.children?.length ?? 0} items`
+    default: return block.type
+  }
+}
+
+// ─── BlockCard ────────────────────────────────────────────────────────────────
+
+interface BlockCardProps {
+  block: Block
+  expanded: boolean
+  onExpand: (id: string) => void
+  onToggle: (id: string, enabled: boolean) => void
+  onUpdate: (id: string, data: Partial<Block>) => void
+  onDelete: (id: string) => void
+}
+
+function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete }: BlockCardProps) {
+  const cfg = (block.config as Record<string, unknown> | null) ?? {}
+
+  const [fields, setFields] = useState<Record<string, string>>({})
+  const [activeSheet, setActiveSheet] = useState<string | null>(null)
+
+  // Sync fields when block changes or opens
+  useEffect(() => {
+    setFields({
+      title: block.title,
+      url: block.url || "",
+      content: (cfg.content as string) || "",
+      downloadUrl: (cfg.downloadUrl as string) || "",
+      dropAt: cfg.dropAt ? (() => { try { return new Date(cfg.dropAt as string).toISOString().slice(0, 16) } catch { return "" } })() : "",
+      limitedSpots: cfg.limitedSpots != null ? String(cfg.limitedSpots) : "",
+      channelId: (cfg.channelId as string) || "",
+      rssUrl: (cfg.rssUrl as string) || "",
+      priceDollars: cfg.price != null ? (Number(cfg.price) / 100).toFixed(2) : "",
+      description: (cfg.description as string) || "",
+      platform: (cfg.platform as string) || "instagram",
+      currency: (cfg.currency as string) || "BTC",
+      address: (cfg.address as string) || "",
+    })
+  }, [block.id])
+
+  useEffect(() => {
+    if (!expanded) setActiveSheet(null)
+  }, [expanded])
+
+  const set = (key: string, val: string) => setFields((prev) => ({ ...prev, [key]: val }))
+
+  const handleSave = async () => {
+    const body: Record<string, unknown> = { title: fields.title }
+    switch (block.type) {
+      case "link":
+        body.url = fields.url
+        break
+      case "vault":
+        body.config = { ...block.config, content: fields.content, downloadUrl: fields.downloadUrl }
+        break
+      case "drop":
+        body.config = {
+          ...block.config,
+          dropAt: fields.dropAt ? new Date(fields.dropAt).toISOString() : null,
+          limitedSpots: fields.limitedSpots ? Number(fields.limitedSpots) : null,
+        }
+        break
+      case "youtube":
+      case "spotify":
+      case "twitch":
+      case "podcast":
+        body.config = { ...block.config, channelId: fields.channelId, rssUrl: fields.rssUrl }
+        break
+      case "product":
+        body.config = {
+          ...block.config,
+          price: Math.round(parseFloat(fields.priceDollars || "0") * 100),
+          description: fields.description,
+        }
+        break
+      case "social_link":
+        body.url = fields.url
+        body.config = { ...block.config, platform: fields.platform }
+        break
+      case "crypto":
+        body.config = { ...block.config, currency: fields.currency, address: fields.address }
+        break
+    }
+    try {
+      const res = await fetch(`/api/blocks/${block.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error()
+      const updated = await res.json()
+      onUpdate(block.id, updated)
+      toast.success("Saved")
+    } catch {
+      toast.error("Failed to save")
+    }
+  }
+
+  const patchSheet = async (data: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/blocks/${block.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error()
+      const updated = await res.json()
+      onUpdate(block.id, updated)
+      toast.success("Saved")
+    } catch {
+      toast.error("Failed to save")
+    }
+  }
+
+  const actionBtn = (
+    icon: React.ReactNode,
+    label: string,
+    sheet: string,
+  ) => (
+    <button
+      key={sheet}
+      onClick={(e) => { e.stopPropagation(); setActiveSheet((s) => (s === sheet ? null : sheet)) }}
+      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all ${
+        activeSheet === sheet
+          ? "bg-white/[0.06] border border-white/[0.12] text-[#888]"
+          : "text-[#444] hover:bg-white/[0.04] hover:border hover:border-white/[0.08] hover:text-[#888]"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+
+  const ip = { size: 11, strokeWidth: 2 }
+
+  return (
+    <div className={`bg-white/[0.03] border rounded-xl overflow-hidden transition-colors duration-200 ${
+      expanded ? "border-[#00ff88]/[0.15]" : "border-white/[0.07]"
+    }`}>
+      {/* Top row */}
+      <div
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        onClick={() => onExpand(block.id)}
+      >
+        <span className="text-[#222] text-sm cursor-grab select-none flex-shrink-0 hover:text-[#444] transition-colors">⠿</span>
+
+        <div className="hover:brightness-125 transition-all flex-shrink-0">
+          <BlockTypeIcon type={block.type} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] text-[#d8d8d8] font-medium truncate">{block.title}</div>
+          <div className="text-[11px] font-mono text-[#444] truncate">{blockSubtitle(block)}</div>
+        </div>
+
+        <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-white/[0.04] text-[#444] flex-shrink-0 hover:bg-white/[0.07] hover:text-[#666] transition-all">
+          {block.type}
+        </span>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(block.id, !block.enabled) }}
+          className={`w-8 h-[18px] rounded-full transition-all relative flex-shrink-0 ${
+            block.enabled ? "bg-[rgba(0,255,136,0.2)]" : "bg-white/10"
+          }`}
+        >
+          <motion.div
+            className={`absolute top-0.5 w-3.5 h-3.5 rounded-full ${block.enabled ? "bg-[#00ff88]" : "bg-white/50"}`}
+            animate={{ left: block.enabled ? "calc(100% - 16px)" : "2px" }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          />
+        </button>
+
+        <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }} className="flex-shrink-0">
+          <ChevronRight size={14} className="text-[#444]" />
+        </motion.div>
+      </div>
+
+      {/* Expanded */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            {/* Action row */}
+            <div className="flex items-center gap-1 px-2 py-2 border-t border-white/[0.04] flex-wrap">
+              {actionBtn(<LayoutGrid {...ip} />, "Layout", "layout")}
+              {actionBtn(<ImageIcon {...ip} />, "Thumbnail", "image")}
+              {actionBtn(<Star {...ip} />, "Prioritize", "priority")}
+              {actionBtn(<Calendar {...ip} />, "Schedule", "schedule")}
+              {actionBtn(<Lock {...ip} />, "Lock", "lock")}
+              <span className="ml-auto text-[11px] font-mono text-[#333]">
+                {block.clickCount} clicks
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(block.id) }}
+                className="ml-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-red-500/60 hover:bg-red-500/[0.06] hover:text-red-400 hover:scale-110 transition-all"
+              >
+                <Trash2 {...ip} />
+              </button>
+            </div>
+
+            {/* Edit fields */}
+            <div className="p-4 bg-black/[0.2] border-t border-white/[0.05] space-y-3">
+              {/* Title — always shown */}
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Title</div>
+                <input
+                  value={fields.title || ""}
+                  onChange={(e) => set("title", e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                />
+              </div>
+
+              {/* Type-specific fields */}
+              {block.type === "link" && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">URL</div>
+                  <input
+                    value={fields.url || ""}
+                    onChange={(e) => set("url", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              {block.type === "vault" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Content (shown after unlock)</div>
+                    <textarea
+                      value={fields.content || ""}
+                      onChange={(e) => set("content", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
+                      placeholder="Hidden content..."
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Download URL</div>
+                    <input
+                      value={fields.downloadUrl || ""}
+                      onChange={(e) => set("downloadUrl", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </>
+              )}
+
+              {block.type === "drop" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Drop date & time</div>
+                    <input
+                      type="datetime-local"
+                      value={fields.dropAt || ""}
+                      onChange={(e) => set("dropAt", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Limited spots</div>
+                    <input
+                      type="number"
+                      min="1"
+                      value={fields.limitedSpots || ""}
+                      onChange={(e) => set("limitedSpots", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="Unlimited"
+                    />
+                  </div>
+                </>
+              )}
+
+              {(block.type === "youtube" || block.type === "twitch") && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Channel ID</div>
+                  <input
+                    value={fields.channelId || ""}
+                    onChange={(e) => set("channelId", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    placeholder="UCxxxxxxxxxxxxxx"
+                  />
+                </div>
+              )}
+
+              {(block.type === "spotify" || block.type === "podcast") && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">
+                    {block.type === "podcast" ? "RSS URL" : "Spotify URL"}
+                  </div>
+                  <input
+                    value={fields.rssUrl || ""}
+                    onChange={(e) => set("rssUrl", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              {block.type === "product" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Price (USD)</div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={fields.priceDollars || ""}
+                      onChange={(e) => set("priceDollars", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Description</div>
+                    <textarea
+                      value={fields.description || ""}
+                      onChange={(e) => set("description", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {block.type === "social_link" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Platform</div>
+                    <select
+                      value={fields.platform || "instagram"}
+                      onChange={(e) => set("platform", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    >
+                      {["instagram","twitter","tiktok","youtube","github","linkedin","discord","facebook","reddit","snapchat","threads"].map((p) => (
+                        <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">URL</div>
+                    <input
+                      value={fields.url || ""}
+                      onChange={(e) => set("url", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </>
+              )}
+
+              {block.type === "crypto" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Currency</div>
+                    <select
+                      value={fields.currency || "BTC"}
+                      onChange={(e) => set("currency", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    >
+                      {["BTC","ETH","SOL","USDT","USDC"].map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Address</div>
+                    <input
+                      value={fields.address || ""}
+                      onChange={(e) => set("address", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="Wallet address"
+                    />
+                  </div>
+                </>
+              )}
+
+              <button
+                onClick={handleSave}
+                className="bg-[#00ff88] text-black font-mono font-semibold rounded-lg px-3 py-1.5 text-xs hover:opacity-90 active:scale-95 transition-all"
+              >
+                Save
+              </button>
+            </div>
+
+            {/* Sheets */}
+            <AnimatePresence>
+              {activeSheet && (
+                <motion.div
+                  key={activeSheet}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden border-t border-white/[0.04] bg-black/[0.25] p-3"
+                >
+                  {activeSheet === "layout" && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Layout</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["classic", "featured"] as const).map((l) => (
+                          <button
+                            key={l}
+                            onClick={() => patchSheet({ layout: l })}
+                            className={`p-2.5 rounded-lg border text-[11px] font-mono transition-all ${
+                              block.layout === l
+                                ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
+                                : "bg-white/[0.02] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                            }`}
+                          >
+                            {l.charAt(0).toUpperCase() + l.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSheet === "image" && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Thumbnail URL</div>
+                      <div className="flex gap-2">
+                        <input
+                          defaultValue={block.thumbnail || ""}
+                          id={`thumb-${block.id}`}
+                          className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                          placeholder="https://..."
+                        />
+                        <button
+                          onClick={() => {
+                            const el = document.getElementById(`thumb-${block.id}`) as HTMLInputElement
+                            patchSheet({ thumbnail: el?.value || null })
+                          }}
+                          className="bg-[#00ff88] text-black font-mono font-semibold rounded-lg px-3 py-1.5 text-xs hover:opacity-90"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSheet === "priority" && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Priority</div>
+                      <div className="space-y-1.5">
+                        {[
+                          { v: "none", label: "None", desc: "Standard position" },
+                          { v: "animate", label: "Animate", desc: "Pulsing glow border" },
+                          { v: "auto_expand", label: "Auto-expand", desc: "Opens when profile loads" },
+                          { v: "redirect", label: "Redirect", desc: "Jump straight to URL" },
+                        ].map(({ v, label, desc }) => (
+                          <button
+                            key={v}
+                            onClick={() => patchSheet({ priority: v })}
+                            className={`w-full flex items-center gap-3 p-2 rounded-lg border text-left transition-all ${
+                              block.priority === v
+                                ? "bg-[#00ff88]/10 border-[#00ff88]/30"
+                                : "bg-white/[0.02] border-white/[0.07] hover:border-white/20"
+                            }`}
+                          >
+                            <div className={`w-3 h-3 rounded-full border flex-shrink-0 ${
+                              block.priority === v ? "bg-[#00ff88] border-[#00ff88]" : "border-white/20"
+                            }`} />
+                            <div>
+                              <div className="text-[11px] font-mono text-[#d8d8d8]">{label}</div>
+                              <div className="text-[10px] font-mono text-[#444]">{desc}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSheet === "schedule" && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Schedule</div>
+                      <div>
+                        <div className="text-[10px] font-mono text-[#444] mb-1">Start</div>
+                        <input
+                          type="datetime-local"
+                          defaultValue={block.scheduleStart ? new Date(block.scheduleStart).toISOString().slice(0, 16) : ""}
+                          id={`sched-start-${block.id}`}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-mono text-[#444] mb-1">End</div>
+                        <input
+                          type="datetime-local"
+                          defaultValue={block.scheduleEnd ? new Date(block.scheduleEnd).toISOString().slice(0, 16) : ""}
+                          id={`sched-end-${block.id}`}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const start = (document.getElementById(`sched-start-${block.id}`) as HTMLInputElement)?.value
+                          const end = (document.getElementById(`sched-end-${block.id}`) as HTMLInputElement)?.value
+                          patchSheet({
+                            scheduleStart: start ? new Date(start).toISOString() : null,
+                            scheduleEnd: end ? new Date(end).toISOString() : null,
+                          })
+                        }}
+                        className="bg-[#00ff88] text-black font-mono font-semibold rounded-lg px-3 py-1.5 text-xs hover:opacity-90"
+                      >
+                        Save schedule
+                      </button>
+                    </div>
+                  )}
+
+                  {activeSheet === "lock" && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Lock</div>
+                      <div className="space-y-1.5">
+                        {[
+                          { v: "none", label: "None", desc: "Publicly accessible" },
+                          { v: "email", label: "Email", desc: "Visitor enters email to unlock" },
+                          { v: "payment", label: "Payment", desc: "Paid access" },
+                          { v: "password", label: "Password", desc: "Password required" },
+                          { v: "age", label: "Age (18+)", desc: "Age confirmation required" },
+                        ].map(({ v, label, desc }) => (
+                          <button
+                            key={v}
+                            onClick={() => patchSheet({ lockType: v, lockValue: null })}
+                            className={`w-full flex items-center gap-3 p-2 rounded-lg border text-left transition-all ${
+                              block.lockType === v
+                                ? "bg-[#00ff88]/10 border-[#00ff88]/30"
+                                : "bg-white/[0.02] border-white/[0.07] hover:border-white/20"
+                            }`}
+                          >
+                            <div className={`w-3 h-3 rounded-full border flex-shrink-0 ${
+                              block.lockType === v ? "bg-[#00ff88] border-[#00ff88]" : "border-white/20"
+                            }`} />
+                            <div>
+                              <div className="text-[11px] font-mono text-[#d8d8d8]">{label}</div>
+                              <div className="text-[10px] font-mono text-[#444]">{desc}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── AddBlockPicker (inline) ──────────────────────────────────────────────────
 
 interface AddBlockPickerProps {
-  open: boolean
   onClose: () => void
   onSelect: (type: string) => void
 }
 
-function AddBlockPicker({ open, onClose, onSelect }: AddBlockPickerProps) {
-  if (!open) return null
+function AddBlockPicker({ onClose, onSelect }: AddBlockPickerProps) {
+  const [search, setSearch] = useState("")
+  const [category, setCategory] = useState("Suggested")
 
-  const groups: { title: string; items: { id: string; icon: string; label: string }[] }[] = [
-    {
-      title: "Links & Navigation",
-      items: [
-        { id: "link", icon: "🔗", label: "Link" },
-        { id: "portal", icon: "📁", label: "Portal" },
-      ],
-    },
-    {
-      title: "Media & Social",
-      items: [
-        { id: "module:youtube", icon: "📺", label: "YouTube" },
-        { id: "module:spotify", icon: "🎵", label: "Spotify" },
-        { id: "module:podcast", icon: "🎙️", label: "Podcast" },
-        { id: "module:twitch", icon: "🎮", label: "Twitch" },
-        { id: "module:tiktok", icon: "🎬", label: "TikTok" },
-        { id: "module:apple_music", icon: "🎶", label: "Apple Music" },
-        { id: "module:rss", icon: "📰", label: "RSS" },
-        { id: "module:image", icon: "🖼️", label: "Image" },
-      ],
-    },
-    {
-      title: "Monetize",
-      items: [
-        { id: "product", icon: "🛒", label: "Product" },
-        { id: "vault", icon: "🔒", label: "Vault" },
-        { id: "crypto", icon: "₿", label: "Crypto" },
-        { id: "module:quick_tip", icon: "💸", label: "Quick Tip" },
-      ],
-    },
-    {
-      title: "Live & Drops",
-      items: [
-        { id: "drop", icon: "🎬", label: "Drop" },
-        { id: "live", icon: "📡", label: "Live Status" },
-      ],
-    },
-    {
-      title: "Display",
-      items: [
-        { id: "stats", icon: "📊", label: "Stats" },
-        { id: "module:social_hub", icon: "🔗", label: "Social Hub" },
-        { id: "social", icon: "🌐", label: "Social Link" },
-      ],
-    },
+  const categories = ["Suggested", "Commerce", "Social", "Media", "Live", "Display"]
+
+  const allItems: Record<string, { id: string; name: string; desc: string; icon: React.ReactNode; color: string }[]> = {
+    Suggested: [
+      { id: "youtube",    name: "YouTube",  desc: "Latest videos",       icon: <Youtube size={16} />,    color: "bg-red-500/[0.08] text-red-400" },
+      { id: "spotify",    name: "Spotify",  desc: "Track or playlist",   icon: <Music size={16} />,      color: "bg-green-500/[0.08] text-green-400" },
+      { id: "twitch",     name: "Twitch",   desc: "Live stream",         icon: <Radio size={16} />,      color: "bg-purple-500/[0.08] text-purple-400" },
+      { id: "podcast",    name: "Podcast",  desc: "RSS feed",            icon: <Mic size={16} />,        color: "bg-orange-500/[0.08] text-orange-400" },
+      { id: "drop",       name: "Drop",     desc: "Countdown reveal",    icon: <Timer size={16} />,      color: "bg-[#00ff88]/[0.08] text-[#00ff88]" },
+      { id: "stats",      name: "Stats",    desc: "Authority numbers",   icon: <BarChart2 size={16} />,  color: "bg-blue-500/[0.08] text-blue-400" },
+    ],
+    Commerce: [
+      { id: "product",    name: "Product",        desc: "Digital download",  icon: <ShoppingBag size={16} />, color: "bg-blue-500/[0.08] text-blue-400" },
+      { id: "vault",      name: "Vault",          desc: "Gated content",     icon: <Lock size={16} />,        color: "bg-yellow-500/[0.08] text-yellow-400" },
+      { id: "crypto",     name: "Crypto",         desc: "Tip address",       icon: <Bitcoin size={16} />,     color: "bg-orange-500/[0.08] text-orange-400" },
+      { id: "link",       name: "Affiliate Link", desc: "Tracked URL",       icon: <LucideLink size={16} />,  color: "bg-white/[0.04] text-[#888]" },
+      { id: "link",       name: "Discount Code",  desc: "Promo code",        icon: <Star size={16} />,        color: "bg-white/[0.04] text-[#888]" },
+    ],
+    Social: [
+      { id: "social_link", name: "Instagram", desc: "@handle",        icon: <Share2 size={16} />, color: "bg-pink-500/[0.08] text-pink-400" },
+      { id: "social_link", name: "TikTok",    desc: "@handle",        icon: <Share2 size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "social_link", name: "X",         desc: "@handle",        icon: <Share2 size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "social_link", name: "Threads",   desc: "@handle",        icon: <Share2 size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "social_link", name: "Facebook",  desc: "Page or profile", icon: <Share2 size={16} />, color: "bg-blue-500/[0.08] text-blue-400" },
+      { id: "social_link", name: "WhatsApp",  desc: "Chat link",      icon: <Share2 size={16} />, color: "bg-green-500/[0.08] text-green-400" },
+      { id: "social_link", name: "Discord",   desc: "Server invite",  icon: <Share2 size={16} />, color: "bg-purple-500/[0.08] text-purple-400" },
+      { id: "social_link", name: "Reddit",    desc: "Subreddit",      icon: <Share2 size={16} />, color: "bg-orange-500/[0.08] text-orange-400" },
+      { id: "social_link", name: "Snapchat",  desc: "@handle",        icon: <Share2 size={16} />, color: "bg-yellow-500/[0.08] text-yellow-400" },
+    ],
+    Media: [
+      { id: "youtube",  name: "YouTube",      desc: "Channel feed",   icon: <Youtube size={16} />,   color: "bg-red-500/[0.08] text-red-400" },
+      { id: "spotify",  name: "Spotify",      desc: "Music embed",    icon: <Music size={16} />,     color: "bg-green-500/[0.08] text-green-400" },
+      { id: "podcast",  name: "Podcast",      desc: "RSS episodes",   icon: <Mic size={16} />,       color: "bg-orange-500/[0.08] text-orange-400" },
+      { id: "twitch",   name: "Twitch",       desc: "Stream embed",   icon: <Radio size={16} />,     color: "bg-purple-500/[0.08] text-purple-400" },
+    ],
+    Live: [
+      { id: "drop",        name: "Drop",        desc: "Countdown reveal",  icon: <Timer size={16} />, color: "bg-[#00ff88]/[0.08] text-[#00ff88]" },
+      { id: "live_status", name: "Live Status", desc: "Broadcast badge",   icon: <Radio size={16} />, color: "bg-red-500/[0.08] text-red-400" },
+    ],
+    Display: [
+      { id: "stats",        name: "Stats",        desc: "Authority numbers", icon: <BarChart2 size={16} />,  color: "bg-blue-500/[0.08] text-blue-400" },
+      { id: "text",         name: "Text",         desc: "Rich text block",   icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "faq",          name: "FAQ",          desc: "Q&A accordion",     icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "contact_form", name: "Contact Form", desc: "Email capture",     icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
+    ],
+  }
+
+  const quickTypes = [
+    { id: "collection", name: "Collection", icon: <Folder size={18} />, color: "text-[#888]" },
+    { id: "link",       name: "Link",       icon: <LucideLink size={18} />, color: "text-[#888]" },
+    { id: "product",    name: "Product",    icon: <ShoppingBag size={18} />, color: "text-blue-400" },
+    { id: "vault",      name: "Vault",      icon: <Lock size={18} />, color: "text-yellow-400" },
   ]
 
+  const items = allItems[category] || []
+  const filtered = search
+    ? Object.values(allItems).flat().filter((i) =>
+        i.name.toLowerCase().includes(search.toLowerCase()) ||
+        i.desc.toLowerCase().includes(search.toLowerCase())
+      )
+    : items
+
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 8 }}
-          transition={{ duration: 0.15 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-[#0a0a0a] border border-white/[0.08] shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
-        >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
-            <h3 className="text-sm font-mono uppercase tracking-widest text-white/60">Add a block</h3>
+    <div className="bg-[#0f0f0f] border border-white/[0.08] rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
+        <span className="text-xs font-mono text-[#888]">Add a block</span>
+        <button onClick={onClose} className="text-[#444] hover:text-[#888] transition-colors">
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg mx-3 my-2 px-2 py-1.5">
+        <Search size={12} className="text-[#444] flex-shrink-0" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-transparent text-[12px] font-mono text-[#888] outline-none placeholder:text-[#333]"
+          placeholder="Search blocks..."
+          autoFocus
+        />
+      </div>
+
+      {/* Quick types */}
+      {!search && (
+        <div className="grid grid-cols-4 gap-2 px-3 pb-3 border-b border-white/[0.06]">
+          {quickTypes.map((qt) => (
             <button
-              onClick={onClose}
-              className="text-[#666] hover:text-white transition-colors text-lg"
-              aria-label="Close"
+              key={qt.id + qt.name}
+              onClick={() => onSelect(qt.id)}
+              className="bg-white/[0.03] border border-white/[0.07] rounded-lg p-2 flex flex-col items-center gap-1 hover:border-[#00ff88]/[0.2] hover:bg-[#00ff88]/[0.02] transition-all"
             >
-              ×
+              <span className={qt.color}>{qt.icon}</span>
+              <span className="text-[10px] font-mono text-[#444]">{qt.name}</span>
             </button>
-          </div>
-          <div className="p-5 space-y-5">
-            {groups.map((group) => (
-              <div key={group.title}>
-                <div className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-2">
-                  {group.title}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {group.items.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => onSelect(item.id)}
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07] hover:border-[#00ff88]/30 hover:bg-[#00ff88]/[0.05] transition-all text-left"
-                    >
-                      <span className="text-lg flex-shrink-0">{item.icon}</span>
-                      <span className="text-sm text-[#e0e0e0] truncate">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          ))}
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="flex" style={{ minHeight: 200 }}>
+        {/* Categories */}
+        {!search && (
+          <div className="w-36 border-r border-white/[0.06] p-2 flex-shrink-0">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                  category === cat
+                    ? "bg-white/[0.05] text-[#e0e0e0]"
+                    : "text-[#444] hover:text-[#888] hover:bg-white/[0.03] hover:translate-x-0.5"
+                }`}
+              >
+                {cat}
+              </button>
             ))}
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        )}
+
+        {/* Items */}
+        <div className="flex-1 p-2 max-h-64 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+          {filtered.map((item, i) => (
+            <button
+              key={`${item.id}-${i}`}
+              onClick={() => onSelect(item.id)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                {item.icon}
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="text-[13px] text-[#d8d8d8]">{item.name}</div>
+                <div className="text-[11px] text-[#444]">{item.desc}</div>
+              </div>
+              <ChevronRight size={12} className="text-[#333] group-hover:text-[#555] flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }

@@ -29,7 +29,7 @@ export async function GET() {
 
   if (account.charges_enabled) {
     const plan = resolveUserPlan(dbUser)
-    const platformFeePercent = plan === "pro" ? 0 : plan === "starter" ? 3 : 8
+    const platformFeePercent = plan === "ultra" ? 0 : plan === "starter" ? 5 : 0
     await prisma.user.update({
       where: { id: user.id },
       data: { stripeAccountStatus: "active", platformFeePercent },

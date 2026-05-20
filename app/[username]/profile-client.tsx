@@ -72,6 +72,29 @@ interface Drop {
   spotsLeft?: number
 }
 
+interface BlockChild {
+  id: string
+  type: string
+  title: string
+  url?: string | null
+  thumbnail?: string | null
+  config?: Record<string, unknown>
+}
+
+interface Block {
+  id: string
+  type: string
+  title: string
+  url?: string | null
+  description?: string | null
+  thumbnail?: string | null
+  style?: string
+  size?: string
+  layout?: string
+  config?: Record<string, unknown>
+  children?: BlockChild[]
+}
+
 interface User {
   id: string
   name: string | null
@@ -103,6 +126,7 @@ interface ProfileClientProps {
   isLive?: boolean
   buttonStyle?: string
   drops?: Drop[]
+  blocks?: Block[]
   showAiAgent?: boolean
   accentColor?: string
   creatorStripeReady?: boolean
@@ -121,6 +145,7 @@ export function ProfileClient({
   isLive = false,
   buttonStyle,
   drops = [],
+  blocks = [],
   showAiAgent = false,
   accentColor,
   creatorStripeReady = false,
@@ -548,6 +573,45 @@ export function ProfileClient({
               url={social.url}
               size={40}
             />
+          ))}
+        </div>
+      )}
+
+      {/* Blocks (unified renderer — placeholder list, will be replaced) */}
+      {blocks.length > 0 && (
+        <div className="space-y-3 mb-8">
+          <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">
+            Blocks
+          </h2>
+          {blocks.map((block) => (
+            <div
+              key={block.id}
+              className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="font-mono text-sm text-[#e0e0e0]">{block.title}</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">
+                  {block.type}
+                </div>
+              </div>
+              {block.url && (
+                <div className="text-xs font-mono text-[#888] mt-1 truncate">
+                  {block.url}
+                </div>
+              )}
+              {block.children && block.children.length > 0 && (
+                <ul className="mt-2 pl-3 border-l border-white/[0.07] space-y-1">
+                  {block.children.map((child) => (
+                    <li
+                      key={child.id}
+                      className="text-xs font-mono text-[#888]"
+                    >
+                      {child.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           ))}
         </div>
       )}

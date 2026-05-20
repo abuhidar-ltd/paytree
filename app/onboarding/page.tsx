@@ -1,8 +1,10 @@
+import { unstable_noStore as noStore } from "next/cache"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { redirect } from "next/navigation"
 import { OnboardingFlow } from "./onboarding-flow"
 
 export default async function OnboardingPage() {
+  noStore()
   const user = await getCurrentUser()
 
   if (!user) {

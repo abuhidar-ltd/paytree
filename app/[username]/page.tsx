@@ -200,6 +200,15 @@ export default async function ProfilePage({
     downloadUrl: p.downloadUrl || undefined,
   }))
 
+  // Fetch top-level enabled blocks with their children
+  const blocks = await prisma.block.findMany({
+    where: { userId: user.id, enabled: true, parentId: null },
+    orderBy: { position: "asc" },
+    include: {
+      children: { orderBy: { position: "asc" } },
+    },
+  })
+
   // Fetch enabled drops
   const dropsRaw = await prisma.drop.findMany({
     where: { userId: user.id, enabled: true },
@@ -244,7 +253,7 @@ export default async function ProfilePage({
         </div>
       )}
 
-      {showPublishBanner && <PublishBanner username={user.username} />}
+      {showPublishBanner && <PublishBanner username={user.username} canPublish={userFeatures.canPublish} />}
 
       {isPublished && (
         <ShareButton
@@ -305,6 +314,26 @@ export default async function ProfilePage({
             isLive={user.liveStatus}
             buttonStyle={user.buttonStyle ?? undefined}
             drops={drops}
+            blocks={blocks.map((b) => ({
+              id: b.id,
+              type: b.type,
+              title: b.title,
+              url: b.url,
+              description: b.description,
+              thumbnail: b.thumbnail,
+              style: b.style,
+              size: b.size,
+              layout: b.layout,
+              config: b.config as Record<string, unknown>,
+              children: b.children.map((c) => ({
+                id: c.id,
+                type: c.type,
+                title: c.title,
+                url: c.url,
+                thumbnail: c.thumbnail,
+                config: c.config as Record<string, unknown>,
+              })),
+            }))}
             showAiAgent={showAiAgent}
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
