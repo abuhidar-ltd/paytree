@@ -18,11 +18,9 @@ export default async function DashboardLayout({
   }
 
   if (!user.onboarded) {
-    // Don't redirect if we just came from onboarding — the DB write may
-    // still be propagating and we'd create an infinite loop.
     const headersList = await headers()
-    const referer = headersList.get("referer") ?? ""
-    if (!referer.includes("/onboarding")) {
+    const pathname = headersList.get("x-pathname") ?? ""
+    if (!pathname.startsWith("/onboarding") && !pathname.startsWith("/api")) {
       redirect("/onboarding")
     }
   }

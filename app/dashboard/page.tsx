@@ -115,6 +115,7 @@ interface Profile {
   statsLabel3: string | null
   accentColor: string | null
   aiAgentEnabled: boolean
+  stripeAccountId?: string | null
 }
 
 interface BentoModule {
@@ -209,6 +210,8 @@ export default function DashboardPage() {
   const [showAddBlockPicker, setShowAddBlockPicker] = useState(false)
   const [editFields, setEditFields] = useState<Record<string, Record<string, string>>>({})
   const [previewPulse, setPreviewPulse] = useState(false)
+  const [pasteBarValue, setPasteBarValue] = useState("")
+  const [pasteDetecting, setPasteDetecting] = useState(false)
 
   // Legacy form state (kept so existing handlers compile)
   const [newLink, setNewLink] = useState({ title: "", url: "", icon: "💳" })
@@ -811,6 +814,89 @@ export default function DashboardPage() {
     }
   }
 
+  const detectBlockFromUrl = (raw: string): { type: string; title: string; url: string; config?: Record<string, unknown> } => {
+    const url = raw.trim()
+    let hostname = ""
+    try { hostname = new URL(url).hostname.replace(/^www\./, "") } catch { /* invalid URL */ }
+
+    if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+      const u = new URL(url)
+      let channelId = url
+      const channelMatch = u.pathname.match(/\/channel\/(UC[\w-]+)/)
+      const handleMatch = u.pathname.match(/\/@([\w.-]+)/)
+      if (channelMatch) channelId = channelMatch[1]
+      else if (handleMatch) channelId = `@${handleMatch[1]}`
+      return { type: "youtube", title: "YouTube", url, config: { channelId } }
+    }
+
+    if (hostname.includes("spotify.com") && (url.includes("/show") || url.includes("/episode"))) {
+      return { type: "podcast", title: "Podcast", url, config: { rssUrl: url } }
+    }
+    if (/\.(rss|xml)$/i.test(url) || /\/(feed|rss)/i.test(url) || hostname.includes("simplecast") || hostname.includes("anchor.fm")) {
+      return { type: "podcast", title: "Podcast", url, config: { rssUrl: url } }
+    }
+
+    if (hostname.includes("spotify.com")) {
+      return { type: "spotify", title: "Spotify", url, config: { playlistUrl: url } }
+    }
+
+    if (hostname.includes("twitch.tv")) {
+      const parts = new URL(url).pathname.split("/").filter(Boolean)
+      const username = parts[0] || ""
+      return { type: "twitch", title: "Twitch", url, config: { username } }
+    }
+
+    if (hostname.includes("instagram.com")) {
+      return { type: "social_link", title: "Instagram", url, config: { platform: "instagram" } }
+    }
+    if (hostname.includes("tiktok.com")) {
+      return { type: "social_link", title: "TikTok", url, config: { platform: "tiktok" } }
+    }
+    if (hostname.includes("twitter.com") || hostname.includes("x.com")) {
+      return { type: "social_link", title: "X", url, config: { platform: "x" } }
+    }
+
+    if (hostname.includes("discord.gg") || url.includes("discord.com/invite")) {
+      return { type: "link", title: "Join my Discord", url }
+    }
+
+    const domainTitle = hostname.replace(/\.\w+$/, "").replace(/^www\./, "")
+    const capitalized = domainTitle.charAt(0).toUpperCase() + domainTitle.slice(1)
+    return { type: "link", title: capitalized || "Untitled", url }
+  }
+
+  const handlePasteUrl = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text").trim()
+    if (!pasted) return
+
+    try { new URL(pasted) } catch {
+      return
+    }
+
+    e.preventDefault()
+    setPasteDetecting(true)
+    setPasteBarValue(pasted)
+
+    try {
+      const detected = detectBlockFromUrl(pasted)
+      const res = await fetch("/api/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(detected),
+      })
+      if (!res.ok) throw new Error()
+      const block = await res.json()
+      setBlocks((prev) => [...prev, block])
+      setExpandedBlockId(block.id)
+      toast.success("Block added — edit the title")
+    } catch {
+      toast.error("Failed to add block")
+    } finally {
+      setPasteBarValue("")
+      setPasteDetecting(false)
+    }
+  }
+
   // ── loading screen ─────────────────────────────────────────────────────────
 
   if (loading || !isLoaded) {
@@ -850,14 +936,32 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Stripe connect prompt */}
+            {!profile?.stripeAccountId &&
+              (!profile?.subscriptionStatus || profile?.subscriptionStatus === "free" || profile?.subscriptionStatus === "starter") && (
+              <div className="bg-white/[0.02] border border-white/[0.07] rounded-xl p-4 mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-mono text-[#e0e0e0]">💳 Start selling on your page</p>
+                  <p className="text-xs text-[#888] mt-0.5">Connect Stripe to accept payments from visitors</p>
+                </div>
+                <Link href="/settings" className="bg-white/[0.05] border border-white/[0.1] text-[#e0e0e0] font-mono rounded-xl px-4 py-2 text-sm hover:border-white/20 transition-colors whitespace-nowrap">
+                  Connect Stripe →
+                </Link>
+              </div>
+            )}
+
             {/* Search / paste bar */}
-            <button
-              onClick={() => setShowAddBlockPicker(true)}
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3.5 flex items-center gap-2 mb-4 hover:border-white/[0.14] focus-visible:border-[#00ff88]/[0.3] focus-visible:ring-1 focus-visible:ring-[#00ff88]/[0.1] transition-colors outline-none"
-            >
+            <div className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-3.5 flex items-center gap-2 mb-4 hover:border-white/[0.14] focus-within:border-[#00ff88]/[0.3] focus-within:ring-1 focus-within:ring-[#00ff88]/[0.1] transition-colors">
               <Search size={16} className="text-[#333] flex-shrink-0" />
-              <span className="text-[13px] font-mono text-[#333]">Paste a link or search blocks...</span>
-            </button>
+              <input
+                value={pasteBarValue}
+                onChange={(e) => setPasteBarValue(e.target.value)}
+                onPaste={handlePasteUrl}
+                onFocus={() => setShowAddBlockPicker(true)}
+                placeholder={pasteDetecting ? "Detecting..." : "Paste any link to add it instantly..."}
+                className="flex-1 bg-transparent text-[13px] font-mono text-[#888] placeholder:text-[#333] outline-none"
+              />
+            </div>
 
             {/* Style panel toggle */}
             <div className="flex items-center justify-between mb-3">

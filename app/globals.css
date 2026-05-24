@@ -328,13 +328,15 @@ body {
 
 @media (max-width: 640px) {
   .bento-grid {
-    grid-template-columns: 1fr;
-  }
-  .span-2 {
-    grid-column: span 1;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
   .bento-grid-4 {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .glass-brick {
+    padding: 16px;
+    border-radius: 20px;
   }
 }
 

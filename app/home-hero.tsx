@@ -84,7 +84,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             </motion.div>
 
             {/* Headline */}
-            <h1 className="mt-8 text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]">
+            <h1 className="mt-8 text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]">
               {HEADLINE_WORDS.map((word, i) =>
                 word.text === "\n" ? (
                   <br key={i} />
@@ -163,47 +163,51 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
           </div>
 
           {/* Right column — Phone */}
-          <div className="flex-[2] relative hidden lg:flex justify-center">
-            <motion.div
-              initial={{ opacity: 0, x: 80 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-            >
+          <div className="flex-[2] relative flex justify-center">
+            <div className="max-w-[240px] mx-auto lg:max-w-none">
               <motion.div
-                animate={{ y: [-6, 6, -6] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                initial={{ opacity: 0, x: 80 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 120, damping: 20 }}
               >
-                <PhoneMockup />
+                <motion.div
+                  animate={{ y: [-6, 6, -6] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <PhoneMockup />
+                </motion.div>
               </motion.div>
-            </motion.div>
+            </div>
 
-            {/* Floating stat cards */}
-            <motion.div
-              className="absolute -top-4 -left-8 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: [0, -6, 0] }}
-              transition={{ delay: 1.2, duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <span className="text-xs font-mono text-[#e0e0e0]">🌍 47 countries</span>
-            </motion.div>
+            {/* Floating stat cards — desktop only */}
+            <div className="hidden lg:block">
+              <motion.div
+                className="absolute -top-4 -left-8 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: [0, -6, 0] }}
+                transition={{ delay: 1.2, duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <span className="text-xs font-mono text-[#e0e0e0]">🌍 47 countries</span>
+              </motion.div>
 
-            <motion.div
-              className="absolute -bottom-4 -right-4 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: [0, 8, 0] }}
-              transition={{ delay: 1.5, duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <span className="text-xs font-mono text-[#e0e0e0]">💰 $2,840 this month</span>
-            </motion.div>
+              <motion.div
+                className="absolute -bottom-4 -right-4 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: [0, 8, 0] }}
+                transition={{ delay: 1.5, duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <span className="text-xs font-mono text-[#e0e0e0]">💰 $2,840 this month</span>
+              </motion.div>
 
-            <motion.div
-              className="absolute top-8 -right-12 bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.15] rounded-xl px-3 py-2"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 2, type: "spring", stiffness: 120, damping: 20 }}
-            >
-              <span className="text-xs font-mono text-[#00ff88]">🤖 AI just made a sale</span>
-            </motion.div>
+              <motion.div
+                className="absolute top-8 -right-12 bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.15] rounded-xl px-3 py-2"
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 2, type: "spring", stiffness: 120, damping: 20 }}
+              >
+                <span className="text-xs font-mono text-[#00ff88]">🤖 AI just made a sale</span>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>

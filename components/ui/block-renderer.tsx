@@ -302,86 +302,113 @@ function VaultBlock({ block, userId, cfg }: { block: Block; userId: string; cfg:
 
   if (step === "unlocked") {
     return (
-      <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">🔓</span>
-          <span className="text-sm font-semibold text-white">{block.title}</span>
+      <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-[rgba(0,255,136,0.1)] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">{block.title}</p>
+              <p className="text-xs text-[#00ff88]">Unlocked</p>
+            </div>
+          </div>
+          {(content?.vaultContent || cfg.content) && (
+            <p className="text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap mb-3">{content?.vaultContent || cfg.content}</p>
+          )}
+          {(content?.downloadUrl || cfg.downloadUrl) && (
+            <a
+              href={content?.downloadUrl || cfg.downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
+            >
+              ↓ {content?.downloadName || cfg.downloadName || "Download"}
+            </a>
+          )}
+          {(content?.url || block.url) && (
+            <a
+              href={content?.url || block.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
+            >
+              Access now →
+            </a>
+          )}
         </div>
-        {(content?.vaultContent || cfg.content) && (
-          <p className="text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap mb-3">{content?.vaultContent || cfg.content}</p>
-        )}
-        {(content?.downloadUrl || cfg.downloadUrl) && (
-          <a
-            href={content?.downloadUrl || cfg.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
-          >
-            ↓ {content?.downloadName || cfg.downloadName || "Download"}
-          </a>
-        )}
-        {(content?.url || block.url) && (
-          <a
-            href={content?.url || block.url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
-          >
-            Access now →
-          </a>
-        )}
       </div>
     )
   }
 
   return (
-    <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">🔒</span>
-        <span className="text-sm font-semibold text-white">{block.title}</span>
+    <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl overflow-hidden">
+      <div className="p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0">
+            <svg className="w-6 h-6 text-[rgba(255,200,0,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth={2} />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth={2} strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">{block.title}</p>
+            <p className="text-xs text-[#888]">Unlock with email</p>
+          </div>
+        </div>
+        {cfg.content && (
+          <p className="text-sm text-[#888] font-mono select-none" style={{ filter: "blur(4px)" }}>
+            {String(cfg.content).slice(0, 50)}
+          </p>
+        )}
       </div>
-      <p className="text-xs text-[#888] mb-4">Enter your email to unlock</p>
 
-      {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+      <div className="border-t border-[rgba(255,200,0,0.08)]" />
 
-      {step === "locked" || step === "email" ? (
-        <form onSubmit={handleSendCode} className="flex gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            required
-            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono focus:border-amber-500/30 outline-none"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono rounded-xl px-4 py-2.5 text-sm hover:bg-amber-500/30 transition-colors disabled:opacity-50"
-          >
-            {loading ? "..." : "Send"}
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={handleVerify} className="flex gap-2">
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="6-digit code"
-            maxLength={6}
-            required
-            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono focus:border-amber-500/30 outline-none text-center tracking-widest"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? "..." : "Verify"}
-          </button>
-        </form>
-      )}
+      <div className="p-4">
+        {step === "locked" || step === "email" ? (
+          <form onSubmit={handleSendCode}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-[#e0e0e0] font-mono focus:border-[rgba(255,200,0,0.3)] outline-none mb-3"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? "Sending..." : "Send unlock code →"}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify}>
+            <p className="text-xs text-[#00ff88] mb-3">Code sent to {email}</p>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="000000"
+              maxLength={6}
+              required
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-[#00ff88] text-lg tracking-widest text-center mb-3 outline-none focus:border-[#00ff88]/30"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? "Verifying..." : "Verify code →"}
+            </button>
+          </form>
+        )}
+        {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
+      </div>
     </div>
   )
 }
@@ -710,24 +737,46 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username }:
     }
 
     return (
-      <div className="bg-white/[0.02] border border-white/[0.07] rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <span>🔒</span>
-          <span className="text-sm font-semibold text-white">{block.title}</span>
+      <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-[rgba(255,200,0,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth={2} />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth={2} strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">{block.title}</p>
+              <p className="text-xs text-[#888]">Unlock with email</p>
+            </div>
+          </div>
+          {cfg.content && (
+            <p className="text-sm text-[#888] font-mono select-none" style={{ filter: "blur(4px)" }}>
+              {String(cfg.content).slice(0, 50)}
+            </p>
+          )}
         </div>
-        <p className="text-xs text-[#888] mb-3">Unlock with your email</p>
-        {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
-        {step === "locked" || step === "email" ? (
-          <form onSubmit={handleSendCode} className="flex gap-2">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none" />
-            <button type="submit" disabled={loading} className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm disabled:opacity-50">{loading ? "..." : "Send"}</button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerify} className="flex gap-2">
-            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="6-digit code" maxLength={6} required className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none text-center tracking-widest" />
-            <button type="submit" disabled={loading} className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm disabled:opacity-50">{loading ? "..." : "Verify"}</button>
-          </form>
-        )}
+        <div className="border-t border-[rgba(255,200,0,0.08)]" />
+        <div className="p-4">
+          {step === "locked" || step === "email" ? (
+            <form onSubmit={handleSendCode}>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-[#e0e0e0] font-mono focus:border-[rgba(255,200,0,0.3)] outline-none mb-3" />
+              <button type="submit" disabled={loading} className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                {loading ? "Sending..." : "Send unlock code →"}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerify}>
+              <p className="text-xs text-[#00ff88] mb-3">Code sent to {email}</p>
+              <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="000000" maxLength={6} required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-[#00ff88] text-lg tracking-widest text-center mb-3 outline-none focus:border-[#00ff88]/30" />
+              <button type="submit" disabled={loading} className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                {loading ? "Verifying..." : "Verify code →"}
+              </button>
+            </form>
+          )}
+          {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
+        </div>
       </div>
     )
   }

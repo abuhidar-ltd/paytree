@@ -259,9 +259,9 @@ export function ProfileClient({
         >
           {/* Profile Image */}
           <div className="text-center">
-            <div className="pfp-xl mx-auto mb-4 rounded-full overflow-hidden border-2 border-[rgba(0,255,136,0.3)] shadow-[0_0_30px_rgba(0,255,136,0.2)]">
+            <div className="pfp-xl mx-auto mb-4 rounded-full overflow-hidden shadow-[0_0_30px_rgba(0,255,136,0.2)]">
               {user.image ? (
-                <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover rounded-full" />
+                <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover rounded-full overflow-hidden" />
               ) : (
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00ff88] to-[#1a0b2e] flex items-center justify-center text-4xl font-bold">
                   {user.name?.charAt(0) || user.username.charAt(0).toUpperCase()}
@@ -563,7 +563,7 @@ export function ProfileClient({
       </AnimatePresence>
 
       {/* Empty State */}
-      {blocks.length === 0 && links.length === 0 && cryptoAddresses.length === 0 && vaultItems.length === 0 && (
+      {(!blocks || blocks.length === 0) && links.length === 0 && (
         <GlassBrick className="text-center py-12">
           <div className="text-5xl mb-4 opacity-40">🔗</div>
           <p className="text-lg font-bold text-white">No links yet</p>
