@@ -47,15 +47,30 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Invalid rssUrl protocol" }, { status: 400 })
     }
 
+    const isLikelyRss =
+      /\.(rss|xml)(\?|$)/i.test(url.pathname + url.search) ||
+      /\/(feed|rss)(\/|$|\?)/i.test(url.pathname) ||
+      /podcasts\.apple\.com|feeds\.|anchor\.fm|buzzsprout|podbean|libsyn|simplecast|transistor\.fm|spotify\.com\/show/i.test(url.hostname + url.pathname)
+
+    if (!isLikelyRss) {
+      return NextResponse.json(
+        { error: "Please provide a valid podcast RSS feed URL" },
+        { status: 400 }
+      )
+    }
+
     const res = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Paytree/1.0; +https://paytree.to)',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      },
       next: { revalidate: 600 },
-      headers: { "User-Agent": "Paytree/1.0 (+https://paytree.to)" },
     })
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: "Failed to fetch RSS feed" },
-        { status: 502 }
+        { error: "Could not load podcast feed" },
+        { status: 400 }
       )
     }
 

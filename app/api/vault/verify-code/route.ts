@@ -5,29 +5,26 @@ import { z } from "zod"
 
 const verifyCodeSchema = z.object({
   email: z.string().email(),
-  linkId: z.string().min(1),
+  linkId: z.string().min(1).optional(),
+  blockId: z.string().min(1).optional(),
   ownerId: z.string().min(1),
   code: z.string().length(6),
+}).refine((d) => d.linkId || d.blockId, {
+  message: "linkId or blockId required",
 })
 
-/**
- * POST /api/vault/verify-code
- *
- * Verifies the 6-digit code and unlocks the link for the email.
- * Also captures the email in the Audience table.
- *
- * Returns the locked content on success.
- */
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, linkId, ownerId, code } = verifyCodeSchema.parse(body)
+    const { email, linkId, blockId, ownerId, code } = verifyCodeSchema.parse(body)
 
     const normalizedEmail = email.toLowerCase()
+    const itemId = linkId || blockId!
+    const isBlock = !linkId && !!blockId
 
     // Find the token
     const unlockToken = await prisma.linkUnlockToken.findUnique({
-      where: { linkId_email: { linkId, email: normalizedEmail } },
+      where: { linkId_email: { linkId: itemId, email: normalizedEmail } },
     })
 
     if (!unlockToken) {
@@ -37,7 +34,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check expiration
     if (new Date() > unlockToken.expiresAt) {
       return NextResponse.json(
         { error: "Verification code has expired. Please request a new one." },
@@ -45,7 +41,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check code
     if (unlockToken.token !== code) {
       return NextResponse.json(
         { error: "Invalid verification code." },
@@ -59,25 +54,36 @@ export async function POST(req: Request) {
       data: { verified: true },
     })
 
-    // Capture email in Audience (upsert)
-    await prisma.audience.upsert({
-      where: { userId_email: { userId: ownerId, email: normalizedEmail } },
-      create: {
-        userId: ownerId,
-        email: normalizedEmail,
-        source: "locked_link",
-        vaultItemId: linkId,
-      },
-      update: {
-        // Update source if it was previously from a different source
-        vaultItemId: linkId,
-      },
-    })
+    // Capture email in Audience (upsert) — skip vaultItemId for blocks to avoid FK constraint
+    if (isBlock) {
+      await prisma.audience.upsert({
+        where: { userId_email: { userId: ownerId, email: normalizedEmail } },
+        create: {
+          userId: ownerId,
+          email: normalizedEmail,
+          source: "locked_block",
+        },
+        update: {},
+      })
+    } else {
+      await prisma.audience.upsert({
+        where: { userId_email: { userId: ownerId, email: normalizedEmail } },
+        create: {
+          userId: ownerId,
+          email: normalizedEmail,
+          source: "locked_link",
+          vaultItemId: itemId,
+        },
+        update: {
+          vaultItemId: itemId,
+        },
+      })
+    }
 
     // Social proof event (fire-and-forget)
     const country =
-      (req as Request).headers.get("x-vercel-ip-country") ||
-      (req as Request).headers.get("cf-ipcountry") ||
+      req.headers.get("x-vercel-ip-country") ||
+      req.headers.get("cf-ipcountry") ||
       undefined
     prisma.socialProof.create({
       data: {
@@ -88,42 +94,62 @@ export async function POST(req: Request) {
       },
     }).catch(() => {})
 
-    // Get the link content and creator info in parallel
-    const [link, creator] = await Promise.all([
-      prisma.link.findUnique({
-        where: { id: linkId },
-        select: {
-          title: true,
-          url: true,
-          downloadUrl: true,
-          downloadName: true,
-          vaultContent: true,
-        },
-      }),
-      prisma.user.findUnique({
-        where: { id: ownerId },
-        select: { name: true, email: true, username: true },
-      }),
-    ])
+    // Get the content and creator info
+    let itemTitle = "Locked content"
+    let contentPayload: Record<string, string | undefined> = {}
 
-    // Fire follow-up emails — non-blocking so unlock response isn't delayed
-    if (link && creator) {
+    if (isBlock) {
+      const block = await prisma.block.findUnique({
+        where: { id: itemId },
+        select: { title: true, url: true, config: true },
+      })
+      if (block) {
+        itemTitle = block.title
+        const cfg = (block.config as Record<string, any>) || {}
+        contentPayload = {
+          url: block.url || cfg.url || undefined,
+          downloadUrl: cfg.downloadUrl || undefined,
+          downloadName: cfg.downloadName || undefined,
+          vaultContent: cfg.content || undefined,
+        }
+      }
+    } else {
+      const link = await prisma.link.findUnique({
+        where: { id: itemId },
+        select: { title: true, url: true, downloadUrl: true, downloadName: true, vaultContent: true },
+      })
+      if (link) {
+        itemTitle = link.title
+        contentPayload = {
+          url: link.url || undefined,
+          downloadUrl: link.downloadUrl || undefined,
+          downloadName: link.downloadName || undefined,
+          vaultContent: link.vaultContent || undefined,
+        }
+      }
+    }
+
+    const creator = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { name: true, email: true, username: true },
+    })
+
+    if (creator) {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"
       const creatorName = creator.name || creator.username
 
-      const contentSection = link.vaultContent
-        ? `<div style="background:#111;border:1px solid #1f1f1f;border-radius:8px;padding:16px;margin-top:20px;font-family:monospace;font-size:13px;color:#e0e0e0;white-space:pre-wrap;">${link.vaultContent}</div>`
+      const contentSection = contentPayload.vaultContent
+        ? `<div style="background:#111;border:1px solid #1f1f1f;border-radius:8px;padding:16px;margin-top:20px;font-family:monospace;font-size:13px;color:#e0e0e0;white-space:pre-wrap;">${contentPayload.vaultContent}</div>`
         : ""
 
-      const actionButton = link.downloadUrl
-        ? `<a href="${link.downloadUrl}" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:20px;">&#8595; ${link.downloadName || "Download your file"}</a>`
-        : link.url
-        ? `<a href="${link.url}" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:20px;">Access now →</a>`
+      const actionButton = contentPayload.downloadUrl
+        ? `<a href="${contentPayload.downloadUrl}" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:20px;">&#8595; ${contentPayload.downloadName || "Download your file"}</a>`
+        : contentPayload.url
+        ? `<a href="${contentPayload.url}" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:20px;">Access now →</a>`
         : ""
 
       Promise.all([
-        // Delivery email to the unlocker
         resend.emails.send({
           from: "Paytree <noreply@paytree.to>",
           to: normalizedEmail,
@@ -132,7 +158,7 @@ export async function POST(req: Request) {
             <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;">
               <div style="color:#00ff88;font-size:12px;font-family:monospace;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">${creatorName} sent you something</div>
               <div style="color:#ffffff;font-size:22px;font-weight:bold;font-family:monospace;margin-bottom:24px;">You just unlocked</div>
-              <div style="background:#111;border:1px solid #1f1f1f;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:15px;color:#e0e0e0;">${link.title}</div>
+              <div style="background:#111;border:1px solid #1f1f1f;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:15px;color:#e0e0e0;">${itemTitle}</div>
               ${contentSection}
               ${actionButton}
               <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
@@ -140,7 +166,6 @@ export async function POST(req: Request) {
             </div>
           `,
         }),
-        // Notification email to the creator
         resend.emails.send({
           from: "Paytree <noreply@paytree.to>",
           to: creator.email,
@@ -155,7 +180,7 @@ export async function POST(req: Request) {
                 </tr>
                 <tr>
                   <td style="color:#555;font-size:12px;padding:10px 0;border-bottom:1px solid #1a1a1a;">Item</td>
-                  <td style="color:#e0e0e0;font-size:13px;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${link.title}</td>
+                  <td style="color:#e0e0e0;font-size:13px;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${itemTitle}</td>
                 </tr>
                 <tr>
                   <td style="color:#555;font-size:12px;padding:10px 0;">Time</td>
@@ -174,12 +199,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: "Email verified! Content unlocked.",
-      content: {
-        url: link?.url || undefined,
-        downloadUrl: link?.downloadUrl || undefined,
-        downloadName: link?.downloadName || undefined,
-        vaultContent: link?.vaultContent || undefined,
-      },
+      content: contentPayload,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

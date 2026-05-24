@@ -61,6 +61,11 @@ export async function POST(req: Request) {
     const body = await req.json()
     const data = blockSchema.parse(body)
 
+    const NON_LOCKABLE = ["youtube", "spotify", "podcast", "twitch", "live_status", "stats", "text", "image", "social_link", "crypto"]
+    if (NON_LOCKABLE.includes(data.type)) {
+      data.lockType = "none"
+    }
+
     const count = await prisma.block.count({
       where: { userId: user.id, parentId: data.parentId ?? null },
     })

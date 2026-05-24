@@ -205,7 +205,10 @@ export default async function ProfilePage({
     where: { userId: user.id, enabled: true, parentId: null },
     orderBy: { position: "asc" },
     include: {
-      children: { orderBy: { position: "asc" } },
+      children: {
+        where: { enabled: true },
+        orderBy: { position: "asc" },
+      },
     },
   })
 
@@ -324,13 +327,20 @@ export default async function ProfilePage({
               style: b.style,
               size: b.size,
               layout: b.layout,
+              lockType: b.lockType,
+              lockValue: b.lockValue,
               config: b.config as Record<string, unknown>,
               children: b.children.map((c) => ({
                 id: c.id,
                 type: c.type,
                 title: c.title,
                 url: c.url,
+                description: c.description,
                 thumbnail: c.thumbnail,
+                style: c.style,
+                size: c.size,
+                lockType: c.lockType,
+                lockValue: c.lockValue,
                 config: c.config as Record<string, unknown>,
               })),
             }))}

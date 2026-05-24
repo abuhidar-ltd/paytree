@@ -12,6 +12,8 @@ import { BentoGrid, type BentoModule } from "@/components/ui/bento-modules"
 import { useApplyAccentColor } from "@/contexts/accent-color-context"
 import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 import { SocialProofToast } from "@/components/ui/social-proof-toast"
+import { BlockRenderer } from "@/components/ui/block-renderer"
+import { DropCard, type Drop } from "@/components/ui/drop-card"
 
 interface PortalLink {
   id: string
@@ -60,24 +62,17 @@ interface VaultItem {
   vaultContent?: string
 }
 
-interface Drop {
-  id: string
-  title: string
-  description?: string
-  dropAt: string
-  revealUrl?: string
-  revealText?: string
-  status: string
-  limitedSpots?: number
-  spotsLeft?: number
-}
-
 interface BlockChild {
   id: string
   type: string
   title: string
   url?: string | null
+  description?: string | null
   thumbnail?: string | null
+  style?: string
+  size?: string
+  lockType?: string
+  lockValue?: string | null
   config?: Record<string, unknown>
 }
 
@@ -91,6 +86,8 @@ interface Block {
   style?: string
   size?: string
   layout?: string
+  lockType?: string
+  lockValue?: string | null
   config?: Record<string, unknown>
   children?: BlockChild[]
 }
@@ -262,7 +259,7 @@ export function ProfileClient({
         >
           {/* Profile Image */}
           <div className="text-center">
-            <div className="pfp-xl mx-auto mb-4 border-2 border-[rgba(0,255,136,0.3)] shadow-[0_0_30px_rgba(0,255,136,0.2)]">
+            <div className="pfp-xl mx-auto mb-4 rounded-full overflow-hidden border-2 border-[rgba(0,255,136,0.3)] shadow-[0_0_30px_rgba(0,255,136,0.2)]">
               {user.image ? (
                 <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover rounded-full" />
               ) : (
@@ -308,7 +305,7 @@ export function ProfileClient({
           </div>
           
           {/* Social Icons - Top */}
-          {socialIconPosition === "top" && socialLinks.length > 0 && (
+          {socialIconPosition === "top" && (socialLinks.length > 0 || blocks.some(b => b.type === "social_link")) && (
             <div className="flex justify-center gap-3 mt-6 pt-6 border-t border-[rgba(255,255,255,0.1)]">
               {socialLinks.map((social) => (
                 <SocialIcon
@@ -318,6 +315,17 @@ export function ProfileClient({
                   size={40}
                 />
               ))}
+              {blocks.filter(b => b.type === "social_link").map((b) => {
+                const bCfg = (b.config || {}) as Record<string, any>
+                return (
+                  <SocialIcon
+                    key={b.id}
+                    platform={bCfg.platform || b.title}
+                    url={b.url || ""}
+                    size={40}
+                  />
+                )
+              })}
             </div>
           )}
         </ObsidianCard>
@@ -555,7 +563,7 @@ export function ProfileClient({
       </AnimatePresence>
 
       {/* Empty State */}
-      {links.length === 0 && cryptoAddresses.length === 0 && vaultItems.length === 0 && (
+      {blocks.length === 0 && links.length === 0 && cryptoAddresses.length === 0 && vaultItems.length === 0 && (
         <GlassBrick className="text-center py-12">
           <div className="text-5xl mb-4 opacity-40">🔗</div>
           <p className="text-lg font-bold text-white">No links yet</p>
@@ -564,7 +572,7 @@ export function ProfileClient({
       )}
 
       {/* Social Icons - Bottom */}
-      {socialIconPosition === "bottom" && socialLinks.length > 0 && (
+      {socialIconPosition === "bottom" && (socialLinks.length > 0 || blocks.some(b => b.type === "social_link")) && (
         <div className="flex justify-center gap-3 mb-8">
           {socialLinks.map((social) => (
             <SocialIcon
@@ -574,45 +582,35 @@ export function ProfileClient({
               size={40}
             />
           ))}
+          {blocks.filter(b => b.type === "social_link").map((b) => {
+            const bCfg = (b.config || {}) as Record<string, any>
+            return (
+              <SocialIcon
+                key={b.id}
+                platform={bCfg.platform || b.title}
+                url={b.url || ""}
+                size={40}
+              />
+            )
+          })}
         </div>
       )}
 
-      {/* Blocks (unified renderer — placeholder list, will be replaced) */}
-      {blocks.length > 0 && (
-        <div className="space-y-3 mb-8">
-          <h2 className="text-xs font-mono uppercase tracking-widest text-white/30 mb-3">
-            Blocks
-          </h2>
-          {blocks.map((block) => (
-            <div
-              key={block.id}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="font-mono text-sm text-[#e0e0e0]">{block.title}</div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">
-                  {block.type}
-                </div>
-              </div>
-              {block.url && (
-                <div className="text-xs font-mono text-[#888] mt-1 truncate">
-                  {block.url}
-                </div>
-              )}
-              {block.children && block.children.length > 0 && (
-                <ul className="mt-2 pl-3 border-l border-white/[0.07] space-y-1">
-                  {block.children.map((child) => (
-                    <li
-                      key={child.id}
-                      className="text-xs font-mono text-[#888]"
-                    >
-                      {child.title}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
+      {/* Blocks (unified renderer) */}
+      {blocks.filter(b => b.type !== "social_link").length > 0 && (
+        <div className="flex flex-col gap-3 w-full mb-8">
+          {blocks
+            .filter(b => b.type !== "social_link")
+            .map((block) => (
+              <BlockRenderer
+                key={block.id}
+                block={block}
+                userId={user.id}
+                accentColor={accentColor || "#00ff88"}
+                buttonStyle={buttonStyle || "glass"}
+                username={user.username}
+              />
+            ))}
         </div>
       )}
 
@@ -655,106 +653,3 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-function DropCard({ drop }: { drop: Drop }) {
-  const target = new Date(drop.dropAt).getTime()
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const remaining = Math.max(0, target - now)
-  const isLive = remaining === 0
-  const days = Math.floor(remaining / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24)
-  const minutes = Math.floor((remaining / (1000 * 60)) % 60)
-  const seconds = Math.floor((remaining / 1000) % 60)
-
-  const statusLabel = isLive
-    ? drop.revealUrl || drop.revealText
-      ? "LIVE"
-      : "ENDED"
-    : "SCHEDULED"
-
-  const soldOut = drop.spotsLeft !== undefined && drop.spotsLeft <= 0
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.12)] p-5">
-      <div
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(0,255,136,0.3), transparent)",
-        }}
-        aria-hidden="true"
-      />
-
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[#00ff88]/60 text-xs font-mono uppercase tracking-widest">
-          DROP · {statusLabel}
-        </div>
-        {drop.limitedSpots !== undefined && drop.spotsLeft !== undefined && (
-          <div
-            className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
-              soldOut
-                ? "bg-red-500/10 border-red-500/30 text-red-400"
-                : "bg-amber-500/10 border-amber-500/30 text-amber-400"
-            }`}
-          >
-            {soldOut ? "Sold out" : `${drop.spotsLeft} spots left`}
-          </div>
-        )}
-      </div>
-
-      <div className="text-xl font-semibold text-white mb-1">{drop.title}</div>
-      {drop.description && (
-        <div className="text-sm text-[#888] mb-4">{drop.description}</div>
-      )}
-
-      {!isLive ? (
-        <div className="grid grid-cols-4 gap-2 mt-4">
-          {[
-            { label: "Days", value: days },
-            { label: "Hours", value: hours },
-            { label: "Min", value: minutes },
-            { label: "Sec", value: seconds },
-          ].map((unit) => (
-            <div
-              key={unit.label}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-3 text-center"
-            >
-              <div className="text-2xl font-mono font-semibold text-white tabular-nums">
-                {unit.value.toString().padStart(2, "0")}
-              </div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
-                {unit.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : soldOut ? (
-        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
-          This drop has sold out
-        </div>
-      ) : drop.revealUrl ? (
-        <a
-          href={drop.revealUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center justify-center w-full px-4 py-3 rounded-xl bg-[#00ff88] text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
-        >
-          Access now →
-        </a>
-      ) : drop.revealText ? (
-        <div className="mt-2 px-4 py-3 rounded-xl bg-[#0a0a0a] border border-white/[0.06] text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap">
-          {drop.revealText}
-        </div>
-      ) : (
-        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
-          Drop ended
-        </div>
-      )}
-    </div>
-  )
-}
