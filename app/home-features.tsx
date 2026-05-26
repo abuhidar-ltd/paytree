@@ -55,21 +55,39 @@ export function HomeFeatures() {
 
             {/* Mini chat demo */}
             <div className="mt-auto space-y-2">
-              <div className="flex justify-end">
+              <motion.div
+                className="flex justify-end"
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+              >
                 <div className="bg-white/[0.06] rounded-xl rounded-br-none px-3 py-2 max-w-[80%]">
                   <p className="text-[11px] text-[#aaa]">How much is the course?</p>
                 </div>
-              </div>
-              <div className="flex justify-start">
+              </motion.div>
+              <motion.div
+                className="flex justify-start"
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.35 }}
+              >
                 <div className="bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.12] rounded-xl rounded-bl-none px-3 py-2 max-w-[85%]">
                   <p className="text-[11px] text-[#ccc]">The Pro Signals course is $49. It includes...</p>
                 </div>
-              </div>
-              <div className="flex justify-start">
+              </motion.div>
+              <motion.div
+                className="flex justify-start"
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+              >
                 <div className="bg-[#00ff88]/[0.05] rounded-xl rounded-bl-none px-3 py-2">
                   <TypingIndicator />
                 </div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
 
@@ -94,9 +112,15 @@ export function HomeFeatures() {
             </p>
 
             {/* Mini globe */}
-            <div className="mt-auto flex justify-center">
+            <motion.div
+              className="mt-auto flex justify-center"
+              initial={{ opacity: 0, scale: 0.92 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
               <MiniGlobe />
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Card 3: Drop Countdown */}
@@ -120,9 +144,15 @@ export function HomeFeatures() {
             </p>
 
             {/* Mini countdown */}
-            <div className="mt-auto">
+            <motion.div
+              className="mt-auto"
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
               <CountdownDemo />
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -103,7 +104,13 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       {/* Cards */}
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {/* Free */}
-        <div className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col">
+        <motion.div
+          className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ delay: 0, type: "spring", stiffness: 120, damping: 20 }}
+        >
           <div className="mb-6">
             <h3 className="text-xl font-bold text-white">Free</h3>
           </div>
@@ -147,10 +154,16 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               Free Plan
             </Button>
           )}
-        </div>
+        </motion.div>
 
         {/* Starter (highlighted) */}
-        <div className="obsidian-card-accent p-6 sm:p-8 relative overflow-hidden flex flex-col">
+        <motion.div
+          className="obsidian-card-accent p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
+        >
           <div className="absolute top-4 right-4 px-3 py-1.5 bg-[rgba(0,255,136,0.15)] border border-[rgba(0,255,136,0.4)] rounded-full text-xs font-bold text-[#00ff88] flex items-center gap-1.5">
             <span className="beeping-dot !w-1.5 !h-1.5" />
             MOST POPULAR
@@ -213,10 +226,16 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               </Button>
             </Link>
           )}
-        </div>
+        </motion.div>
 
         {/* Ultra */}
-        <div className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col">
+        <motion.div
+          className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 120, damping: 20 }}
+        >
           <div className="mb-6">
             <h3 className="text-xl font-bold text-white">Ultra</h3>
             {ultraSave && (
@@ -279,7 +298,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               </Button>
             </Link>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Comparison callout */}

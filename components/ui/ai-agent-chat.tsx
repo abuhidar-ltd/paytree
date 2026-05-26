@@ -141,9 +141,23 @@ export function AiAgentChat({ username, creatorName, accentColor = "#00ff88" }: 
               aria-label={`Ask ${creatorName}'s AI`}
             >
               <Sparkles className="w-6 h-6 text-black" />
-              <span
-                className="absolute inset-0 rounded-full animate-ping opacity-25 pointer-events-none"
+              <motion.span
+                className="absolute inset-0 rounded-full pointer-events-none"
                 style={{ backgroundColor: accentColor }}
+                animate={{
+                  boxShadow: [
+                    `0 0 0px ${accentColor}00`,
+                    `0 0 12px ${accentColor}cc`,
+                    `0 0 0px ${accentColor}00`,
+                  ],
+                  opacity: [0.2, 0.5, 0.2],
+                  scale: [1, 1.15, 1],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
             </motion.button>
           )}

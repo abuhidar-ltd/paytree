@@ -43,7 +43,15 @@ export function HomeShowcase() {
           </motion.div>
 
           {/* vs */}
-          <span className="text-[#333] font-mono text-sm hidden sm:block">vs</span>
+          <motion.span
+            className="text-[#333] font-mono text-sm hidden sm:block"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            vs
+          </motion.span>
 
           {/* Cinematic */}
           <motion.div

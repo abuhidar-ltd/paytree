@@ -76,12 +76,19 @@ export function HomeComparison() {
             </div>
             <ul className="space-y-3">
               {LINKTREE_ITEMS.map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
+                <motion.li
+                  key={i}
+                  className="flex items-start gap-3"
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
+                >
                   <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   <span className="text-sm text-[#666]">{item}</span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </motion.div>
@@ -103,12 +110,19 @@ export function HomeComparison() {
             </div>
             <ul className="space-y-3">
               {PAYTREE_ITEMS.map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
+                <motion.li
+                  key={i}
+                  className="flex items-start gap-3"
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
+                >
                   <svg className="w-4 h-4 text-[#00ff88] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-sm text-[#ccc]">{item}</span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </motion.div>

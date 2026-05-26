@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 
 export interface Drop {
   id: string
@@ -83,9 +84,15 @@ export function DropCard({ drop }: { drop: Drop }) {
               key={unit.label}
               className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-3 text-center"
             >
-              <div className="text-2xl font-mono font-semibold text-white tabular-nums">
+              <motion.div
+                key={unit.value}
+                className="text-2xl font-mono font-semibold text-white tabular-nums"
+                initial={{ scale: 1.08, opacity: 0.7 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
                 {unit.value.toString().padStart(2, "0")}
-              </div>
+              </motion.div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
                 {unit.label}
               </div>

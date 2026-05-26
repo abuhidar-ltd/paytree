@@ -192,9 +192,15 @@ function CollectionBlock({ block, userId, accentColor, buttonStyle, username }: 
         className="w-full"
       >
         <div className="flex items-center justify-between w-full">
-          <div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Portal</div>
-            <div className="text-base font-semibold text-white">{block.title}</div>
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-[#555]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-0.5">Portal</div>
+              <div className="text-base font-semibold text-white">{block.title}</div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-[#555] font-mono">{children.length} items</span>
@@ -221,15 +227,21 @@ function CollectionBlock({ block, userId, accentColor, buttonStyle, username }: 
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="pl-4 border-l border-white/[0.07] ml-4 mt-2 space-y-2"
           >
-            {children.map((child) => (
-              <BlockRenderer
+            {children.map((child, i) => (
+              <motion.div
                 key={child.id}
-                block={{ ...child, children: [] }}
-                userId={userId}
-                accentColor={accentColor}
-                buttonStyle={buttonStyle}
-                username={username}
-              />
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 25 }}
+              >
+                <BlockRenderer
+                  block={{ ...child, children: [] }}
+                  userId={userId}
+                  accentColor={accentColor}
+                  buttonStyle={buttonStyle}
+                  username={username}
+                />
+              </motion.div>
             ))}
           </motion.div>
         )}
@@ -347,12 +359,15 @@ function VaultBlock({ block, userId, cfg }: { block: Block; userId: string; cfg:
     <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl overflow-hidden">
       <div className="p-5">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0">
+          <motion.div
+            className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0"
+            whileHover={{ rotate: [-3, 3, 0], transition: { duration: 0.3 } }}
+          >
             <svg className="w-6 h-6 text-[rgba(255,200,0,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth={2} />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth={2} strokeLinecap="round" />
             </svg>
-          </div>
+          </motion.div>
           <div>
             <p className="text-sm font-semibold text-white">{block.title}</p>
             <p className="text-xs text-[#888]">Unlock with email</p>
@@ -519,7 +534,11 @@ function YouTubeBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }
       onClick={() => trackBlockClick(block.id)}
       className="block bg-white/[0.02] border border-red-500/20 rounded-2xl overflow-hidden hover:border-red-500/40 transition-colors"
     >
-      <div className="relative h-[130px]">
+      <motion.div
+        className="relative h-[130px] overflow-hidden"
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.3 }}
+      >
         <img src={data.thumbnail} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-red-600/90 flex items-center justify-center">
@@ -538,7 +557,7 @@ function YouTubeBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }
             {data.duration}
           </div>
         )}
-      </div>
+      </motion.div>
       <div className="p-4">
         <p className="text-sm font-medium text-white line-clamp-2">{data.title}</p>
         {views && <p className="text-xs text-[#555] font-mono mt-1">{views} views · {timeAgo}</p>}
@@ -740,12 +759,15 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username }:
       <div className="bg-[rgba(255,200,0,0.03)] border border-[rgba(255,200,0,0.15)] rounded-2xl overflow-hidden">
         <div className="p-5">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0">
+            <motion.div
+              className="w-10 h-10 rounded-full bg-[rgba(255,200,0,0.1)] flex items-center justify-center flex-shrink-0"
+              whileHover={{ rotate: [-3, 3, 0], transition: { duration: 0.3 } }}
+            >
               <svg className="w-6 h-6 text-[rgba(255,200,0,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth={2} />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth={2} strokeLinecap="round" />
               </svg>
-            </div>
+            </motion.div>
             <div>
               <p className="text-sm font-semibold text-white">{block.title}</p>
               <p className="text-xs text-[#888]">Unlock with email</p>

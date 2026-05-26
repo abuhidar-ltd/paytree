@@ -20,6 +20,17 @@ import { AccentColorProvider } from "@/contexts/accent-color-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import {
+  DndContext, closestCenter,
+  KeyboardSensor, PointerSensor,
+  useSensor, useSensors,
+} from "@dnd-kit/core"
+import type { DragEndEvent } from "@dnd-kit/core"
+import {
+  SortableContext, verticalListSortingStrategy,
+  useSortable, arrayMove,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import {
   Search,
   Folder,
   Link as LucideLink,
@@ -212,6 +223,31 @@ export default function DashboardPage() {
   const [previewPulse, setPreviewPulse] = useState(false)
   const [pasteBarValue, setPasteBarValue] = useState("")
   const [pasteDetecting, setPasteDetecting] = useState(false)
+
+  // ── DnD sensors ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  )
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = blocks.findIndex(b => b.id === active.id)
+    const newIndex = blocks.findIndex(b => b.id === over.id)
+    const reordered = arrayMove(blocks, oldIndex, newIndex)
+    const updated = reordered.map((b, i) => ({ ...b, position: i }))
+    setBlocks(updated)
+    try {
+      await fetch("/api/blocks/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: updated.map(b => ({ id: b.id, position: b.position })) }),
+      })
+    } catch {
+      toast.error("Failed to save order")
+    }
+  }
 
   // Legacy form state (kept so existing handlers compile)
   const [newLink, setNewLink] = useState({ title: "", url: "", icon: "💳" })
@@ -1143,31 +1179,31 @@ export default function DashboardPage() {
 
             {/* ── Blocks list ────────────────────────────────── */}
             {blocks.length > 0 && (
-              <div className="space-y-3 mb-3">
-                <AnimatePresence initial={false}>
-                  {blocks
-                    .filter((b) => !b.parentId)
-                    .sort((a, b) => a.position - b.position)
-                    .map((block) => (
-                      <motion.div
-                        key={block.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
-                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                      >
-                        <BlockCard
-                          block={block}
-                          expanded={expandedBlockId === block.id}
-                          onExpand={(id) => setExpandedBlockId((curr) => (curr === id ? null : id))}
-                          onToggle={handleBlockToggle}
-                          onUpdate={handleBlockUpdate}
-                          onDelete={handleBlockDelete}
-                        />
-                      </motion.div>
-                    ))}
-                </AnimatePresence>
-              </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={blocks.filter(b => !b.parentId).sort((a, b) => a.position - b.position).map(b => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3 mb-3">
+                    <AnimatePresence initial={false}>
+                      {blocks
+                        .filter((b) => !b.parentId)
+                        .sort((a, b) => a.position - b.position)
+                        .map((block) => (
+                          <SortableBlockCard
+                            key={block.id}
+                            block={block}
+                            expanded={expandedBlockId === block.id}
+                            onExpand={(id) => setExpandedBlockId((curr) => (curr === id ? null : id))}
+                            onToggle={handleBlockToggle}
+                            onUpdate={handleBlockUpdate}
+                            onDelete={handleBlockDelete}
+                          />
+                        ))}
+                    </AnimatePresence>
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {/* ── Add block button ───────────────────────────── */}
@@ -1437,9 +1473,31 @@ interface BlockCardProps {
   onToggle: (id: string, enabled: boolean) => void
   onUpdate: (id: string, data: Partial<Block>) => void
   onDelete: (id: string) => void
+  dragHandleProps?: Record<string, unknown>
 }
 
-function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete }: BlockCardProps) {
+function SortableBlockCard(props: BlockCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.block.id })
+  const dndStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  return (
+    <div ref={setNodeRef} style={dndStyle}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: isDragging ? 0.5 : 1, y: 0, scale: isDragging ? 0.98 : 1 }}
+        exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+        style={{ zIndex: isDragging ? 10 : undefined, position: isDragging ? "relative" : undefined }}
+      >
+        <BlockCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
+      </motion.div>
+    </div>
+  )
+}
+
+function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dragHandleProps }: BlockCardProps) {
   const cfg = (block.config as Record<string, unknown> | null) ?? {}
 
   const [fields, setFields] = useState<Record<string, string>>({})
@@ -1568,7 +1626,11 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete }: 
         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
         onClick={() => onExpand(block.id)}
       >
-        <span className="text-[#222] text-sm cursor-grab select-none flex-shrink-0 hover:text-[#444] transition-colors">⠿</span>
+        <span
+          {...(dragHandleProps || {})}
+          onClick={(e) => e.stopPropagation()}
+          className="text-[#222] text-sm cursor-grab active:cursor-grabbing select-none flex-shrink-0 hover:text-[#444] transition-colors"
+        >⠿</span>
 
         <div className="hover:brightness-125 transition-all flex-shrink-0">
           <BlockTypeIcon type={block.type} />
