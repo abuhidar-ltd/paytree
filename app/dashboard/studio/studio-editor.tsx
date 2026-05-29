@@ -295,22 +295,22 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
     <div className="flex flex-col h-screen bg-[#080808] text-white overflow-hidden">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <div className="h-14 flex-shrink-0 flex items-center justify-between px-5 border-b border-white/[0.07] bg-[#080808]/90 backdrop-blur-xl z-50">
-        <div className="flex items-center gap-3">
+      <div className="h-14 flex-shrink-0 flex items-center justify-between px-3 sm:px-5 border-b border-white/[0.07] bg-[#080808]/90 backdrop-blur-xl z-50">
+        <div className="flex items-center gap-2 sm:gap-3">
           <span className="text-sm font-mono text-[#e0e0e0]">Design</span>
           {saving && <span className="text-[#00ff88]/50 text-xs font-mono animate-pulse">● Saving...</span>}
           {lastSaved && !saving && <span className="text-[#00ff88]/40 text-xs font-mono">✓ Saved</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => window.open(`/preview/${profile.username}`, "_blank")}
-            className="bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
+            className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
           >
             Preview
           </button>
           <button
             onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/preview/${profile.username}`); toast.success("Preview link copied!") }}
-            className="bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
+            className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
           >
             Copy link
           </button>
@@ -344,7 +344,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
           {/* Scroll area */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-6 max-w-[540px] mx-auto w-full">
+            <div className="p-4 sm:p-6 max-w-[540px] mx-auto w-full">
 
               {/* ── Section 1: Profile ──────────────────────────────────────── */}
               <div className={sectionCls}>
@@ -634,7 +634,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
         </div>
 
         {/* ── RIGHT: phone preview ─────────────────────────────────────────── */}
-        <div className="w-[320px] flex-shrink-0 bg-[#080808] flex flex-col">
+        <div className="hidden lg:flex w-[320px] flex-shrink-0 bg-[#080808] flex-col">
 
           {/* Label row */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.04] flex-shrink-0">

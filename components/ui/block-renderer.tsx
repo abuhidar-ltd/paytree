@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import { LinkCard3D } from "./link-card-3d"
 import { GlassBrick } from "./obsidian-card"
 import { CryptoVaultPortal } from "./crypto-vault"
@@ -148,24 +149,39 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username }
 
     case "text":
       return cfg.style === "heading" ? (
-        <h2 className="text-2xl font-bold text-white px-1">{block.title}</h2>
+        <h2 className="text-2xl font-bold text-[#f0f0f0] text-center py-4">{block.title}</h2>
       ) : (
-        <p className="text-[#888] text-sm leading-relaxed px-1">{block.description || block.title}</p>
+        <p className="text-[#666] text-sm leading-relaxed px-1 py-2">{(cfg.content as string) || block.title}</p>
       )
 
     case "image":
       return (
         <div className="w-full">
-          <img
-            src={block.thumbnail || cfg.imageUrl || ""}
-            alt={block.title || ""}
-            className="w-full rounded-2xl object-cover"
-          />
+          {(block.thumbnail || cfg.imageUrl) ? (
+            <img
+              src={(block.thumbnail || cfg.imageUrl) as string}
+              alt={block.title || ""}
+              className="w-full rounded-2xl object-cover"
+            />
+          ) : (
+            <div className="bg-white/[0.03] border border-dashed border-white/[0.08] rounded-2xl p-8 text-center text-[#333] text-sm">
+              Add an image URL in the dashboard
+            </div>
+          )}
           {block.title && block.title !== "Untitled" && (
             <p className="text-xs text-[#555] font-mono mt-2 text-center">{block.title}</p>
           )}
         </div>
       )
+
+    case "faq":
+      return <FaqBlock block={block} cfg={cfg} />
+
+    case "contact_form":
+      return <ContactFormBlock block={block} username={username} />
+
+    case "discount_code":
+      return <DiscountCodeBlock block={block} cfg={cfg} />
 
     case "social_link":
       return null
@@ -657,25 +673,110 @@ function SpotifyBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }
   )
 }
 
-function TwitchBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }) {
-  const twitchUsername = cfg.username as string | undefined
+type TwitchData = { isLive: boolean; title?: string; game?: string; viewers?: number; username: string }
 
-  return (
-    <div className="bg-white/[0.02] border border-purple-500/20 rounded-2xl p-5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-          <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-medium text-white">{block.title || twitchUsername}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="w-2 h-2 rounded-full bg-[#555]" />
-            <span className="text-[10px] font-mono text-[#555]">Offline</span>
+function TwitchBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }) {
+  const twitchUsername = (cfg.username as string) || ""
+  const [data, setData] = useState<TwitchData | null>(null)
+  const [loading, setLoading] = useState(!!twitchUsername)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!twitchUsername) return
+    fetch(`/api/social/twitch?username=${encodeURIComponent(twitchUsername)}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(setData)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [twitchUsername])
+
+  const TwitchIcon = (
+    <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+    </svg>
+  )
+
+  if (loading) {
+    return (
+      <div className="bg-purple-500/[0.03] border border-purple-500/[0.12] rounded-2xl p-4 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-purple-500/10 rounded w-2/3" />
+            <div className="h-2 bg-purple-500/[0.06] rounded w-1/3" />
           </div>
         </div>
       </div>
+    )
+  }
+
+  if (!twitchUsername || error) {
+    return (
+      <div className="bg-purple-500/[0.03] border border-purple-500/[0.12] rounded-2xl p-4">
+        <div className="flex flex-col items-center justify-center py-4 gap-2">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+            {TwitchIcon}
+          </div>
+          <span className="text-xs font-mono text-purple-400/60">Connect your Twitch</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (data?.isLive) {
+    return (
+      <div className="bg-purple-500/[0.04] border border-purple-500/[0.2] rounded-2xl overflow-hidden">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 bg-purple-500/[0.15] border border-purple-500/[0.3] rounded-full px-3 py-1">
+              <motion.div
+                className="w-2 h-2 rounded-full bg-purple-400"
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <span className="text-xs font-mono text-purple-300">LIVE</span>
+            </div>
+            <span className="text-xs font-mono text-purple-400/80">{data.viewers?.toLocaleString()} viewers</span>
+          </div>
+          <p className="text-sm font-medium text-white mb-1 line-clamp-2">{data.title}</p>
+          {data.game && <p className="text-xs font-mono text-purple-400">{data.game}</p>}
+        </div>
+        <a
+          href={`https://twitch.tv/${twitchUsername}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-4 py-3 border-t border-purple-500/[0.15] text-sm font-mono text-purple-300 hover:bg-purple-500/[0.05] transition-colors"
+        >
+          Watch on Twitch →
+        </a>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.07] rounded-2xl overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+            {TwitchIcon}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">{block.title || twitchUsername}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="w-2 h-2 rounded-full bg-[#555]" />
+              <span className="text-[10px] font-mono text-[#555]">Currently offline</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <a
+        href={`https://twitch.tv/${twitchUsername}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 px-4 py-3 border-t border-white/[0.05] text-sm font-mono text-[#555] hover:text-[#888] hover:bg-white/[0.02] transition-colors"
+      >
+        Follow on Twitch →
+      </a>
     </div>
   )
 }
@@ -869,6 +970,174 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username }:
   }
 
   return null
+}
+
+function FaqBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown> }) {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
+
+  const items: { question: string; answer: string }[] =
+    Array.isArray(cfg.items) && (cfg.items as { question: string; answer: string }[]).length > 0
+      ? (cfg.items as { question: string; answer: string }[])
+      : [{ question: block.title, answer: (cfg.answer as string) || "" }]
+
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden">
+      {items.map((item, idx) => (
+        <div key={idx} className={idx > 0 ? "border-t border-white/[0.05]" : ""}>
+          <button
+            onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+            className="w-full flex items-center justify-between px-5 py-4 text-left"
+          >
+            <span className="text-sm font-medium text-[#e0e0e0]">{item.question}</span>
+            <motion.svg
+              className="w-4 h-4 text-[#444] flex-shrink-0 ml-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              animate={{ rotate: expandedIdx === idx ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </button>
+          <AnimatePresence>
+            {expandedIdx === idx && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="px-5 pb-4 text-sm text-[#666] leading-relaxed">
+                  {item.answer}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ContactFormBlock({ block, username }: { block: Block; username: string }) {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message, creatorUsername: username }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || "Failed to send message")
+        return
+      }
+      setSent(true)
+    } catch {
+      toast.error("Network error. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">
+        <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-[#00ff88]/10 flex items-center justify-center">
+          <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-[#e0e0e0]">Message sent!</p>
+        <p className="text-xs text-[#555] mt-1">They&apos;ll get back to you soon.</p>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 space-y-3">
+      <p className="text-sm font-medium text-[#e0e0e0] mb-1">{block.title || "Get in touch"}</p>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+        required
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30"
+      />
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Message"
+        required
+        rows={3}
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30 resize-none"
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+      >
+        {loading ? "Sending..." : "Send message"}
+      </button>
+    </form>
+  )
+}
+
+function DiscountCodeBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown> }) {
+  const code = (cfg.code as string) || "CODE"
+  const description = cfg.description as string | undefined
+  const expiresAt = cfg.expiresAt as string | undefined
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+    toast.success("Copied!")
+  }
+
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+      {block.title && <p className="text-sm font-medium text-[#e0e0e0] mb-3">{block.title}</p>}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 bg-black/40 border border-white/[0.1] rounded-xl p-4 text-center font-mono text-[#00ff88] text-xl tracking-widest">
+          {code}
+        </div>
+        <button
+          onClick={handleCopy}
+          className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-colors"
+          title="Copy code"
+        >
+          <svg className="w-5 h-5 text-[#888]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth={1.5} />
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth={1.5} />
+          </svg>
+        </button>
+      </div>
+      {description && <p className="text-xs text-[#555] mt-3">{description}</p>}
+      {expiresAt && (
+        <p className="text-xs text-[#444] mt-2 font-mono">
+          Expires: {new Date(expiresAt).toLocaleDateString()}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function formatTimeAgo(dateStr: string): string {

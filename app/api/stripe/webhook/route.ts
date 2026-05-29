@@ -464,8 +464,24 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
 
   // Extract plan + interval from subscription metadata
   const subMeta = sub.metadata || {}
-  const plan = subMeta.plan || undefined
+  let plan = subMeta.plan || undefined
   const interval = subMeta.interval || undefined
+
+  // Fallback: determine plan from price ID if metadata is missing
+  if (!plan) {
+    const priceId = sub.items?.data?.[0]?.price?.id
+    if (priceId) {
+      const ultraMonthly = process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID
+      const ultraYearly = process.env.STRIPE_ULTRA_YEARLY_PRICE_ID
+      const starterMonthly = process.env.STRIPE_STARTER_MONTHLY_PRICE_ID
+      const starterYearly = process.env.STRIPE_STARTER_YEARLY_PRICE_ID
+      if (priceId === ultraMonthly || priceId === ultraYearly) {
+        plan = "ultra"
+      } else if (priceId === starterMonthly || priceId === starterYearly) {
+        plan = "starter"
+      }
+    }
+  }
 
   const updatedUser = await prisma.user.update({
     where: { id: userId },

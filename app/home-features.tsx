@@ -35,7 +35,7 @@ export function HomeFeatures() {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Card 1: AI Sales Agent */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -93,7 +93,7 @@ export function HomeFeatures() {
 
           {/* Card 2: Globe Analytics */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -125,7 +125,7 @@ export function HomeFeatures() {
 
           {/* Card 3: Drop Countdown */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 hover:border-white/[0.12] transition-all duration-300 flex flex-col"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}

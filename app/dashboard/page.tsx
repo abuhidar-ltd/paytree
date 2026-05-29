@@ -30,6 +30,8 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { BlockCanvas } from "@/components/ui/block-canvas"
+import { BlockPropertiesPanel } from "@/components/ui/block-properties-panel"
 import {
   Search,
   Folder,
@@ -51,6 +53,10 @@ import {
   Calendar,
   Trash2,
   X,
+  AlignLeft,
+  HelpCircle,
+  Mail,
+  Tag,
 } from "lucide-react"
 
 // Suppress "imported but never read" for components preserved for handler compatibility
@@ -223,6 +229,19 @@ export default function DashboardPage() {
   const [previewPulse, setPreviewPulse] = useState(false)
   const [pasteBarValue, setPasteBarValue] = useState("")
   const [pasteDetecting, setPasteDetecting] = useState(false)
+
+  // ── View mode (List / Canvas) ──
+  const [viewMode, setViewMode] = useState<"list" | "canvas">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("paytree_view_mode") as "list" | "canvas") || "list"
+    }
+    return "list"
+  })
+  const [selectedCanvasBlockId, setSelectedCanvasBlockId] = useState<string | null>(null)
+
+  useEffect(() => {
+    localStorage.setItem("paytree_view_mode", viewMode)
+  }, [viewMode])
 
   // ── DnD sensors ──
   const sensors = useSensors(
@@ -957,16 +976,16 @@ export default function DashboardPage() {
         <div className="relative z-10 flex min-h-screen">
 
           {/* ── LEFT: blocks panel ─────────────────────────────── */}
-          <div className="flex-1 min-w-0 overflow-y-auto p-6">
+          <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6">
 
             {/* Free plan upgrade banner */}
             {(!profile?.subscriptionStatus || profile?.subscriptionStatus === "free") && (
-              <div className="bg-gradient-to-r from-[#00ff88]/[0.08] to-transparent border border-[#00ff88]/[0.15] rounded-xl p-4 mb-4 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-[#00ff88]/[0.08] to-transparent border border-[#00ff88]/[0.15] rounded-xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-mono text-[#e0e0e0]">🚀 Your page is ready to share</p>
                   <p className="text-xs text-[#888] mt-0.5">Upgrade to Starter to publish it — $7/mo</p>
                 </div>
-                <Link href="/pricing" className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-sm hover:opacity-90 transition-opacity whitespace-nowrap">
+                <Link href="/pricing" className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-sm hover:opacity-90 transition-opacity shrink-0">
                   Publish my page →
                 </Link>
               </div>
@@ -975,12 +994,12 @@ export default function DashboardPage() {
             {/* Stripe connect prompt */}
             {!profile?.stripeAccountId &&
               (!profile?.subscriptionStatus || profile?.subscriptionStatus === "free" || profile?.subscriptionStatus === "starter") && (
-              <div className="bg-white/[0.02] border border-white/[0.07] rounded-xl p-4 mb-4 flex items-center justify-between">
+              <div className="bg-white/[0.02] border border-white/[0.07] rounded-xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-mono text-[#e0e0e0]">💳 Start selling on your page</p>
                   <p className="text-xs text-[#888] mt-0.5">Connect Stripe to accept payments from visitors</p>
                 </div>
-                <Link href="/settings" className="bg-white/[0.05] border border-white/[0.1] text-[#e0e0e0] font-mono rounded-xl px-4 py-2 text-sm hover:border-white/20 transition-colors whitespace-nowrap">
+                <Link href="/settings" className="bg-white/[0.05] border border-white/[0.1] text-[#e0e0e0] font-mono rounded-xl px-4 py-2 text-sm hover:border-white/20 transition-colors shrink-0">
                   Connect Stripe →
                 </Link>
               </div>
@@ -999,19 +1018,36 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Style panel toggle */}
+            {/* Style panel toggle + view mode */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono uppercase tracking-widest text-white/30">Your Page</span>
-              <button
-                onClick={() => setShowStylePanel((s) => !s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all ${
-                  showStylePanel
-                    ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
-                    : "bg-white/[0.03] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
-                }`}
-              >
-                Style
-              </button>
+              <span className="hidden sm:inline text-xs font-mono uppercase tracking-widest text-white/30">Your Page</span>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden">
+                  {(["list", "canvas"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode)}
+                      className={`px-2 sm:px-3 py-1.5 text-xs font-mono capitalize transition-all ${
+                        viewMode === mode
+                          ? "bg-[#00ff88]/10 text-[#00ff88]"
+                          : "text-[#444] hover:text-[#888]"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowStylePanel((s) => !s)}
+                  className={`px-2 sm:px-3 py-1.5 rounded-xl text-xs font-mono border transition-all ${
+                    showStylePanel
+                      ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
+                      : "bg-white/[0.03] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                  }`}
+                >
+                  Style
+                </button>
+              </div>
             </div>
 
             <AnimatePresence>
@@ -1031,6 +1067,7 @@ export default function DashboardPage() {
             </AnimatePresence>
 
             {/* ── Singletons ─────────────────────────────────── */}
+            {viewMode === "list" && (
             <div className="space-y-1.5 mb-4">
 
               {profile && (
@@ -1176,58 +1213,129 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
-            {/* ── Blocks list ────────────────────────────────── */}
-            {blocks.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext
-                  items={blocks.filter(b => !b.parentId).sort((a, b) => a.position - b.position).map(b => b.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-3 mb-3">
-                    <AnimatePresence initial={false}>
-                      {blocks
-                        .filter((b) => !b.parentId)
-                        .sort((a, b) => a.position - b.position)
-                        .map((block) => (
-                          <SortableBlockCard
-                            key={block.id}
-                            block={block}
-                            expanded={expandedBlockId === block.id}
-                            onExpand={(id) => setExpandedBlockId((curr) => (curr === id ? null : id))}
-                            onToggle={handleBlockToggle}
-                            onUpdate={handleBlockUpdate}
-                            onDelete={handleBlockDelete}
-                          />
-                        ))}
-                    </AnimatePresence>
-                  </div>
-                </SortableContext>
-              </DndContext>
             )}
 
-            {/* ── Add block button ───────────────────────────── */}
-            <button
-              onClick={() => setShowAddBlockPicker((s) => !s)}
-              className="w-full border border-dashed border-white/[0.08] rounded-xl p-4 flex items-center justify-center gap-2 text-[#333] text-sm font-mono hover:border-[#00ff88]/[0.2] hover:text-[#00ff88] transition-all"
-            >
-              + Add block
-            </button>
+            {/* ── Blocks view (List / Canvas) ─────────────────── */}
+            <AnimatePresence mode="wait">
+              {viewMode === "list" ? (
+                <motion.div key="list-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                  {/* ── Blocks list ────────────────────────────────── */}
+                  {blocks.length > 0 && (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext
+                        items={blocks.filter(b => !b.parentId).sort((a, b) => a.position - b.position).map(b => b.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-3 mb-3">
+                          <AnimatePresence initial={false}>
+                            {blocks
+                              .filter((b) => !b.parentId)
+                              .sort((a, b) => a.position - b.position)
+                              .map((block) => (
+                                <SortableBlockCard
+                                  key={block.id}
+                                  block={block}
+                                  expanded={expandedBlockId === block.id}
+                                  onExpand={(id) => setExpandedBlockId((curr) => (curr === id ? null : id))}
+                                  onToggle={handleBlockToggle}
+                                  onUpdate={handleBlockUpdate}
+                                  onDelete={handleBlockDelete}
+                                />
+                              ))}
+                          </AnimatePresence>
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  )}
 
-            {/* Inline AddBlockPicker */}
-            <AnimatePresence>
-              {showAddBlockPicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                  className="mt-2"
-                >
-                  <AddBlockPicker
-                    onClose={() => setShowAddBlockPicker(false)}
-                    onSelect={handleAddBlock}
-                  />
+                  {/* ── Add block button ───────────────────────────── */}
+                  <button
+                    onClick={() => setShowAddBlockPicker((s) => !s)}
+                    className="w-full border border-dashed border-white/[0.08] rounded-xl p-4 flex items-center justify-center gap-2 text-[#333] text-sm font-mono hover:border-[#00ff88]/[0.2] hover:text-[#00ff88] transition-all"
+                  >
+                    + Add block
+                  </button>
+
+                  {/* Inline AddBlockPicker */}
+                  <AnimatePresence>
+                    {showAddBlockPicker && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                        className="mt-2"
+                      >
+                        <AddBlockPicker
+                          onClose={() => setShowAddBlockPicker(false)}
+                          onSelect={handleAddBlock}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ) : (
+                <motion.div key="canvas-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1 min-w-0">
+                    <BlockCanvas
+                      blocks={blocks.filter(b => !b.parentId).sort((a, b) => a.position - b.position)}
+                      selectedId={selectedCanvasBlockId}
+                      onSelect={setSelectedCanvasBlockId}
+                      onReorder={(reordered) => {
+                        setBlocks(prev => {
+                          const children = prev.filter(b => b.parentId)
+                          return [...reordered, ...children]
+                        })
+                        fetch("/api/blocks/reorder", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ blocks: reordered.map((b, i) => ({ id: b.id, position: i })) }),
+                        }).catch(() => toast.error("Failed to save order"))
+                      }}
+                      onUpdate={handleBlockUpdate}
+                      onDelete={handleBlockDelete}
+                      onAddBlock={() => setShowAddBlockPicker((s) => !s)}
+                    />
+
+                    {/* Inline AddBlockPicker (canvas) */}
+                    <AnimatePresence>
+                      {showAddBlockPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                          className="mt-2"
+                        >
+                          <AddBlockPicker
+                            onClose={() => setShowAddBlockPicker(false)}
+                            onSelect={handleAddBlock}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Properties panel */}
+                  <AnimatePresence>
+                    {selectedCanvasBlockId && blocks.find(b => b.id === selectedCanvasBlockId) && (
+                      <motion.div
+                        key="props-panel"
+                        initial={{ opacity: 0, x: 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 16 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className="hidden lg:block w-[280px] flex-shrink-0"
+                      >
+                        <BlockPropertiesPanel
+                          block={blocks.find(b => b.id === selectedCanvasBlockId)!}
+                          onUpdate={handleBlockUpdate}
+                          onDelete={(id) => { handleBlockDelete(id); setSelectedCanvasBlockId(null) }}
+                          onClose={() => setSelectedCanvasBlockId(null)}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1519,6 +1627,13 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
       platform: (cfg.platform as string) || "instagram",
       currency: (cfg.currency as string) || "BTC",
       address: (cfg.address as string) || "",
+      style: (cfg.style as string) || "paragraph",
+      textContent: (cfg.content as string) || "",
+      thumbnailUrl: block.thumbnail || "",
+      answer: (cfg.answer as string) || "",
+      code: (cfg.code as string) || "",
+      expiresAt: (cfg.expiresAt as string) || "",
+      twitchUsername: (cfg.username as string) || "",
     })
   }, [block.id])
 
@@ -1544,9 +1659,11 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
           limitedSpots: fields.limitedSpots ? Number(fields.limitedSpots) : null,
         }
         break
+      case "twitch":
+        body.config = { ...block.config, username: fields.twitchUsername }
+        break
       case "youtube":
       case "spotify":
-      case "twitch":
       case "podcast":
         body.config = { ...block.config, channelId: fields.channelId, rssUrl: fields.rssUrl }
         break
@@ -1563,6 +1680,18 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
         break
       case "crypto":
         body.config = { ...block.config, currency: fields.currency, address: fields.address }
+        break
+      case "text":
+        body.config = { ...block.config, style: fields.style, content: fields.textContent }
+        break
+      case "image":
+        body.thumbnail = fields.thumbnailUrl
+        break
+      case "faq":
+        body.config = { ...block.config, answer: fields.answer }
+        break
+      case "discount_code":
+        body.config = { ...block.config, code: fields.code, description: fields.description, expiresAt: fields.expiresAt || null }
         break
     }
     try {
@@ -1764,7 +1893,7 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
                 </>
               )}
 
-              {(block.type === "youtube" || block.type === "twitch") && (
+              {block.type === "youtube" && (
                 <div>
                   <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Channel ID</div>
                   <input
@@ -1772,6 +1901,18 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
                     onChange={(e) => set("channelId", e.target.value)}
                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
                     placeholder="UCxxxxxxxxxxxxxx"
+                  />
+                </div>
+              )}
+
+              {block.type === "twitch" && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Twitch Username</div>
+                  <input
+                    value={fields.twitchUsername || ""}
+                    onChange={(e) => set("twitchUsername", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    placeholder="your twitch username (without @)"
                   />
                 </div>
               )}
@@ -1861,6 +2002,89 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
                       onChange={(e) => set("address", e.target.value)}
                       className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
                       placeholder="Wallet address"
+                    />
+                  </div>
+                </>
+              )}
+
+              {block.type === "text" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Style</div>
+                    <select
+                      value={fields.style || "paragraph"}
+                      onChange={(e) => set("style", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    >
+                      <option value="heading">Heading</option>
+                      <option value="paragraph">Paragraph</option>
+                    </select>
+                  </div>
+                  {fields.style !== "heading" && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Content</div>
+                      <textarea
+                        value={fields.textContent || ""}
+                        onChange={(e) => set("textContent", e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
+                        placeholder="Paragraph text..."
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {block.type === "image" && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Image URL</div>
+                  <input
+                    value={fields.thumbnailUrl || ""}
+                    onChange={(e) => set("thumbnailUrl", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              {block.type === "faq" && (
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Answer</div>
+                  <textarea
+                    value={fields.answer || ""}
+                    onChange={(e) => set("answer", e.target.value)}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
+                    placeholder="Answer to the question..."
+                  />
+                </div>
+              )}
+
+              {block.type === "discount_code" && (
+                <>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Code</div>
+                    <input
+                      value={fields.code || ""}
+                      onChange={(e) => set("code", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="PROMO50"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Description</div>
+                    <input
+                      value={fields.description || ""}
+                      onChange={(e) => set("description", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="50% off first month"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Expiry date</div>
+                    <input
+                      type="date"
+                      value={fields.expiresAt || ""}
+                      onChange={(e) => set("expiresAt", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
                     />
                   </div>
                 </>
@@ -2051,7 +2275,7 @@ function AddBlockPicker({ onClose, onSelect }: AddBlockPickerProps) {
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("Suggested")
 
-  const categories = ["Suggested", "Commerce", "Social", "Media", "Live", "Display"]
+  const categories = ["Suggested", "Commerce", "Social", "Media", "Live", "Display", "Content"]
 
   const allItems: Record<string, { id: string; name: string; desc: string; icon: React.ReactNode; color: string }[]> = {
     Suggested: [
@@ -2066,8 +2290,8 @@ function AddBlockPicker({ onClose, onSelect }: AddBlockPickerProps) {
       { id: "product",    name: "Product",        desc: "Digital download",  icon: <ShoppingBag size={16} />, color: "bg-blue-500/[0.08] text-blue-400" },
       { id: "vault",      name: "Vault",          desc: "Gated content",     icon: <Lock size={16} />,        color: "bg-yellow-500/[0.08] text-yellow-400" },
       { id: "crypto",     name: "Crypto",         desc: "Tip address",       icon: <Bitcoin size={16} />,     color: "bg-orange-500/[0.08] text-orange-400" },
-      { id: "link",       name: "Affiliate Link", desc: "Tracked URL",       icon: <LucideLink size={16} />,  color: "bg-white/[0.04] text-[#888]" },
-      { id: "link",       name: "Discount Code",  desc: "Promo code",        icon: <Star size={16} />,        color: "bg-white/[0.04] text-[#888]" },
+      { id: "link",          name: "Affiliate Link", desc: "Tracked URL",  icon: <LucideLink size={16} />,  color: "bg-white/[0.04] text-[#888]" },
+      { id: "discount_code", name: "Discount Code",  desc: "Promo code",   icon: <Tag size={16} />,         color: "bg-[#00ff88]/[0.08] text-[#00ff88]" },
     ],
     Social: [
       { id: "social_link", name: "Instagram", desc: "@handle",        icon: <Share2 size={16} />, color: "bg-pink-500/[0.08] text-pink-400" },
@@ -2092,9 +2316,16 @@ function AddBlockPicker({ onClose, onSelect }: AddBlockPickerProps) {
     ],
     Display: [
       { id: "stats",        name: "Stats",        desc: "Authority numbers", icon: <BarChart2 size={16} />,  color: "bg-blue-500/[0.08] text-blue-400" },
-      { id: "text",         name: "Text",         desc: "Rich text block",   icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
-      { id: "faq",          name: "FAQ",          desc: "Q&A accordion",     icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
-      { id: "contact_form", name: "Contact Form", desc: "Email capture",     icon: <LucideLink size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "text",         name: "Text",         desc: "Rich text block",   icon: <AlignLeft size={16} />,  color: "bg-white/[0.04] text-[#888]" },
+      { id: "faq",          name: "FAQ",          desc: "Q&A accordion",     icon: <HelpCircle size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "contact_form", name: "Contact Form", desc: "Email capture",     icon: <Mail size={16} />,       color: "bg-white/[0.04] text-[#888]" },
+    ],
+    Content: [
+      { id: "text",          name: "Text / Heading",  desc: "Paragraph or heading", icon: <AlignLeft size={16} />,  color: "bg-white/[0.04] text-[#888]" },
+      { id: "image",         name: "Image",           desc: "Full-width image",     icon: <ImageIcon size={16} />,  color: "bg-white/[0.04] text-[#888]" },
+      { id: "faq",           name: "FAQ",             desc: "Q&A accordion",        icon: <HelpCircle size={16} />, color: "bg-white/[0.04] text-[#888]" },
+      { id: "contact_form",  name: "Contact Form",    desc: "Email capture form",   icon: <Mail size={16} />,       color: "bg-white/[0.04] text-[#888]" },
+      { id: "discount_code", name: "Discount Code",   desc: "Promo code block",     icon: <Tag size={16} />,        color: "bg-[#00ff88]/[0.08] text-[#00ff88]" },
     ],
   }
 

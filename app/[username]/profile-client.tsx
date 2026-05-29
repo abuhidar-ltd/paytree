@@ -127,6 +127,7 @@ interface ProfileClientProps {
   showAiAgent?: boolean
   accentColor?: string
   creatorStripeReady?: boolean
+  removeBranding?: boolean
 }
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -171,6 +172,7 @@ export function ProfileClient({
   showAiAgent = false,
   accentColor,
   creatorStripeReady = false,
+  removeBranding = false,
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -687,22 +689,24 @@ export function ProfileClient({
       )}
 
       {/* Branding */}
-      <div className="text-center">
-        <a
-          href="/"
-          className="inline-flex items-center gap-3 px-6 py-3 glass-brick rounded-full hover:bg-[rgba(255,255,255,0.05)] transition-all group"
-        >
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-110 transition-transform" />
-          <span className="font-bold text-sm text-white">Create your PayTree</span>
-          <svg className="w-4 h-4 text-[#00ff88] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
+      {!removeBranding && (
+        <div className="text-center">
+          <a
+            href="/"
+            className="inline-flex items-center gap-3 px-6 py-3 glass-brick rounded-full hover:bg-[rgba(255,255,255,0.05)] transition-all group"
+          >
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-sm text-white">Create your PayTree</span>
+            <svg className="w-4 h-4 text-[#00ff88] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
-        <p className="text-xs text-[#555555] mt-6">
-          0% commissions by PayTree. Third-party fees may apply.
-        </p>
-      </div>
+          <p className="text-xs text-[#555555] mt-6">
+            0% commissions by PayTree. Third-party fees may apply.
+          </p>
+        </div>
+      )}
 
       {/* Social proof notifications */}
       <SocialProofToast username={user.username} />
@@ -731,9 +735,9 @@ function renderBlocksWithSizing(
       const next = blocks[i + 1]
       if (next && next.size === "half") {
         result.push(
-          <div key={`pair-${i}`} className="grid grid-cols-2 gap-3">
-            <BlockRenderer block={block} {...commonProps} />
-            <BlockRenderer block={next} {...commonProps} />
+          <div key={`pair-${i}`} className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="min-w-0 overflow-hidden"><BlockRenderer block={block} {...commonProps} /></div>
+            <div className="min-w-0 overflow-hidden"><BlockRenderer block={next} {...commonProps} /></div>
           </div>
         )
         i += 2

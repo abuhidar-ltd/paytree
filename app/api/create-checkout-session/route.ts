@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
 import Stripe from "stripe"
-import { getStripePriceId, type PlanId, type BillingInterval } from "@/lib/plans"
+import type { PlanId, BillingInterval } from "@/lib/plans"
 
 /**
  * POST /api/create-checkout-session
@@ -65,24 +65,19 @@ export async function POST(req: Request) {
     }
 
     // Resolve Stripe price ID
-    let priceId = getStripePriceId(plan, interval)
-
-    // Fallback: for backward compatibility, try the old single STRIPE_PRICE_ID env var
-    if (!priceId && plan === "starter" && interval === "monthly") {
-      priceId = process.env.STRIPE_PRICE_ID || null
+    const PRICE_IDS: Record<string, string | undefined> = {
+      starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+      starter_yearly: process.env.STRIPE_STARTER_YEARLY_PRICE_ID,
+      ultra_monthly: process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID,
+      ultra_yearly: process.env.STRIPE_ULTRA_YEARLY_PRICE_ID,
     }
 
+    const priceId = PRICE_IDS[`${plan}_${interval}`]
+
     if (!priceId) {
-      console.error(
-        `[checkout] Missing price ID for plan=${plan}, interval=${interval}. ` +
-        `Set STRIPE_${plan.toUpperCase()}_${interval.toUpperCase()}_PRICE_ID in .env`
-      )
       return NextResponse.json(
-        {
-          error: "Payment configuration incomplete",
-          details: `Missing price ID for ${plan}/${interval}. Set the env var.`,
-        },
-        { status: 500 }
+        { error: "Plan not available. Please contact support." },
+        { status: 400 }
       )
     }
 

@@ -347,6 +347,7 @@ export default async function ProfilePage({
             showAiAgent={showAiAgent}
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
+            removeBranding={userFeatures.removeBranding}
           />
         </div>
       </div>

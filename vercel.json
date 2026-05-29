@@ -1,11 +1,5 @@
 {
   "buildCommand": "prisma generate && next build",
-  "crons": [
-    {
-      "path": "/api/cron/optimize-links",
-      "schedule": "0 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
