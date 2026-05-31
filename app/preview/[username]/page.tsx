@@ -1,12 +1,9 @@
-import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ProfileClient } from "@/app/[username]/profile-client"
-import { SocialIcon } from "@/components/social-icon"
-import Link from "next/link"
+import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
 
-// Prevent search engines from indexing preview pages
 export const metadata = {
   robots: 'noindex, nofollow',
 }
@@ -16,7 +13,6 @@ export default async function PreviewPage({
 }: {
   params: Promise<{ username: string }>
 }) {
-  const currentUser = await getCurrentUser()
   const { username } = await params
 
   const user = await prisma.user.findUnique({
@@ -46,10 +42,7 @@ export default async function PreviewPage({
   }
 
   const socialIconPosition = user.socialIconPosition || "bottom"
-  const isPro = user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trial' || user.subscriptionStatus === 'canceling'
-  const isOwner = currentUser?.id === user.id
 
-  // Transform links into portal structure (excluding vault items)
   const topLevelLinks = user.links.filter(l => !l.parentId && !l.isVaultItem)
   const portalLinks = topLevelLinks.map(link => ({
     id: link.id,
@@ -59,7 +52,7 @@ export default async function PreviewPage({
     isFolder: link.isFolder,
     cardStyle: link.style || undefined,
     cardSize: link.cardSize || undefined,
-    children: link.isFolder 
+    children: link.isFolder
       ? user.links.filter(child => child.parentId === link.id).map(child => ({
           id: child.id,
           title: child.title,
@@ -72,7 +65,6 @@ export default async function PreviewPage({
       : []
   }))
 
-  // Transform vault items
   const vaultItems = user.links.filter(l => l.isVaultItem && l.isEmailLocked).map(item => ({
     id: item.id,
     title: item.title,
@@ -83,7 +75,6 @@ export default async function PreviewPage({
     vaultContent: item.vaultContent || undefined,
   }))
 
-  // Transform crypto addresses
   const cryptoAddresses = user.cryptoAddresses.map(addr => ({
     id: addr.id,
     currency: addr.currency,
@@ -92,7 +83,17 @@ export default async function PreviewPage({
     enabled: addr.enabled,
   }))
 
-  // Fetch enabled drops
+  const blocks = await prisma.block.findMany({
+    where: { userId: user.id, enabled: true, parentId: null },
+    orderBy: { position: "asc" },
+    include: {
+      children: {
+        where: { enabled: true },
+        orderBy: { position: "asc" },
+      },
+    },
+  })
+
   const dropsRaw = await prisma.drop.findMany({
     where: { userId: user.id, enabled: true },
     orderBy: { dropAt: "asc" },
@@ -128,6 +129,7 @@ export default async function PreviewPage({
             className="absolute inset-0"
             style={{
               background: [
+                'linear-gradient(to bottom, rgba(180,120,60,0.25) 0%, rgba(180,120,60,0.1) 30%, transparent 50%)',
                 'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 25%, rgba(3,3,3,0.75) 65%, rgba(3,3,3,1) 80%)',
                 'linear-gradient(to right, rgba(3,3,3,0.55) 0%, transparent 18%, transparent 82%, rgba(3,3,3,0.55) 100%)',
               ].join(', '),
@@ -136,62 +138,6 @@ export default async function PreviewPage({
         </div>
       )}
 
-      {/* Preview Banner - show to page owner */}
-      {isOwner && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[rgba(0,255,136,0.1)] backdrop-blur-xl border-b border-[rgba(0,255,136,0.2)] text-white py-3 px-4">
-          <div className="container mx-auto flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span className="font-bold text-[#00ff88]">Preview Mode</span>
-              <span className="text-[#888888] hidden sm:inline">This is exactly how your terminal will look</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {isPro ? (
-                <Link
-                  href={`/${username}`}
-                  className="btn-accent-solid px-4 py-1.5 text-sm"
-                >
-                  View Published →
-                </Link>
-              ) : (
-                <Link
-                  href="/dashboard/studio"
-                  className="btn-accent-solid px-4 py-1.5 text-sm"
-                >
-                  Publish Terminal
-                </Link>
-              )}
-              <Link
-                href="/dashboard/studio"
-                className="btn-obsidian px-4 py-1.5 text-sm"
-              >
-                ← Editor
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Preview Info for non-owners viewing the preview */}
-      {!isOwner && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[rgba(3,3,3,0.8)] backdrop-blur-xl border-b border-[rgba(255,255,255,0.05)] text-white py-2 px-4">
-          <div className="container mx-auto flex items-center justify-center gap-3 text-sm">
-            <svg className="w-4 h-4 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <span className="text-[#888888]">This is a preview of @{username}'s terminal</span>
-            <Link href="/" className="text-[#00ff88] hover:underline font-medium">
-              Create yours →
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
       <div className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 pb-8 sm:pb-12 ${
         user.heroStyle === 'cinematic'
           ? "pt-[220px] sm:pt-[240px]"
@@ -233,6 +179,38 @@ export default async function PreviewPage({
             isPublished={false}
             buttonStyle={user.buttonStyle ?? undefined}
             drops={drops}
+            blocks={blocks.map((b) => ({
+              id: b.id,
+              type: b.type,
+              title: b.title,
+              url: b.url,
+              description: b.description,
+              thumbnail: b.thumbnail,
+              style: b.style,
+              size: b.size,
+              layout: b.layout,
+              priority: b.priority,
+              lockType: b.lockType,
+              lockValue: b.lockValue,
+              config: b.config as Record<string, unknown>,
+              children: b.children.map((c) => ({
+                id: c.id,
+                type: c.type,
+                title: c.title,
+                url: c.url,
+                description: c.description,
+                thumbnail: c.thumbnail,
+                style: c.style,
+                size: c.size,
+                lockType: c.lockType,
+                lockValue: c.lockValue,
+                config: c.config as Record<string, unknown>,
+              })),
+            }))}
+            accentColor={user.accentColor ?? undefined}
+            creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
+            removeBranding={true}
+            isPreview={true}
           />
         </div>
       </div>

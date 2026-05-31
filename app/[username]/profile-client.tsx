@@ -128,6 +128,8 @@ interface ProfileClientProps {
   accentColor?: string
   creatorStripeReady?: boolean
   removeBranding?: boolean
+  isPreview?: boolean
+  isOwner?: boolean
 }
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -173,6 +175,8 @@ export function ProfileClient({
   accentColor,
   creatorStripeReady = false,
   removeBranding = false,
+  isPreview = false,
+  isOwner = false,
 }: ProfileClientProps) {
   const [openPortal, setOpenPortal] = useState<string | null>(null)
   const [portalStack, setPortalStack] = useState<PortalLink[]>([])
@@ -256,6 +260,7 @@ export function ProfileClient({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
+      className={isPreview ? "pointer-events-none" : undefined}
     >
       {/* Profile Header */}
       {(user.heroStyle ?? "classic") === "cinematic" ? (
@@ -380,19 +385,6 @@ export function ProfileClient({
                     <SocialIcon platform={social.platform} url={social.url} size={40} />
                   </motion.div>
                 ))}
-                {blocks.filter(b => b.type === "social_link").map((b, i) => {
-                  const bCfg = (b.config || {}) as Record<string, any>
-                  return (
-                    <motion.div
-                      key={b.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}
-                    >
-                      <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={40} />
-                    </motion.div>
-                  )
-                })}
               </div>
             )}
           </ObsidianCard>
@@ -419,7 +411,7 @@ export function ProfileClient({
             </GlassBrick>
           )}
           {user.statsFollowers > 0 && (
-            <GlassBrick className={`!p-4 text-center ${user.statsStudents > 0 && user.statsWinRate > 0 ? "span-2" : ""}`}>
+            <GlassBrick className={`!p-4 text-center ${user.statsStudents > 0 && user.statsWinRate > 0 ? "col-span-2" : ""}`}>
               <div className="text-2xl sm:text-3xl font-bold text-white">
                 {formatNumber(user.statsFollowers)}
               </div>
@@ -430,7 +422,7 @@ export function ProfileClient({
       )}
 
       {/* Bento Modules */}
-      {modules && modules.length > 0 && (
+      {(!blocks || blocks.length === 0) && modules && modules.length > 0 && (
         <div className="mb-6">
           <BentoGrid
             modules={modules}
@@ -452,6 +444,7 @@ export function ProfileClient({
       )}
 
       {/* Deep Portal Links */}
+      {(!blocks || blocks.length === 0) && (
       <AnimatePresence mode="wait">
         {openPortal ? (
           <motion.div
@@ -464,7 +457,7 @@ export function ProfileClient({
           >
             {/* Back Button */}
             <button onClick={handleBack} className="back-btn">
-              ← BACK TO {portalStack.length > 1 ? portalStack[portalStack.length - 2].title.toUpperCase() : "DASHBOARD"}
+              ← BACK TO {portalStack.length > 1 ? portalStack[portalStack.length - 2].title.toUpperCase() : "HOME"}
             </button>
 
             {/* Portal Title */}
@@ -628,6 +621,7 @@ export function ProfileClient({
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Empty State */}
       {(!blocks || blocks.length === 0) && links.length === 0 && (
@@ -683,27 +677,28 @@ export function ProfileClient({
               accentColor: accentColor || "#00ff88",
               buttonStyle: buttonStyle || "glass",
               username: user.username,
+              creatorStripeReady,
             }
           )}
         </motion.div>
       )}
 
       {/* Branding */}
-      {!removeBranding && (
+      {!removeBranding && !isOwner && !isPreview && (
         <div className="text-center">
           <a
             href="/"
             className="inline-flex items-center gap-3 px-6 py-3 glass-brick rounded-full hover:bg-[rgba(255,255,255,0.05)] transition-all group"
           >
             <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-sm text-white">Create your PayTree</span>
+            <span className="font-bold text-sm text-white">Create your Paytree</span>
             <svg className="w-4 h-4 text-[#00ff88] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </a>
 
           <p className="text-xs text-[#555555] mt-6">
-            0% commissions by PayTree. Third-party fees may apply.
+            0% commissions by Paytree. Third-party fees may apply.
           </p>
         </div>
       )}
@@ -712,7 +707,7 @@ export function ProfileClient({
       <SocialProofToast username={user.username} />
 
       {/* AI Agent chat */}
-      {showAiAgent && (
+      {showAiAgent && !isPreview && (
         <AiAgentChat
           username={user.username}
           creatorName={user.name || user.username}
@@ -725,7 +720,7 @@ export function ProfileClient({
 
 function renderBlocksWithSizing(
   blocks: Block[],
-  commonProps: { userId: string; accentColor: string; buttonStyle: string; username: string }
+  commonProps: { userId: string; accentColor: string; buttonStyle: string; username: string; creatorStripeReady?: boolean }
 ) {
   const result: React.ReactNode[] = []
   let i = 0
@@ -735,10 +730,10 @@ function renderBlocksWithSizing(
       const next = blocks[i + 1]
       if (next && next.size === "half") {
         result.push(
-          <div key={`pair-${i}`} className="grid grid-cols-2 gap-2 sm:gap-3">
+          <motion.div key={`pair-${i}`} variants={itemVariants} className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="min-w-0 overflow-hidden"><BlockRenderer block={block} {...commonProps} /></div>
             <div className="min-w-0 overflow-hidden"><BlockRenderer block={next} {...commonProps} /></div>
-          </div>
+          </motion.div>
         )
         i += 2
         continue

@@ -32,6 +32,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { BlockCanvas } from "@/components/ui/block-canvas"
 import { BlockPropertiesPanel } from "@/components/ui/block-properties-panel"
+import { resolveUserPlan } from "@/lib/plans"
 import {
   Search,
   Folder,
@@ -287,10 +288,8 @@ export default function DashboardPage() {
   void newDrop; void setNewDrop; void isAddingDrop; void setIsAddingDrop
   void saving
 
-  const isPro =
-    profile?.subscriptionStatus === "active" ||
-    profile?.subscriptionStatus === "trial" ||
-    profile?.subscriptionStatus === "canceling"
+  const userPlan = profile ? resolveUserPlan(profile as any) : "free"
+  const isPro = userPlan !== "free"
 
   useEffect(() => {
     fetch("/api/referral")
@@ -666,6 +665,10 @@ export default function DashboardPage() {
     }
   }
   void toggleVaultLock
+
+  // Legacy social links — new social links should be
+  // added as blocks via the Add picker (type: social_link)
+  // These show for users who set up socials before blocks
 
   // ── social handlers ───────────────────────────────────────────────────────
 
@@ -1325,7 +1328,7 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 16 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="hidden lg:block w-[280px] flex-shrink-0"
+                        className="fixed inset-x-0 bottom-0 z-50 max-h-[50vh] overflow-y-auto bg-[#0a0a0a] border-t border-white/[0.07] p-4 lg:static lg:max-h-none lg:border-t-0 lg:bg-transparent lg:p-0 w-full lg:w-[280px] flex-shrink-0"
                       >
                         <BlockPropertiesPanel
                           block={blocks.find(b => b.id === selectedCanvasBlockId)!}
@@ -1363,72 +1366,19 @@ export default function DashboardPage() {
                 ? "shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_2px_rgba(0,255,136,0.3)]"
                 : "shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(0,255,136,0.08)]"
             }`}>
-              <div
-                className="h-full overflow-y-auto p-4 pt-6"
-                style={{ scrollbarWidth: "none" }}
-              >
-                {/* Profile */}
-                <div className="text-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-white/[0.05] mx-auto mb-2 overflow-hidden border border-[rgba(0,255,136,0.3)]">
-                    {profile?.image ? (
-                      <img src={profile.image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-bold bg-gradient-to-br from-[#00ff88] to-[#1a0b2e]">
-                        {profile?.name?.charAt(0) || "?"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="font-bold text-[11px] text-white leading-tight">
-                    {profile?.name || profile?.username}
-                  </div>
-                  {profile?.bio && (
-                    <div className="text-[9px] text-[#888] mt-0.5 line-clamp-2">{profile.bio}</div>
-                  )}
-                  {profile?.liveStatus && (
-                    <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(0,255,136,0.05)] border border-[rgba(0,255,136,0.2)]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" />
-                      <span className="text-[8px] font-bold text-white uppercase">
-                        {profile.liveMessage || "Live"}
-                      </span>
-                    </div>
-                  )}
+              {profile?.username ? (
+                <iframe
+                  key={`preview-${blocks.length}-${previewPulse}`}
+                  src={`/preview/${profile.username}`}
+                  className="w-full h-full border-0"
+                  style={{ pointerEvents: "none" }}
+                  title="Profile preview"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-[9px] text-[#333] font-mono text-center">Loading...</div>
                 </div>
-
-                {/* Blocks preview */}
-                <div className="space-y-1.5">
-                  {blocks
-                    .filter((b) => b.enabled && !b.parentId)
-                    .slice(0, 5)
-                    .map((block) => (
-                      <div
-                        key={block.id}
-                        className={`p-2 rounded-xl border ${
-                          block.type === "vault" ? "bg-yellow-500/[0.08] border-yellow-500/[0.15]" :
-                          block.type === "drop" ? "bg-[#00ff88]/[0.05] border-[#00ff88]/[0.12]" :
-                          block.type === "youtube" ? "bg-red-500/[0.06] border-red-500/[0.12]" :
-                          block.type === "product" ? "bg-blue-500/[0.06] border-blue-500/[0.12]" :
-                          block.type === "spotify" ? "bg-green-500/[0.06] border-green-500/[0.12]" :
-                          block.type === "crypto" ? "bg-orange-500/[0.06] border-orange-500/[0.12]" :
-                          "bg-white/[0.02] border-white/[0.07]"
-                        }`}
-                      >
-                        <div className="text-[10px] text-white truncate font-medium">{block.title}</div>
-                        {block.url && (
-                          <div className="text-[9px] text-[#555] truncate mt-0.5">{block.url}</div>
-                        )}
-                      </div>
-                    ))}
-                  {blocks.length === 0 && (
-                    <div className="text-[9px] text-[#333] font-mono text-center pt-4">
-                      No blocks yet
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-center mt-6">
-                  <div className="text-[8px] text-[#333]">Powered by PayTree</div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -1634,6 +1584,8 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
       code: (cfg.code as string) || "",
       expiresAt: (cfg.expiresAt as string) || "",
       twitchUsername: (cfg.username as string) || "",
+      revealUrl: (cfg.revealUrl as string) || "",
+      revealText: (cfg.revealText as string) || "",
     })
   }, [block.id])
 
@@ -1650,6 +1602,7 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
         body.url = fields.url
         break
       case "vault":
+        body.url = fields.url
         body.config = { ...block.config, content: fields.content, downloadUrl: fields.downloadUrl }
         break
       case "drop":
@@ -1657,15 +1610,21 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
           ...block.config,
           dropAt: fields.dropAt ? new Date(fields.dropAt).toISOString() : null,
           limitedSpots: fields.limitedSpots ? Number(fields.limitedSpots) : null,
+          revealUrl: fields.revealUrl || null,
+          revealText: fields.revealText || null,
         }
         break
       case "twitch":
         body.config = { ...block.config, username: fields.twitchUsername }
         break
       case "youtube":
+        body.config = { ...block.config, channelId: fields.channelId }
+        break
       case "spotify":
+        body.config = { ...block.config, playlistUrl: fields.rssUrl }
+        break
       case "podcast":
-        body.config = { ...block.config, channelId: fields.channelId, rssUrl: fields.rssUrl }
+        body.config = { ...block.config, rssUrl: fields.rssUrl }
         break
       case "product":
         body.config = {
@@ -1857,6 +1816,15 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
                     />
                   </div>
                   <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Reveal URL (optional)</div>
+                    <input
+                      value={fields.url || ""}
+                      onChange={(e) => set("url", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
                     <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Download URL</div>
                     <input
                       value={fields.downloadUrl || ""}
@@ -1888,6 +1856,24 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
                       onChange={(e) => set("limitedSpots", e.target.value)}
                       className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
                       placeholder="Unlimited"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Reveal URL (after drop)</div>
+                    <input
+                      value={fields.revealUrl || ""}
+                      onChange={(e) => set("revealUrl", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Reveal text (after drop)</div>
+                    <textarea
+                      value={fields.revealText || ""}
+                      onChange={(e) => set("revealText", e.target.value)}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
+                      placeholder="Message shown after drop..."
                     />
                   </div>
                 </>
@@ -2047,15 +2033,10 @@ function BlockCard({ block, expanded, onExpand, onToggle, onUpdate, onDelete, dr
               )}
 
               {block.type === "faq" && (
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1">Answer</div>
-                  <textarea
-                    value={fields.answer || ""}
-                    onChange={(e) => set("answer", e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-[13px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[60px] resize-none"
-                    placeholder="Answer to the question..."
-                  />
-                </div>
+                <FaqItemsEditor
+                  items={Array.isArray(cfg.items) ? cfg.items as { question: string; answer: string }[] : [{ question: block.title, answer: fields.answer || "" }]}
+                  onSave={(items) => patchSheet({ title: items[0]?.question || block.title, config: { ...block.config, items, answer: items[0]?.answer || "" } })}
+                />
               )}
 
               {block.type === "discount_code" && (
@@ -2423,6 +2404,63 @@ function AddBlockPicker({ onClose, onSelect }: AddBlockPickerProps) {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function FaqItemsEditor({ items: initialItems, onSave }: { items: { question: string; answer: string }[]; onSave: (items: { question: string; answer: string }[]) => void }) {
+  const [items, setItems] = useState(initialItems.length > 0 ? initialItems : [{ question: "", answer: "" }])
+
+  const update = (idx: number, field: "question" | "answer", val: string) => {
+    const next = [...items]
+    next[idx] = { ...next[idx], [field]: val }
+    setItems(next)
+    onSave(next)
+  }
+
+  const add = () => {
+    const next = [...items, { question: "", answer: "" }]
+    setItems(next)
+    onSave(next)
+  }
+
+  const remove = (idx: number) => {
+    if (items.length <= 1) return
+    const next = items.filter((_, i) => i !== idx)
+    setItems(next)
+    onSave(next)
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, idx) => (
+        <div key={idx} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Q{idx + 1}</div>
+            {items.length > 1 && (
+              <button onClick={() => remove(idx)} className="text-red-400/60 hover:text-red-400 text-[10px] font-mono">Remove</button>
+            )}
+          </div>
+          <input
+            value={item.question}
+            onChange={(e) => update(idx, "question", e.target.value)}
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[12px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none"
+            placeholder="Question..."
+          />
+          <textarea
+            value={item.answer}
+            onChange={(e) => update(idx, "answer", e.target.value)}
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[12px] text-[#e0e0e0] font-mono focus:border-[#00ff88]/30 outline-none min-h-[50px] resize-none"
+            placeholder="Answer..."
+          />
+        </div>
+      ))}
+      <button
+        onClick={add}
+        className="w-full py-2 rounded-xl border border-dashed border-white/[0.1] text-[11px] font-mono text-[#444] hover:border-[#00ff88]/30 hover:text-[#00ff88] transition-colors"
+      >
+        + Add Q&amp;A pair
+      </button>
     </div>
   )
 }

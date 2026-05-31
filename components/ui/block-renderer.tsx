@@ -10,6 +10,15 @@ import { LiveStatusPill } from "./live-status-pill"
 import { SocialIcon } from "@/components/social-icon"
 import { DropCard, type Drop } from "./drop-card"
 
+function formatPodcastDuration(dur: string): string {
+  if (dur.includes(":")) return dur
+  const secs = Number(dur)
+  if (isNaN(secs)) return dur
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
+
 interface BlockChild {
   id: string
   type: string
@@ -35,6 +44,7 @@ export interface Block {
   style?: string
   size?: string
   layout?: string
+  priority?: string
   lockType?: string
   lockValue?: string | null
   config?: Record<string, unknown>
@@ -47,6 +57,7 @@ interface BlockRendererProps {
   accentColor: string
   buttonStyle: string
   username: string
+  creatorStripeReady?: boolean
 }
 
 function trackBlockClick(blockId: string) {
@@ -63,26 +74,56 @@ function trackBlockClick(blockId: string) {
   }
 }
 
-export function BlockRenderer({ block, userId, accentColor, buttonStyle, username }: BlockRendererProps) {
+export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady }: BlockRendererProps) {
   const cfg = (block.config || {}) as Record<string, any>
 
-  if (block.lockType && block.lockType !== "none") {
-    return <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} />
-  }
+  useEffect(() => {
+    if (block.priority === "redirect" && block.url) {
+      window.open(block.url, "_blank")
+    }
+  }, [block.priority, block.url])
 
-  return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} />
+  const wrapperClass = block.priority === "animate"
+    ? "ring-2 ring-[#00ff88]/40 animate-pulse rounded-2xl"
+    : ""
+
+  const content = block.lockType && block.lockType !== "none"
+    ? <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
+    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
+
+  if (!wrapperClass) return content
+  return <div className={wrapperClass}>{content}</div>
 }
 
-function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username }: {
+function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady }: {
   block: Block
   userId: string
   cfg: Record<string, any>
   accentColor: string
   buttonStyle: string
   username: string
+  creatorStripeReady?: boolean
 }) {
   switch (block.type) {
     case "link":
+      if (block.layout === "featured" && block.thumbnail) {
+        return (
+          <div className="w-full" onClick={() => trackBlockClick(block.id)}>
+            <a href={block.url || cfg.url || "#"} target="_blank" rel="noopener noreferrer" className="block">
+              <div className="w-full h-[140px] rounded-2xl overflow-hidden mb-2">
+                <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
+              </div>
+              <LinkCard3D
+                title={block.title}
+                url={block.url || cfg.url || "#"}
+                icon={cfg.icon || "🔗"}
+                variant={(block.style || buttonStyle || "glass") as any}
+                onTrackClick={() => {}}
+              />
+            </a>
+          </div>
+        )
+      }
       return (
         <div className={block.size === "half" ? "w-[calc(50%-6px)]" : "w-full"}>
           <LinkCard3D
@@ -105,7 +146,7 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username }
       return <DropBlock block={block} cfg={cfg} />
 
     case "product":
-      return <ProductBlock block={block} cfg={cfg} />
+      return <ProductBlock block={block} cfg={cfg} creatorStripeReady={creatorStripeReady} />
 
     case "youtube":
       return <YouTubeBlock block={block} cfg={cfg} />
@@ -198,7 +239,7 @@ function CollectionBlock({ block, userId, accentColor, buttonStyle, username }: 
   buttonStyle: string
   username: string
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(block.priority === "auto_expand")
   const children = block.children || []
 
   return (
@@ -459,7 +500,7 @@ function DropBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }) {
   return <DropCard drop={drop} />
 }
 
-function ProductBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }) {
+function ProductBlock({ block, cfg, creatorStripeReady }: { block: Block; cfg: Record<string, any>; creatorStripeReady?: boolean }) {
   const [loading, setLoading] = useState(false)
   const price = cfg.price as number | undefined
   const formattedPrice = price ? `$${(price / 100).toFixed(2)}` : null
@@ -501,13 +542,17 @@ function ProductBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }
         {formattedPrice && (
           <div className="text-lg font-mono font-bold text-[#00ff88] mb-3">{formattedPrice}</div>
         )}
-        <button
-          onClick={handleBuy}
-          disabled={loading}
-          className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {loading ? "Loading..." : "Buy now →"}
-        </button>
+        {creatorStripeReady === false ? (
+          <div className="text-[#444] font-mono text-xs mt-3">Payments not set up</div>
+        ) : (
+          <button
+            onClick={handleBuy}
+            disabled={loading}
+            className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loading ? "Loading..." : "Buy now →"}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -608,7 +653,7 @@ function PodcastBlock({ block, cfg }: { block: Block; cfg: Record<string, any> }
 
   const duration = data.episode?.duration
   const formattedDuration = duration
-    ? `${Math.floor(Number(duration) / 60)}:${(Number(duration) % 60).toString().padStart(2, "0")}`
+    ? formatPodcastDuration(String(duration))
     : null
 
   const relativeDate = data.episode?.pubDate ? formatRelativeTime(data.episode.pubDate) : null
@@ -781,13 +826,14 @@ function TwitchBlock({ block, cfg }: { block: Block; cfg: Record<string, any> })
   )
 }
 
-function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username }: {
+function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady }: {
   block: Block
   userId: string
   cfg: Record<string, any>
   accentColor: string
   buttonStyle: string
   username: string
+  creatorStripeReady?: boolean
 }) {
   const [unlocked, setUnlocked] = useState(false)
   const [email, setEmail] = useState("")
@@ -806,7 +852,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username }:
   }, [block.lockType, userId, block.id])
 
   if (unlocked || ageConfirmed) {
-    return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} />
+    return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
   }
 
   if (block.lockType === "email") {

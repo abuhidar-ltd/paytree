@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LinkCard3D } from "@/components/ui/link-card-3d"
-import { PremiumBackground } from "@/components/backgrounds/premium-background"
-import { SocialIcon } from "@/components/social-icon"
+import { resolveUserPlan } from "@/lib/plans"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
@@ -28,6 +26,7 @@ interface Profile {
   textColor?: string | null
   socialIconPosition?: string | null
   heroStyle?: string | null
+  cornerRadius?: string | null
   subscriptionStatus?: string | null
   pageStatus?: string | null
 }
@@ -113,12 +112,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   const [showPaywall, setShowPaywall] = useState(false)
   const [publishedLink, setPublishedLink] = useState<string | null>(null)
   const [processingPayment, setProcessingPayment] = useState(checkoutSuccess || false)
-  const [cornerRadius, setCornerRadius] = useState("xl")
+  const [cornerRadius, setCornerRadius] = useState(initialProfile.cornerRadius || "xl")
 
-  const isPro =
-    profile.subscriptionStatus === "active" ||
-    profile.subscriptionStatus === "trial" ||
-    profile.subscriptionStatus === "canceling"
+  const userPlan = resolveUserPlan(profile as any)
+  const isPro = userPlan !== "free"
   const isPublished = profile.pageStatus === "published"
   const accent = profile.accentColor || "#00ff88"
 
@@ -559,7 +556,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     return (
                       <button
                         key={value}
-                        onClick={() => setCornerRadius(value)}
+                        onClick={() => { setCornerRadius(value); setProfile({ ...profile, cornerRadius: value }) }}
                         className={`flex-1 rounded-lg border p-2.5 flex flex-col items-center gap-2 transition-all ${
                           active
                             ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.03]"
@@ -660,69 +657,14 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   boxShadow: `0 28px 64px rgba(0,0,0,0.85), 0 0 0 1px ${accent}18`,
                 }}
               >
-                <div className="w-full h-full rounded-[30px] overflow-hidden relative bg-[#080808]">
-
-                  {profile.backgroundStyle !== "none" && <PremiumBackground />}
-
-                  <div className="relative z-10 h-full overflow-y-auto p-4 text-white" style={{ scrollbarWidth: "none" }}>
-
-                    {/* Hero */}
-                    {(profile.heroStyle ?? "classic") === "cinematic" ? (
-                      <div className="relative mb-4 -mx-4 -mt-4">
-                        <div className="w-full h-[80px]" style={{ background: "linear-gradient(to bottom, #1c1c1c, #080808)" }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2 px-4">
-                          <p className="text-[12px] font-bold text-white">{profile.name || profile.username}</p>
-                          {profile.bio && <p className="text-[9px] text-white/40 mt-0.5 line-clamp-1">{profile.bio}</p>}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center mb-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden mx-auto mb-2 border-2" style={{ borderColor: `${accent}44` }}>
-                          {profile.image ? (
-                            <img src={profile.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg font-bold" style={{ background: `${accent}22`, color: accent }}>
-                              {profile.name?.charAt(0) || "?"}
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-[13px] font-bold mb-1">{profile.name || profile.username}</p>
-                        {profile.bio && <p className="text-[9px] text-gray-400 line-clamp-2 leading-relaxed">{profile.bio}</p>}
-                        {profile.socialIconPosition === "top" && socialLinks.filter(s => s.enabled).length > 0 && (
-                          <div className="flex justify-center gap-1.5 mt-2.5">
-                            {socialLinks.filter(s => s.enabled).slice(0, 5).map(s => (
-                              <SocialIcon key={s.id} platform={s.platform} url={s.url} size={20} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Links */}
-                    <div className="space-y-2">
-                      {links.filter(l => l.enabled).length > 0
-                        ? links.filter(l => l.enabled).slice(0, 5).map(link => (
-                            <LinkCard3D key={link.id} title={link.title} icon={link.icon} variant={(profile.buttonStyle as any) || "3d"} className="text-xs" />
-                          ))
-                        : ["First link", "Second link", "Resource"].map(title => (
-                            <LinkCard3D key={title} title={title} icon="🔗" variant={(profile.buttonStyle as any) || "3d"} className="text-xs opacity-40" />
-                          ))
-                      }
-                    </div>
-
-                    {/* Social bottom */}
-                    {(profile.socialIconPosition === "bottom" || !profile.socialIconPosition) && socialLinks.filter(s => s.enabled).length > 0 && (
-                      <div className="flex justify-center gap-1.5 mt-4">
-                        {socialLinks.filter(s => s.enabled).slice(0, 5).map(s => (
-                          <SocialIcon key={s.id} platform={s.platform} url={s.url} size={20} />
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="text-center mt-5">
-                      <div className="text-[8px] text-[#1a1a1a] font-mono">paytree.to</div>
-                    </div>
-                  </div>
+                <div className="w-full h-full rounded-[30px] overflow-hidden relative bg-[#030303]">
+                  <iframe
+                    key={`${profile.accentColor}-${profile.heroStyle}-${profile.buttonStyle}-${lastSaved?.getTime()}`}
+                    src={`/preview/${profile.username}`}
+                    className="w-full h-full border-0"
+                    style={{ pointerEvents: "none" }}
+                    title="Profile preview"
+                  />
                 </div>
               </div>
 

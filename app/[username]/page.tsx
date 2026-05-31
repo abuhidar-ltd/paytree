@@ -248,6 +248,7 @@ export default async function ProfilePage({
             className="absolute inset-0"
             style={{
               background: [
+                'linear-gradient(to bottom, rgba(180,120,60,0.25) 0%, rgba(180,120,60,0.1) 30%, transparent 50%)',
                 'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 25%, rgba(3,3,3,0.75) 65%, rgba(3,3,3,1) 80%)',
                 'linear-gradient(to right, rgba(3,3,3,0.55) 0%, transparent 18%, transparent 82%, rgba(3,3,3,0.55) 100%)',
               ].join(', '),
@@ -348,6 +349,7 @@ export default async function ProfilePage({
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
             removeBranding={userFeatures.removeBranding}
+            isOwner={isOwner}
           />
         </div>
       </div>

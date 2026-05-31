@@ -57,7 +57,7 @@ const SIZE_SPANS: Record<string, number> = {
   large: 12,
   default: 12,
   half: 6,
-  square: 4,
+  square: 6,
 }
 
 const SIZE_CYCLE = ["square", "half", "full"]
