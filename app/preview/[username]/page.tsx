@@ -161,24 +161,8 @@ export default async function PreviewPage({
               statsLabel3: user.statsLabel3,
               accentColor: user.accentColor,
               heroStyle: user.heroStyle,
+              heroImage: user.heroStyle === "cinematic" ? user.image : null,
             }}
-            links={portalLinks}
-            socialLinks={user.socialLinks}
-            cryptoAddresses={cryptoAddresses}
-            vaultItems={vaultItems}
-            modules={user.modules.map(m => ({
-              id: m.id,
-              type: m.type as any,
-              title: m.title || undefined,
-              enabled: m.enabled,
-              order: m.order,
-              span: m.span as 1 | 2 | 4,
-              config: m.config as Record<string, unknown>,
-            }))}
-            socialIconPosition={socialIconPosition}
-            isPublished={false}
-            buttonStyle={user.buttonStyle ?? undefined}
-            drops={drops}
             blocks={blocks.map((b) => ({
               id: b.id,
               type: b.type,
@@ -202,11 +186,16 @@ export default async function PreviewPage({
                 thumbnail: c.thumbnail,
                 style: c.style,
                 size: c.size,
+                layout: c.layout,
                 lockType: c.lockType,
                 lockValue: c.lockValue,
                 config: c.config as Record<string, unknown>,
               })),
             }))}
+            socialLinks={user.socialLinks}
+            socialIconPosition={socialIconPosition}
+            isPublished={false}
+            buttonStyle={user.buttonStyle ?? undefined}
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
             removeBranding={true}

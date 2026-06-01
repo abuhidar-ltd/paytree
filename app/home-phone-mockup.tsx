@@ -7,7 +7,7 @@ interface PhoneMockupProps {
   className?: string
 }
 
-export function PhoneMockup({ className = "" }: PhoneMockupProps) {
+export function PhoneMockup({ variant = "cinematic", className = "" }: PhoneMockupProps) {
   const [time, setTime] = useState({ d: 2, h: 14, m: 37, s: 29 })
 
   useEffect(() => {
@@ -32,6 +32,16 @@ export function PhoneMockup({ className = "" }: PhoneMockupProps) {
     { value: time.s, label: "SEC" },
   ]
 
+  if (variant === "classic") {
+    return <ClassicPhone className={className} />
+  }
+
+  return <CinematicPhone className={className} countdown={countdown} />
+}
+
+function ClassicPhone({ className }: { className: string }) {
+  const links = ["Trading Masterclass →", "Free Signals Telegram →", "Morning Analysis →"]
+
   return (
     <div
       className={className}
@@ -46,53 +56,140 @@ export function PhoneMockup({ className = "" }: PhoneMockupProps) {
         position: "relative",
       }}
     >
-      {/* Notch bar */}
+      {/* Notch */}
       <div style={{ height: 24, background: "#080808", display: "flex", justifyContent: "center", alignItems: "center" }}>
         <div style={{ width: 72, height: 5, borderRadius: 3, background: "#111" }} />
       </div>
 
-      {/* Cinematic hero */}
-      <div style={{
-        height: 180,
+      {/* Classic hero — plain dark, avatar + name centered */}
+      <div style={{ paddingTop: 32, paddingBottom: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <div style={{
+          width: 48,
+          height: 48,
+          borderRadius: "50%",
+          background: "rgba(0,255,136,0.1)",
+          border: "2px solid rgba(0,255,136,0.3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+          fontWeight: 700,
+          color: "#00ff88",
+          fontFamily: "monospace",
+        }}>
+          A
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, lineHeight: 1.2 }}>Alex Chen</div>
+          <div style={{ color: "#00ff88", fontFamily: "monospace", fontSize: 10, marginTop: 3 }}>@alexchen</div>
+          <div style={{ color: "#555", fontSize: 10, marginTop: 6, maxWidth: 200, lineHeight: 1.4 }}>
+            Trading educator & market analyst
+          </div>
+        </div>
+      </div>
+
+      {/* 3 link cards */}
+      <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {links.map((title) => (
+          <div
+            key={title}
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "0.5px solid rgba(255,255,255,0.08)",
+              borderRadius: 14,
+              padding: "14px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ color: "#e0e0e0", fontSize: 12, fontWeight: 500 }}>{title}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </div>
+        ))}
+      </div>
+
+      {/* Social icons row */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 20 }}>
+        {["X", "YT", "TG"].map((label) => (
+          <div
+            key={label}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.04)",
+              border: "0.5px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#555",
+              fontSize: 9,
+              fontFamily: "monospace",
+              fontWeight: 600,
+            }}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+
+      {/* Branding */}
+      <div style={{ textAlign: "center", marginTop: 20 }}>
+        <span style={{ color: "#222", fontFamily: "monospace", fontSize: 8 }}>paytree.to</span>
+      </div>
+    </div>
+  )
+}
+
+function CinematicPhone({ className, countdown }: { className: string; countdown: { value: number; label: string }[] }) {
+  return (
+    <div
+      className={className}
+      style={{
+        width: 280,
+        height: 560,
+        borderRadius: 40,
+        background: "#080808",
+        border: "1.5px solid rgba(255,255,255,0.1)",
+        overflow: "hidden",
+        boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)",
         position: "relative",
-        background: "linear-gradient(180deg, rgba(160,80,20,0.45) 0%, rgba(100,50,10,0.25) 50%, #080808 100%)",
+      }}
+    >
+      {/* Notch */}
+      <div style={{ height: 24, background: "transparent", display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2 }}>
+        <div style={{ width: 72, height: 5, borderRadius: 3, background: "rgba(0,0,0,0.5)" }} />
+      </div>
+
+      {/* Cinematic hero — warm gradient with name overlaid large */}
+      <div style={{
+        height: 240,
+        position: "relative",
+        background: "linear-gradient(180deg, rgba(180,100,40,0.6) 0%, rgba(120,60,20,0.3) 40%, #080808 100%)",
+        marginTop: -24,
+        paddingTop: 24,
       }}>
         <div style={{
           position: "absolute",
-          bottom: 12,
+          bottom: 16,
           left: 0,
           right: 0,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 4,
+          gap: 2,
         }}>
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: "rgba(0,255,136,0.12)",
-            border: "1.5px solid rgba(0,255,136,0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#00ff88",
-            fontFamily: "monospace",
-          }}>
-            A
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, lineHeight: 1.2 }}>Alex Chen</div>
-            <div style={{ color: "#00ff88", fontFamily: "monospace", fontSize: 10, marginTop: 2 }}>@alexchen</div>
-          </div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 28, lineHeight: 1.1, letterSpacing: "-0.02em" }}>Alex Chen</div>
+          <div style={{ color: "#00ff88", fontFamily: "monospace", fontSize: 11, marginTop: 2 }}>@alexchen</div>
         </div>
       </div>
 
       {/* Drop card */}
       <div style={{
-        margin: "8px 12px 0",
+        margin: "10px 12px 0",
         background: "rgba(0,255,136,0.04)",
         border: "0.5px solid rgba(0,255,136,0.2)",
         borderRadius: 12,
@@ -136,51 +233,6 @@ export function PhoneMockup({ className = "" }: PhoneMockupProps) {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* YouTube card */}
-      <div style={{
-        margin: "8px 12px 0",
-        height: 70,
-        background: "#0d0d0d",
-        border: "0.5px solid rgba(255,60,60,0.2)",
-        borderRadius: 12,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "row",
-      }}>
-        {/* Thumbnail */}
-        <div style={{
-          width: 70,
-          height: 70,
-          flexShrink: 0,
-          background: "linear-gradient(135deg, #1a0808, #0d0404)",
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background: "radial-gradient(circle at center, rgba(255,60,60,0.15) 0%, transparent 70%)",
-          }} />
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style={{ position: "relative", zIndex: 1 }}>
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </div>
-        {/* Content */}
-        <div style={{ padding: 8, display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-          <div style={{ color: "rgba(255,60,60,0.7)", fontFamily: "monospace", fontSize: 7, marginBottom: 4, letterSpacing: "0.03em" }}>
-            NEW · 2H AGO
-          </div>
-          <div style={{ color: "#fff", fontSize: 10, fontWeight: 500, lineHeight: 1.3, marginBottom: 3 }}>
-            Morning Market Analysis
-          </div>
-          <div style={{ color: "#555", fontFamily: "monospace", fontSize: 8 }}>
-            436K views
-          </div>
         </div>
       </div>
 
