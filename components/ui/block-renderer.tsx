@@ -3,12 +3,11 @@
 import { useState, useEffect, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { LinkCard3D } from "./link-card-3d"
-import { GlassBrick } from "./obsidian-card"
 import { CryptoVaultPortal } from "./crypto-vault"
 import { LiveStatusPill } from "./live-status-pill"
-import { DropCard, type Drop } from "./drop-card"
-import { Link as LinkIcon, ArrowLeft, ChevronRight, ArrowUpRight, Folder, ShoppingBag } from "lucide-react"
+import { DropCard } from "./drop-card"
+import { glass, glassReflection } from "@/lib/glass"
+import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag } from "lucide-react"
 
 // ─── Interfaces ───────────────────────────────────────────────
 
@@ -51,6 +50,31 @@ interface BaseBlockProps {
   userId: string
   username: string
   creatorStripeReady: boolean
+  onOpenCollection?: (block: Block) => void
+}
+
+// ─── Universal glass card shell ───────────────────────────────
+// Wraps every card with the shared reflection line + hover lift.
+// Bare types (social_link, text) opt out and render their own markup.
+
+const BARE_TYPES = new Set(["social_link", "text"])
+
+function GlassShell({ type, children }: { type: string; children: ReactNode }) {
+  if (BARE_TYPES.has(type)) return <>{children}</>
+  return (
+    <motion.div
+      className="relative rounded-2xl"
+      style={{ transition: "all 150ms ease" }}
+      whileHover={{ y: -1 }}
+    >
+      {/* Top reflection line — sits above the inner card's own border */}
+      <div
+        className="absolute top-0 left-3 right-3 h-px pointer-events-none z-10"
+        style={{ background: glassReflection }}
+      />
+      {children}
+    </motion.div>
+  )
 }
 
 // ─── URL Meta Detection ───────────────────────────────────────
@@ -207,7 +231,7 @@ const gentleSpring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
 // ─── Main BlockRenderer ──────────────────────────────────────
 
-export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false }: BaseBlockProps & { block: Block }) {
+export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, onOpenCollection }: BaseBlockProps & { block: Block }) {
   const cfg = (block.config || {}) as Record<string, unknown>
 
   useEffect(() => {
@@ -216,24 +240,40 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
     }
   }, [block.priority, block.url])
 
-  const wrapperClass = block.priority === "animate"
-    ? "ring-2 ring-[#00ff88]/40 animate-pulse rounded-2xl"
-    : ""
+  // Animation comes from config.animation (style tab) or legacy priority="animate"
+  const animation = (cfg.animation as string) || (block.priority === "animate" ? "pulse" : "none")
+  const isStarred = block.priority === "starred"
 
   const content = block.lockType && block.lockType !== "none"
     ? <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
-    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
+    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} onOpenCollection={onOpenCollection} />
 
-  if (!wrapperClass) return content
-  return <div className={wrapperClass}>{content}</div>
+  const animationClass =
+    animation === "pulse" ? "animate-pulse"
+    : animation === "bounce" ? "animate-bounce"
+    : ""
+
+  return (
+    <div className={`relative rounded-2xl ${animationClass} ${isStarred ? "p-[1px]" : ""}`}>
+      {isStarred && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{ border: "1px solid rgba(0,255,136,0.4)" }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
+      <GlassShell type={block.type}>{content}</GlassShell>
+    </div>
+  )
 }
 
 // ─── Block Type Router ───────────────────────────────────────
 
-function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady }: {
-  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean
+function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: {
+  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; onOpenCollection?: (block: Block) => void
 }) {
-  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady }
+  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady, onOpenCollection }
 
   switch (block.type) {
     case "link":
@@ -354,9 +394,9 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
 
   return (
     <motion.div
-      className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/[0.07] px-4 cursor-pointer group"
-      style={{ height: 60 }}
-      whileHover={{ y: -1, backgroundColor: "rgba(255,255,255,0.07)", borderColor: "rgba(255,255,255,0.12)" }}
+      className="flex items-center gap-3 px-4 cursor-pointer group"
+      style={{ ...glass.card, height: 60 }}
+      whileHover={{ scale: 1.0 }}
       whileTap={{ scale: 0.98 }}
       transition={spring}
       onClick={handleClick}
@@ -378,64 +418,69 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
 
 // ─── ProfileCollectionCard ───────────────────────────────────
 
-function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, username, creatorStripeReady }: BaseBlockProps) {
+function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
+  // When a parent provides onOpenCollection, the collection opens as a full-page
+  // Apple-style transition handled in ProfileClient. Otherwise fall back to inline expand.
   const [expanded, setExpanded] = useState(block.priority === "auto_expand")
   const children = block.children || []
+  const useTransition = typeof onOpenCollection === "function"
 
   return (
     <div className="w-full">
       <motion.div
-        className="flex items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/[0.07] px-4 cursor-pointer"
-        style={{ height: 72 }}
-        whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+        className="flex items-center gap-3 px-4 cursor-pointer"
+        style={{ ...glass.card, height: 72 }}
+        whileHover={{ y: -1 }}
         whileTap={{ scale: 0.98 }}
         transition={spring}
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => useTransition ? onOpenCollection!(block) : setExpanded(!expanded)}
       >
         <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
           <Folder size={16} className="text-[#555]" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">{block.title}</p>
-          <p className="text-[11px] text-[#555] font-mono">{children.length} links</p>
+          <p className="text-[11px] text-[#555] font-mono">{children.length} links inside</p>
         </div>
         <motion.div
-          animate={{ rotate: expanded ? 90 : 0 }}
+          animate={{ rotate: !useTransition && expanded ? 90 : 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         >
           <ChevronRight size={16} className="text-[#00ff88]" />
         </motion.div>
       </motion.div>
 
-      <AnimatePresence>
-        {expanded && children.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={gentleSpring}
-            className="pl-4 border-l border-white/[0.07] ml-5 mt-2 space-y-2 overflow-hidden"
-          >
-            {children.map((child, i) => (
-              <motion.div
-                key={child.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, ...gentleSpring }}
-              >
-                <BlockRenderer
-                  block={{ ...child, children: [] }}
-                  userId={userId}
-                  accentColor={accentColor}
-                  buttonStyle={buttonStyle}
-                  username={username}
-                  creatorStripeReady={creatorStripeReady}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!useTransition && (
+        <AnimatePresence>
+          {expanded && children.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={gentleSpring}
+              className="pl-4 border-l border-white/[0.07] ml-5 mt-2 space-y-2 overflow-hidden"
+            >
+              {children.map((child, i) => (
+                <motion.div
+                  key={child.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06, ...gentleSpring }}
+                >
+                  <BlockRenderer
+                    block={{ ...child, children: [] }}
+                    userId={userId}
+                    accentColor={accentColor}
+                    buttonStyle={buttonStyle}
+                    username={username}
+                    creatorStripeReady={creatorStripeReady}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   )
 }

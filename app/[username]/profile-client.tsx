@@ -54,22 +54,6 @@ interface ProfileClientProps {
   isOwner?: boolean
 }
 
-// ─── Animation config ─────────────────────────────────────────
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
-  },
-}
-
 // ─── ProfileClient ────────────────────────────────────────────
 
 export function ProfileClient({
@@ -88,6 +72,7 @@ export function ProfileClient({
   isOwner = false,
 }: ProfileClientProps) {
   const [showAiChat, setShowAiChat] = useState(false)
+  const [activeCollection, setActiveCollection] = useState<Block | null>(null)
 
   useApplyAccentColor(user.accentColor)
 
@@ -146,21 +131,54 @@ export function ProfileClient({
       {/* ─── Blocks Section ─── */}
       {contentBlocks.length > 0 ? (
         <div className="max-w-[480px] mx-auto px-4 mt-6">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            className="flex flex-col gap-3"
-          >
-            {renderBlocksWithSizing(contentBlocks, {
-              userId: user.id,
-              accentColor: resolvedAccent,
-              buttonStyle: buttonStyle || "glass",
-              username: user.username,
-              creatorStripeReady,
-            })}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            {activeCollection ? (
+              <motion.div
+                key="collection-view"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 280, damping: 26 }}
+              >
+                <button
+                  onClick={() => setActiveCollection(null)}
+                  className="flex items-center gap-2 text-[#00ff88] font-mono text-sm mb-4 hover:opacity-80 transition-opacity"
+                >
+                  ← {activeCollection.title}
+                </button>
+                <CardsGrid
+                  blocks={(activeCollection.children || []).map((c) => ({ ...c, children: [] }))}
+                  commonProps={{
+                    userId: user.id,
+                    accentColor: resolvedAccent,
+                    buttonStyle: buttonStyle || "glass",
+                    username: user.username,
+                    creatorStripeReady,
+                  }}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="root-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.18 }}
+              >
+                <CardsGrid
+                  blocks={contentBlocks}
+                  commonProps={{
+                    userId: user.id,
+                    accentColor: resolvedAccent,
+                    buttonStyle: buttonStyle || "glass",
+                    username: user.username,
+                    creatorStripeReady,
+                  }}
+                  onOpenCollection={setActiveCollection}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="max-w-[480px] mx-auto px-4 mt-6">
@@ -275,8 +293,8 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
           transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
           className="mx-auto mb-4 w-[88px] h-[88px] rounded-full overflow-hidden"
           style={{
-            border: "2px solid rgba(0,255,136,0.3)",
-            boxShadow: "0 0 0 4px rgba(0,255,136,0.08)",
+            border: "2px solid rgba(0,255,136,0.2)",
+            boxShadow: "0 0 0 4px rgba(0,255,136,0.06), inset 0 1px 0 rgba(255,255,255,0.1)",
           }}
         >
           {user.image ? (
@@ -461,37 +479,34 @@ function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, is
   )
 }
 
-// ─── Block layout helper ──────────────────────────────────────
+// ─── Cards Grid ───────────────────────────────────────────────
+// Universal CSS-grid layout. Full-width blocks span both columns,
+// half-width blocks take one. Each card scroll-animates in with a stagger.
 
-function renderBlocksWithSizing(
-  blocks: Block[],
+function CardsGrid({ blocks, commonProps, onOpenCollection }: {
+  blocks: Block[]
   commonProps: { userId: string; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean }
-) {
-  const result: React.ReactNode[] = []
-  let i = 0
-  while (i < blocks.length) {
-    const block = blocks[i]
-    if (block.size === "half") {
-      const next = blocks[i + 1]
-      if (next && next.size === "half") {
-        result.push(
-          <motion.div key={`pair-${block.id}`} variants={itemVariants} className="grid grid-cols-2 gap-3">
-            <div className="min-w-0 overflow-hidden"><BlockRenderer block={block} {...commonProps} /></div>
-            <div className="min-w-0 overflow-hidden"><BlockRenderer block={next} {...commonProps} /></div>
+  onOpenCollection?: (block: Block) => void
+}) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {blocks.map((block, i) => {
+        const span = block.size === "half" ? 1 : 2
+        return (
+          <motion.div
+            key={block.id}
+            style={{ gridColumn: `span ${span}`, minWidth: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ type: "spring", stiffness: 280, damping: 24, delay: i * 0.05 }}
+          >
+            <BlockRenderer block={block} {...commonProps} onOpenCollection={onOpenCollection} />
           </motion.div>
         )
-        i += 2
-        continue
-      }
-    }
-    result.push(
-      <motion.div key={block.id} variants={itemVariants}>
-        <BlockRenderer block={block} {...commonProps} />
-      </motion.div>
-    )
-    i++
-  }
-  return result
+      })}
+    </div>
+  )
 }
 
 // ─── Utility ──────────────────────────────────────────────────
