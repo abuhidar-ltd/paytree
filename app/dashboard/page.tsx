@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useUser } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
@@ -23,6 +23,7 @@ import {
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
   Tv, Hash, Copy, Pencil, CopyPlus,
+  LayoutGrid, Paintbrush, Settings,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ const TYPE_COLORS: Record<string, string> = {
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
   const router = useRouter()
+  const pathname = usePathname()
 
   const [blocks, setBlocks] = useState<Block[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -187,6 +189,7 @@ export default function DashboardPage() {
   const [collectionViewId, setCollectionViewId] = useState<string | null>(null)
   const [editTab, setEditTab] = useState<"content" | "style" | "settings">("content")
   const [previewKey, setPreviewKey] = useState(0)
+  const [previewUrl, setPreviewUrl] = useState("")
   const addButtonRef = useRef<HTMLButtonElement>(null)
 
   const sensors = useSensors(
@@ -207,7 +210,11 @@ export default function DashboardPage() {
           fetch("/api/profile"),
           fetch("/api/blocks"),
         ])
-        if (profileRes.ok) setProfile(await profileRes.json())
+        if (profileRes.ok) {
+          const data = await profileRes.json()
+          setProfile(data)
+          setPreviewUrl(`/preview/${data.username}`)
+        }
         if (blocksRes.ok) setBlocks(await blocksRes.json())
       } catch {
         toast.error("Failed to load data")
@@ -408,14 +415,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#030303] flex flex-col">
+    <div className="fixed inset-0 bg-[#030303]">
       {/* ─── Top Bar ─── */}
       <div
-        className="h-12 flex items-center justify-between px-5 flex-shrink-0 z-20 bg-[#080808] border-b border-white/[0.06]"
+        className="fixed top-0 left-0 right-0 h-12 z-50 flex items-center justify-between px-5 bg-[#080808] border-b border-white/[0.06]"
         style={{ boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)" }}
       >
         <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
-        <span className="text-[#444] font-mono text-sm hidden sm:block">@{profile?.username}</span>
+        <span className="absolute left-1/2 -translate-x-1/2 text-[#444] font-mono text-sm hidden sm:block">
+          @{profile?.username}
+        </span>
         <div className="flex items-center gap-2">
           {profile?.username && (
             <Link href={`/${profile.username}`} target="_blank"
@@ -433,145 +442,163 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Upgrade Banner ─── */}
-      {userPlan === "free" && profile?.pageStatus !== "published" && (
-        <div
-          className="px-5 py-2 flex items-center justify-between flex-shrink-0 border-b border-[#00ff88]/[0.1]"
-          style={{ background: "linear-gradient(to right, rgba(0,255,136,0.06), transparent)" }}
-        >
-          <span className="text-xs text-[#00ff88] font-mono">Publish your page — upgrade to Starter</span>
-          <Link href="/pricing" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
-            Upgrade $7/mo →
-          </Link>
-        </div>
-      )}
-
-      {/* ─── Main Area ─── */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Canvas */}
-        <div className={`flex-1 overflow-y-auto p-4 sm:p-6 bg-[#060606] transition-[margin] duration-300 ${selectedBlockId ? "lg:mr-[360px]" : ""}`}>
-          {/* Collection breadcrumb */}
-          <AnimatePresence>
-            {collectionViewId && collectionBlock && (
-              <motion.button
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
-                transition={spring}
-                onClick={() => setCollectionViewId(null)}
-                className="flex items-center gap-2 text-[#00ff88] font-mono text-sm mb-4 hover:opacity-80 transition-opacity"
-              >
-                ← {collectionBlock.title}
-              </motion.button>
-            )}
-          </AnimatePresence>
-
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={displayBlocks.map(b => b.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[800px] mx-auto">
-                <AnimatePresence>
-                  {displayBlocks.map((block) => (
-                    <SortableCanvasCard
-                      key={block.id}
-                      block={block}
-                      isSelected={selectedBlockId === block.id}
-                      onSelect={() => { setSelectedBlockId(block.id); setEditTab("content") }}
-                      onToggle={(enabled) => handleToggleBlock(block.id, enabled)}
-                      onDelete={() => handleDeleteBlock(block.id)}
-                      onDuplicate={() => handleDuplicateBlock(block.id)}
-                      onOpenCollection={() => setCollectionViewId(block.id)}
-                    />
-                  ))}
-                </AnimatePresence>
-              </div>
-            </SortableContext>
-          </DndContext>
-
-          {displayBlocks.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4">
-                <Plus size={24} className="text-[#444]" />
-              </div>
-              <p className="text-sm text-[#666] font-mono mb-3">No cards yet</p>
-              <button onClick={() => setShowAddPicker(true)}
-                className="bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-xl px-4 py-2 hover:opacity-90 transition-opacity">
-                Add your first card
-              </button>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Preview Panel (desktop only) */}
-        {profile?.username && !selectedBlockId && (
-          <div className="hidden lg:block w-[360px] bg-[#080808] border-l border-white/[0.06] flex-shrink-0">
-            <div className="sticky top-0 h-[calc(100vh-48px)] flex flex-col items-center justify-center p-6">
-              <p className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-4">Preview</p>
-              <div
-                className="w-[280px] h-[560px] overflow-hidden bg-[#030303]"
-                style={{
-                  borderRadius: 40,
-                  border: "1.5px solid rgba(255,255,255,0.08)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 32px 80px rgba(0,0,0,0.6)",
-                }}
-              >
-                <iframe
-                  key={previewKey}
-                  src={`/preview/${profile.username}?r=${previewKey}`}
-                  className="origin-top-left border-0"
-                  style={{ width: 375, height: 750, transform: "scale(0.747)" }}
-                  title="Preview"
-                />
-              </div>
-              <button
-                onClick={refreshPreview}
-                className="flex items-center gap-1.5 text-[10px] text-[#555] font-mono mt-4 hover:text-[#888] transition-colors"
-              >
-                ↻ Refresh preview
-              </button>
-            </div>
+      {/* ─── Canvas (scrollable) ─── */}
+      <div
+        className="fixed inset-0 overflow-y-auto lg:mr-[360px] bg-[#060606]"
+        style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 56, paddingBottom: 80 }}
+      >
+        {/* Upgrade Banner */}
+        {userPlan === "free" && profile?.pageStatus !== "published" && (
+          <div
+            className="mb-4 px-4 py-2 flex items-center justify-between rounded-xl border border-[#00ff88]/[0.1]"
+            style={{ background: "linear-gradient(to right, rgba(0,255,136,0.06), transparent)" }}
+          >
+            <span className="text-xs text-[#00ff88] font-mono">🚀 Publish your page — upgrade to Starter</span>
+            <Link href="/pricing" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
+              Upgrade $7/mo →
+            </Link>
           </div>
         )}
 
-        {/* Edit Panel */}
+        {/* Collection breadcrumb */}
         <AnimatePresence>
-          {selectedBlock && (
-            <>
-              {/* Desktop: side panel */}
-              <motion.div
-                initial={{ x: 360 }} animate={{ x: 0 }} exit={{ x: 360 }}
-                transition={{ type: "spring", stiffness: 350, damping: 32 }}
-                className="hidden lg:flex w-[360px] flex-col flex-shrink-0 fixed right-0 top-12 bottom-0 z-30"
-                style={{ background: "#0a0a0a", borderLeft: "1px solid rgba(255,255,255,0.06)", boxShadow: "inset 1px 0 0 rgba(255,255,255,0.04)" }}
-              >
-                <EditPanelContent
-                  block={selectedBlock}
-                  editTab={editTab}
-                  setEditTab={setEditTab}
-                  onUpdate={handleUpdateBlock}
-                  onDelete={handleDeleteBlock}
-                  onClose={() => setSelectedBlockId(null)}
-                />
-              </motion.div>
-
-              {/* Mobile: bottom sheet */}
-              <motion.div
-                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 350, damping: 32 }}
-                className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-[#0a0a0a] border-t border-white/[0.06] rounded-t-2xl max-h-[85vh] flex flex-col"
-              >
-                <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mt-2 mb-1" />
-                <EditPanelContent
-                  block={selectedBlock}
-                  editTab={editTab}
-                  setEditTab={setEditTab}
-                  onUpdate={handleUpdateBlock}
-                  onDelete={handleDeleteBlock}
-                  onClose={() => setSelectedBlockId(null)}
-                />
-              </motion.div>
-            </>
+          {collectionViewId && collectionBlock && (
+            <motion.button
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+              transition={spring}
+              onClick={() => setCollectionViewId(null)}
+              className="flex items-center gap-2 text-[#00ff88] font-mono text-sm mb-4 hover:opacity-80 transition-opacity"
+            >
+              ← {collectionBlock.title}
+            </motion.button>
           )}
         </AnimatePresence>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={displayBlocks.map(b => b.id)} strategy={rectSortingStrategy}>
+            <div
+              className="max-w-[800px] mx-auto"
+              style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}
+            >
+              <AnimatePresence>
+                {displayBlocks.map((block) => (
+                  <SortableCanvasCard
+                    key={block.id}
+                    block={block}
+                    isSelected={selectedBlockId === block.id}
+                    onSelect={() => { setSelectedBlockId(block.id); setEditTab("content") }}
+                    onToggle={(enabled) => handleToggleBlock(block.id, enabled)}
+                    onDelete={() => handleDeleteBlock(block.id)}
+                    onDuplicate={() => handleDuplicateBlock(block.id)}
+                    onOpenCollection={() => setCollectionViewId(block.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        {displayBlocks.length === 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4">
+              <Plus size={24} className="text-[#444]" />
+            </div>
+            <p className="text-sm text-[#666] font-mono mb-3">No cards yet</p>
+            <button onClick={() => setShowAddPicker(true)}
+              className="bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-xl px-4 py-2 hover:opacity-90 transition-opacity">
+              Add your first card
+            </button>
+          </motion.div>
+        )}
       </div>
+
+      {/* ─── Preview Panel (desktop only, fixed right) ─── */}
+      {previewUrl && (
+        <div className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[360px] z-40 bg-[#080808] border-l border-white/[0.06] flex-col items-center justify-center p-6">
+          <p className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-4">Preview</p>
+          <div
+            style={{
+              width: 280,
+              height: 560,
+              borderRadius: 40,
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              overflow: "hidden",
+              background: "#030303",
+              position: "relative",
+            }}
+          >
+            <iframe
+              key={previewKey}
+              src={previewUrl}
+              style={{
+                width: 375,
+                height: 812,
+                transform: "scale(0.747)",
+                transformOrigin: "top left",
+                border: "none",
+                pointerEvents: "none",
+              }}
+              title="Preview"
+            />
+          </div>
+          <button
+            onClick={refreshPreview}
+            className="flex items-center gap-1.5 text-[10px] text-[#555] font-mono mt-4 hover:text-[#888] transition-colors"
+          >
+            ↻ Refresh preview
+          </button>
+        </div>
+      )}
+
+      {/* ─── Edit Panel ─── */}
+      <AnimatePresence>
+        {selectedBlock && (
+          <>
+            {/* Desktop: side panel */}
+            <motion.div
+              initial={{ x: 360 }} animate={{ x: 0 }} exit={{ x: 360 }}
+              transition={{ type: "spring", stiffness: 350, damping: 32 }}
+              className="hidden lg:flex w-[360px] flex-col flex-shrink-0 fixed right-0 top-0 bottom-0 z-50"
+              style={{ background: "#0a0a0a", borderLeft: "1px solid rgba(255,255,255,0.06)", boxShadow: "inset 1px 0 0 rgba(255,255,255,0.04)" }}
+            >
+              <EditPanelContent
+                block={selectedBlock}
+                editTab={editTab}
+                setEditTab={setEditTab}
+                onUpdate={handleUpdateBlock}
+                onDelete={handleDeleteBlock}
+                onClose={() => setSelectedBlockId(null)}
+              />
+            </motion.div>
+
+            {/* Mobile: bottom sheet */}
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 350, damping: 32 }}
+              className="lg:hidden fixed inset-x-0 bottom-0 z-[60] bg-[#0a0a0a] border-t border-white/[0.06] rounded-t-2xl max-h-[85vh] flex flex-col"
+            >
+              <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mt-2 mb-1" />
+              <EditPanelContent
+                block={selectedBlock}
+                editTab={editTab}
+                setEditTab={setEditTab}
+                onUpdate={handleUpdateBlock}
+                onDelete={handleDeleteBlock}
+                onClose={() => setSelectedBlockId(null)}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Bottom Nav ─── */}
+      <nav className="fixed bottom-0 left-0 right-0 h-14 z-50 bg-[#080808] border-t border-white/[0.06] flex items-center justify-around px-8">
+        <NavItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} />
+        <NavItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} />
+        <NavItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} />
+        <NavItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} />
+      </nav>
 
       {/* ─── Add Card Picker ─── */}
       <AnimatePresence>
@@ -584,7 +611,7 @@ export default function DashboardPage() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: -8 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="fixed top-14 right-4 z-50 w-[90vw] max-w-[420px] overflow-hidden"
+              className="fixed top-14 right-4 z-[60] w-[90vw] max-w-[420px] overflow-hidden"
               style={{
                 background: "#0f0f0f",
                 border: "0.5px solid rgba(255,255,255,0.1)",
@@ -696,14 +723,15 @@ function SortableCanvasCard({ block, isSelected, onSelect, onToggle, onDelete, o
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id })
   const [hovered, setHovered] = useState(false)
 
+  const isFull = block.type !== "social_link" && (block.type === "collection" || block.type === "text" || block.size !== "half")
+  const isStarred = block.priority === "starred"
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : undefined,
+    gridColumn: isFull ? "1 / -1" : "span 1",
   }
-
-  const isFull = block.size === "full" || block.type === "collection" || block.type === "text"
-  const isStarred = block.priority === "starred"
 
   const cardStyle = isSelected
     ? glass.cardSelected
@@ -720,7 +748,7 @@ function SortableCanvasCard({ block, isSelected, onSelect, onToggle, onDelete, o
       animate={{ opacity: 1, y: 0, scale: isDragging ? 1.02 : 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={gentleSpring}
-      className={`${isFull ? "md:col-span-2" : ""} ${!block.enabled ? "opacity-50" : ""}`}
+      className={`${!block.enabled ? "opacity-50" : ""}`}
     >
       <div
         onClick={onSelect}
@@ -734,7 +762,12 @@ function SortableCanvasCard({ block, isSelected, onSelect, onToggle, onDelete, o
         }}
       >
         {/* Top reflection line */}
-        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: glassReflection }} />
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0,
+          height: "1px",
+          background: glassReflection,
+          pointerEvents: "none",
+        }} />
 
         {/* Starred animated border */}
         {isStarred && (
@@ -750,15 +783,15 @@ function SortableCanvasCard({ block, isSelected, onSelect, onToggle, onDelete, o
 
         {/* Bottom bar */}
         <div
-          className="h-9 flex items-center justify-between px-3"
-          style={{ borderTop: "0.5px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}
+          className="flex items-center justify-between px-3"
+          style={{ height: "36px", borderTop: "0.5px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.3)" }}
         >
           <div className="flex items-center gap-2">
             <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}
-              className="cursor-grab active:cursor-grabbing text-[#222] hover:text-[#555] transition-colors">
+              className="cursor-grab active:cursor-grabbing text-[#333] hover:text-[#666] transition-colors">
               <GripVertical size={12} />
             </button>
-            <span className="text-[9px] font-mono uppercase tracking-wider text-[#333]">{block.type.replace("_", " ")}</span>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#444]">{block.type.replace("_", " ")}</span>
             {isStarred && <Star size={9} className="text-[#00ff88] fill-[#00ff88]" />}
           </div>
           <div className="flex items-center gap-2.5">
@@ -828,7 +861,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
         : block.lockType === "payment" ? `Paid${(cfg.price as number) ? ` — $${((cfg.price as number) / 100).toFixed(2)}` : ""}`
         : "Email gated"
       return (
-        <div className="px-4 py-3 flex items-center gap-3" style={{ minHeight: 80, backgroundColor: "rgba(255,200,0,0.03)" }}>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ minHeight: 80, backgroundColor: "rgba(255,200,0,0.06)" }}>
           <div className="w-9 h-9 rounded-full bg-amber-500/[0.08] border border-amber-500/[0.2] flex items-center justify-center flex-shrink-0">
             <Lock size={14} className="text-amber-400/80" />
           </div>
@@ -844,8 +877,14 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
       const dropAt = (cfg.dropAt as string) || ""
       const diff = dropAt ? new Date(dropAt).getTime() - Date.now() : 0
       const status = diff <= -86400000 ? "ENDED" : diff <= 0 ? "LIVE" : "SCHEDULED"
+      const showCountdown = dropAt && diff > 0
+      const cd = showCountdown ? {
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      } : null
       return (
-        <div className="px-4 py-3" style={{ backgroundColor: "rgba(0,255,136,0.03)", minHeight: 88 }}>
+        <div className="px-4 py-3" style={{ backgroundColor: "rgba(0,255,136,0.06)", minHeight: 88 }}>
           <div className="flex items-center gap-2 mb-1">
             {status === "LIVE" && (
               <motion.div className="w-2 h-2 rounded-full bg-[#00ff88]"
@@ -856,12 +895,28 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
             </span>
           </div>
           <p className="text-sm font-semibold text-white truncate">{block.title}</p>
-          {dropAt && <p className="text-[10px] text-[#555] font-mono mt-1">{new Date(dropAt).toLocaleDateString()}</p>}
+          {cd ? (
+            <div className="flex items-center gap-1.5 mt-2">
+              {([
+                { v: cd.h, l: "H" },
+                { v: cd.m, l: "M" },
+                { v: cd.s, l: "S" },
+              ] as const).map((u, i) => (
+                <div key={i} className="flex items-baseline gap-0.5">
+                  <span className="text-base font-mono font-bold text-[#00ff88] tabular-nums">{String(u.v).padStart(2, "0")}</span>
+                  <span className="text-[9px] font-mono text-[#555]">{u.l}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            dropAt && <p className="text-[10px] text-[#555] font-mono mt-1">{new Date(dropAt).toLocaleDateString()}</p>
+          )}
         </div>
       )
     }
 
-    case "youtube":
+    case "youtube": {
+      const channelName = (cfg.channelId as string) || ""
       return (
         <div style={{ minHeight: 100, backgroundColor: "rgba(255,0,0,0.03)" }}>
           {block.thumbnail ? (
@@ -875,8 +930,17 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
               </div>
             </div>
           ) : (
-            <div className="h-[60px] flex items-center justify-center">
-              <Youtube size={24} className="text-red-500/30" />
+            <div
+              className="h-[80px] relative flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, rgba(255,0,0,0.18), rgba(180,0,0,0.06))" }}
+            >
+              <span className="absolute top-2 left-2 bg-black/70 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded uppercase">YouTube</span>
+              <div className="w-9 h-9 rounded-full bg-red-600/90 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              </div>
+              {channelName && (
+                <span className="absolute bottom-2 right-2 text-[9px] font-mono text-white/70 truncate max-w-[60%]">{channelName}</span>
+              )}
             </div>
           )}
           <div className="px-3 py-2">
@@ -884,10 +948,11 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
           </div>
         </div>
       )
+    }
 
     case "product":
       return (
-        <div style={{ minHeight: 100, backgroundColor: "rgba(59,130,246,0.03)" }}>
+        <div style={{ minHeight: 100, backgroundColor: "rgba(55,138,221,0.06)" }}>
           {block.thumbnail ? (
             <div className="h-[70px] overflow-hidden relative">
               <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
@@ -914,6 +979,16 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
           <p className="text-[9px] font-mono uppercase tracking-widest text-[#555] mt-1.5">{(cfg.label as string) || block.title}</p>
         </div>
       )
+
+    case "social_link": {
+      const platform = (cfg.platform as string) || block.title || "Social"
+      return (
+        <div className="flex flex-col items-center justify-center" style={{ height: 80 }}>
+          <Share2 size={24} style={{ color }} />
+          <p className="text-[10px] font-mono text-[#888] mt-1.5 capitalize">{platform}</p>
+        </div>
+      )
+    }
 
     default:
       return (
@@ -1520,5 +1595,18 @@ function SizeOption({ active, full, onClick }: { active: boolean; full?: boolean
       </div>
       <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#888]"}`}>{full ? "Full width" : "Half width"}</span>
     </button>
+  )
+}
+
+// ─── Nav Item ─────────────────────────────────────────────────
+
+function NavItem({ href, icon: Icon, label, active }: {
+  href: string; icon: typeof LayoutGrid; label: string; active: boolean
+}) {
+  return (
+    <Link href={href} className={`flex flex-col items-center gap-1 transition-colors ${active ? "text-[#00ff88]" : "text-[#333] hover:text-[#888]"}`}>
+      <Icon size={20} />
+      <span className="text-[9px] font-mono">{label}</span>
+    </Link>
   )
 }

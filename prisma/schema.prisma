@@ -50,6 +50,8 @@ model User {
   textColor          String? @default("#ffffff")
   socialIconPosition String? @default("bottom") // top, bottom
   heroStyle          String? @default("classic") // classic, cinematic
+  heroImage          String? @db.Text           // separate cinematic hero background image
+  cornerRadius       String? @default("medium") // none, small, medium, full
 
   // ===== OBSIDIAN TERMINAL FEATURES =====
   

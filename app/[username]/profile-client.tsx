@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { LiveStatusPill } from "@/components/ui/live-status-pill"
 import { SocialIcon } from "@/components/social-icon"
@@ -9,6 +9,46 @@ import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 import { SocialProofToast } from "@/components/ui/social-proof-toast"
 import { BlockRenderer, type Block } from "@/components/ui/block-renderer"
 import { Sparkles } from "lucide-react"
+
+// ─── Font loading ─────────────────────────────────────────────
+
+const GOOGLE_FONTS: Record<string, string> = {
+  "space-mono": "Space+Mono:ital,wght@0,400;0,700",
+  "syne": "Syne:wght@400;500;600;700;800",
+  "outfit": "Outfit:wght@300;400;500;600;700",
+  "cal-sans": "Plus+Jakarta+Sans:wght@400;500;600;700",
+}
+
+const FONT_FAMILY_MAP: Record<string, string> = {
+  "inter": "'Inter', sans-serif",
+  "space-mono": "'Space Mono', monospace",
+  "syne": "'Syne', sans-serif",
+  "outfit": "'Outfit', sans-serif",
+  "cal-sans": "'Plus Jakarta Sans', sans-serif",
+}
+
+const BLOCK_RADIUS_MAP: Record<string, string> = {
+  "none": "0px",
+  "md": "8px",
+  "xl": "16px",
+  "full": "999px",
+  "medium": "12px",
+}
+
+function useLoadFont(fontFamily: string | null | undefined) {
+  useEffect(() => {
+    if (!fontFamily || fontFamily === "inter") return
+    const query = GOOGLE_FONTS[fontFamily]
+    if (!query) return
+    const id = `gfont-${fontFamily}`
+    if (document.getElementById(id)) return
+    const link = document.createElement("link")
+    link.id = id
+    link.rel = "stylesheet"
+    link.href = `https://fonts.googleapis.com/css2?family=${query}&display=swap`
+    document.head.appendChild(link)
+  }, [fontFamily])
+}
 
 // ─── Interfaces ───────────────────────────────────────────────
 
@@ -36,6 +76,8 @@ interface User {
   heroStyle?: string | null
   heroImage?: string | null
   heroVideo?: string | null
+  fontFamily?: string | null
+  cornerRadius?: string | null
 }
 
 interface ProfileClientProps {
@@ -75,9 +117,17 @@ export function ProfileClient({
   const [activeCollection, setActiveCollection] = useState<Block | null>(null)
 
   useApplyAccentColor(user.accentColor)
+  useLoadFont(user.fontFamily)
 
   const resolvedAccent = accentColor || user.accentColor || "#00ff88"
   const heroStyle = user.heroStyle ?? "classic"
+  const resolvedFont = FONT_FAMILY_MAP[user.fontFamily ?? ""] ?? "'Inter', sans-serif"
+  const resolvedRadius = BLOCK_RADIUS_MAP[user.cornerRadius ?? ""] ?? "16px"
+
+  // Set --block-radius on :root so all BlockRenderer cards can inherit via var()
+  useEffect(() => {
+    document.documentElement.style.setProperty("--block-radius", resolvedRadius)
+  }, [resolvedRadius])
   const showStats = user.statsStudents > 0 || user.statsWinRate > 0 || user.statsFollowers > 0
   const socialBlocks = blocks.filter(b => b.type === "social_link")
   const contentBlocks = blocks.filter(b => b.type !== "social_link")
@@ -89,12 +139,13 @@ export function ProfileClient({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
       className={`min-h-screen bg-[#030303] ${isPreview ? "pointer-events-none" : ""}`}
+      style={{ fontFamily: resolvedFont }}
     >
       {/* ─── Hero ─── */}
       {heroStyle === "cinematic" ? (
         <CinematicHero user={user} socialLinks={socialLinks} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isLive={isLive} />
       ) : (
-        <ClassicHero user={user} socialLinks={socialLinks} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isPublished={isPublished} isLive={isLive} />
+        <ClassicHero user={user} socialLinks={socialLinks} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isPublished={isPublished} isLive={isLive} accentColor={resolvedAccent} />
       )}
 
       {/* ─── Stats ─── */}
@@ -275,13 +326,14 @@ export function ProfileClient({
 
 // ─── Classic Hero ─────────────────────────────────────────────
 
-function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPublished, isLive }: {
+function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPublished, isLive, accentColor }: {
   user: ProfileClientProps["user"]
   socialLinks: SocialLink[]
   socialBlocks: Block[]
   socialIconPosition: string
   isPublished: boolean
   isLive: boolean
+  accentColor: string
 }) {
   return (
     <div className="pt-12 pb-6 px-4">
@@ -293,14 +345,15 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
           transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
           className="mx-auto mb-4 w-[88px] h-[88px] rounded-full overflow-hidden"
           style={{
-            border: "2px solid rgba(0,255,136,0.2)",
-            boxShadow: "0 0 0 4px rgba(0,255,136,0.06), inset 0 1px 0 rgba(255,255,255,0.1)",
+            border: `2px solid ${accentColor}33`,
+            boxShadow: `0 0 0 4px ${accentColor}10, inset 0 1px 0 rgba(255,255,255,0.1)`,
           }}
         >
           {user.image ? (
             <img src={user.image} alt={user.name || user.username} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#00ff88] to-[#0a0a0a] flex items-center justify-center text-3xl font-bold text-white">
+            <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-white"
+              style={{ background: `linear-gradient(135deg, ${accentColor} 0%, #0a0a0a 100%)` }}>
               {(user.name || user.username).charAt(0).toUpperCase()}
             </div>
           )}
@@ -309,11 +362,12 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
         {/* Verified */}
         {isPublished && (
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 mb-3">
-            <svg className="w-3 h-3 text-[#00ff88]" fill="currentColor" viewBox="0 0 24 24">
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full mb-3"
+            style={{ background: `${accentColor}1a`, border: `1px solid ${accentColor}33` }}>
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" style={{ color: accentColor }}>
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
             </svg>
-            <span className="text-[10px] font-mono font-bold text-[#00ff88] uppercase tracking-wider">Verified</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: accentColor }}>Verified</span>
           </motion.div>
         )}
 
@@ -333,7 +387,8 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-sm text-[#00ff88] font-mono mt-1"
+            className="text-sm font-mono mt-1"
+            style={{ color: accentColor }}
           >
             @{user.username}
           </motion.p>
@@ -385,6 +440,8 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
 }
 
 // ─── Cinematic Hero ───────────────────────────────────────────
+// The parent page renders the hero image at z-[1] as a full-bleed background.
+// This component only renders the overlaid text content — no image here.
 
 function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, isLive }: {
   user: ProfileClientProps["user"]
@@ -393,87 +450,59 @@ function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, is
   socialIconPosition: string
   isLive: boolean
 }) {
-  const hasHeroMedia = user.heroImage || user.heroVideo
-
   return (
-    <div className="relative">
-      {/* Hero image/video */}
-      {hasHeroMedia && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="relative w-full h-[320px] overflow-hidden"
+    <div className="px-5 pb-6">
+      <div className="max-w-[480px] mx-auto">
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
+          className="text-3xl font-bold text-white drop-shadow-lg"
         >
-          {user.heroVideo ? (
-            <video autoPlay muted loop playsInline className="w-full h-full object-cover object-top">
-              <source src={user.heroVideo} />
-            </video>
-          ) : (
-            <img src={user.heroImage!} alt="" className="w-full h-full object-cover object-top" />
-          )}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "linear-gradient(to bottom, rgba(180,100,40,0.3) 0%, transparent 30%, #080808 85%, #080808 100%)",
-            }}
-          />
-        </motion.div>
-      )}
+          {user.name || user.username}
+        </motion.h1>
 
-      {/* Overlaid content */}
-      <div className={`${hasHeroMedia ? "absolute bottom-0 left-0 right-0" : "pt-16 pb-6"} px-5 pb-6`}>
-        <div className="max-w-[480px] mx-auto">
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
-            className="text-3xl font-bold text-white drop-shadow-lg"
-          >
-            {user.name || user.username}
-          </motion.h1>
+        {user.name && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+            className="text-sm font-mono mt-1 drop-shadow"
+            style={{ color: "var(--accent-color, #00ff88)" }}>
+            @{user.username}
+          </motion.p>
+        )}
 
-          {user.name && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-              className="text-sm text-[#00ff88] font-mono mt-1 drop-shadow">
-              @{user.username}
-            </motion.p>
-          )}
+        {user.bio && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+            className="text-sm text-white/70 mt-2 max-w-sm leading-relaxed drop-shadow">
+            {user.bio}
+          </motion.p>
+        )}
 
-          {user.bio && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-              className="text-sm text-white/70 mt-2 max-w-sm leading-relaxed drop-shadow">
-              {user.bio}
-            </motion.p>
-          )}
+        {user.liveStatus && user.liveMessage && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+            className="mt-3">
+            <LiveStatusPill message={user.liveMessage} size="md" />
+          </motion.div>
+        )}
 
-          {user.liveStatus && user.liveMessage && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-              className="mt-3">
-              <LiveStatusPill message={user.liveMessage} size="md" />
-            </motion.div>
-          )}
-
-          {socialIconPosition === "top" && (socialLinks.length > 0 || socialBlocks.length > 0) && (
-            <div className="flex gap-3 mt-4">
-              {socialLinks.map((s, i) => (
-                <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
-                  <SocialIcon platform={s.platform} url={s.url} size={36} />
+        {socialIconPosition === "top" && (socialLinks.length > 0 || socialBlocks.length > 0) && (
+          <div className="flex gap-3 mt-4">
+            {socialLinks.map((s, i) => (
+              <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                <SocialIcon platform={s.platform} url={s.url} size={36} />
+              </motion.div>
+            ))}
+            {socialBlocks.map((b, i) => {
+              const bCfg = (b.config || {}) as Record<string, string>
+              return (
+                <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                  <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
                 </motion.div>
-              ))}
-              {socialBlocks.map((b, i) => {
-                const bCfg = (b.config || {}) as Record<string, string>
-                return (
-                  <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
-                    <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
-                  </motion.div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -63,8 +63,8 @@ function GlassShell({ type, children }: { type: string; children: ReactNode }) {
   if (BARE_TYPES.has(type)) return <>{children}</>
   return (
     <motion.div
-      className="relative rounded-2xl"
-      style={{ transition: "all 150ms ease" }}
+      className="relative"
+      style={{ borderRadius: "var(--block-radius, 16px)", transition: "all 150ms ease" }}
       whileHover={{ y: -1 }}
     >
       {/* Top reflection line — sits above the inner card's own border */}
@@ -254,11 +254,14 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
     : ""
 
   return (
-    <div className={`relative rounded-2xl ${animationClass} ${isStarred ? "p-[1px]" : ""}`}>
+    <div
+      className={`relative ${animationClass} ${isStarred ? "p-[1px]" : ""}`}
+      style={{ borderRadius: "var(--block-radius, 16px)" }}
+    >
       {isStarred && (
         <motion.div
-          className="absolute inset-0 rounded-2xl pointer-events-none"
-          style={{ border: "1px solid rgba(0,255,136,0.4)" }}
+          className="absolute inset-0 pointer-events-none"
+          style={{ borderRadius: "var(--block-radius, 16px)", border: "1px solid rgba(0,255,136,0.4)" }}
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity }}
         />

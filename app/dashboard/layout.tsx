@@ -2,7 +2,6 @@ import { redirect } from "next/navigation"
 import { unstable_noStore as noStore } from "next/cache"
 import { headers } from "next/headers"
 import { getCurrentUser } from "@/lib/clerk-auth"
-import { DashboardSidebar } from "@/components/ui/dashboard-sidebar"
 
 export default async function DashboardLayout({
   children,
@@ -25,15 +24,5 @@ export default async function DashboardLayout({
     }
   }
 
-  return (
-    <DashboardSidebar
-      user={{
-        username: user.username,
-        image: user.image ?? null,
-        name: user.name ?? null,
-      }}
-    >
-      {children}
-    </DashboardSidebar>
-  )
+  return <>{children}</>
 }

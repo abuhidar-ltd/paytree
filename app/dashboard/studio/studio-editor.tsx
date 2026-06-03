@@ -657,12 +657,20 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   boxShadow: `0 28px 64px rgba(0,0,0,0.85), 0 0 0 1px ${accent}18`,
                 }}
               >
+                {/* Overflow clips the 375px iframe scaled to fit the 236px inner screen */}
                 <div className="w-full h-full rounded-[30px] overflow-hidden relative bg-[#030303]">
+                  {/* Reload only after a confirmed save so preview reflects real DB state */}
                   <iframe
-                    key={`${profile.accentColor}-${profile.heroStyle}-${profile.buttonStyle}-${lastSaved?.getTime()}`}
+                    key={lastSaved?.getTime() ?? "initial"}
                     src={`/preview/${profile.username}`}
-                    className="w-full h-full border-0"
-                    style={{ pointerEvents: "none" }}
+                    width={375}
+                    height={812}
+                    style={{
+                      pointerEvents: "none",
+                      border: "none",
+                      transform: "scale(0.629)",
+                      transformOrigin: "top left",
+                    }}
                     title="Profile preview"
                   />
                 </div>

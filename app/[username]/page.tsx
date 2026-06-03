@@ -229,9 +229,14 @@ export default async function ProfilePage({
     spotsLeft: d.spotsLeft ?? undefined,
   }))
 
+  const bgVariant =
+    user.backgroundStyle === "particles" ? "particles"
+    : user.backgroundStyle === "none" ? "minimal"
+    : "nebula"
+
   return (
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
-      <PremiumBackground variant="nebula" />
+      <PremiumBackground variant={bgVariant} />
 
       {user.image && user.heroStyle === 'cinematic' && (
         <div
@@ -299,6 +304,8 @@ export default async function ProfilePage({
               accentColor: user.accentColor,
               heroStyle: user.heroStyle,
               heroImage: user.heroStyle === "cinematic" ? user.image : null,
+              fontFamily: user.fontFamily,
+              cornerRadius: user.cornerRadius,
             }}
             blocks={blocks.map((b) => ({
               id: b.id,
