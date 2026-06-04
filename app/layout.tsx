@@ -56,7 +56,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-        <body className={`${inter.className} antialiased`}>
+        <body className={`${inter.className} antialiased bg-[#030303]`}>
           {children}
           <Toaster />
         </body>

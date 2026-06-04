@@ -235,7 +235,7 @@ export default async function ProfilePage({
     : "nebula"
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
+    <div className="min-h-screen text-white relative overflow-x-hidden">
       <PremiumBackground variant={bgVariant} />
 
       {user.image && user.heroStyle === 'cinematic' && (
@@ -253,9 +253,8 @@ export default async function ProfilePage({
             className="absolute inset-0"
             style={{
               background: [
-                'linear-gradient(to bottom, rgba(180,120,60,0.25) 0%, rgba(180,120,60,0.1) 30%, transparent 50%)',
-                'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 25%, rgba(3,3,3,0.75) 65%, rgba(3,3,3,1) 80%)',
-                'linear-gradient(to right, rgba(3,3,3,0.55) 0%, transparent 18%, transparent 82%, rgba(3,3,3,0.55) 100%)',
+                'linear-gradient(to bottom, rgba(3,3,3,0) 0%, rgba(3,3,3,0) 30%, rgba(3,3,3,0.6) 70%, rgba(3,3,3,1) 85%)',
+                'linear-gradient(to right, rgba(3,3,3,0.4) 0%, transparent 20%, transparent 80%, rgba(3,3,3,0.4) 100%)',
               ].join(', '),
             }}
           />
@@ -317,6 +316,7 @@ export default async function ProfilePage({
               style: b.style,
               size: b.size,
               layout: b.layout,
+              priority: b.priority,
               lockType: b.lockType,
               lockValue: b.lockValue,
               config: b.config as Record<string, unknown>,

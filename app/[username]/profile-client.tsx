@@ -114,7 +114,6 @@ export function ProfileClient({
   isOwner = false,
 }: ProfileClientProps) {
   const [showAiChat, setShowAiChat] = useState(false)
-  const [activeCollection, setActiveCollection] = useState<Block | null>(null)
 
   useApplyAccentColor(user.accentColor)
   useLoadFont(user.fontFamily)
@@ -138,8 +137,13 @@ export function ProfileClient({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className={`min-h-screen bg-[#030303] ${isPreview ? "pointer-events-none" : ""}`}
-      style={{ fontFamily: resolvedFont }}
+      className={`min-h-screen ${isPreview ? "pointer-events-none" : ""}`}
+      style={{
+        fontFamily: resolvedFont,
+        ["--accent" as string]: resolvedAccent,
+        ["--accent-dim" as string]: `${resolvedAccent}22`,
+        ["--accent-border" as string]: `${resolvedAccent}40`,
+      }}
     >
       {/* ─── Hero ─── */}
       {heroStyle === "cinematic" ? (
@@ -162,7 +166,10 @@ export function ProfileClient({
             {user.statsWinRate > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
                 className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4 text-center">
-                <div className={`text-2xl font-bold font-mono ${user.statsWinRate >= 90 ? "text-[#00ff88]" : "text-white"}`}>
+                <div
+                  className="text-2xl font-bold font-mono"
+                  style={{ color: user.statsWinRate >= 90 ? "var(--accent)" : "#f0f0f0" }}
+                >
                   {user.statsWinRate}%
                 </div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">{user.statsLabel2 || "Win Rate"}</div>
@@ -182,54 +189,16 @@ export function ProfileClient({
       {/* ─── Blocks Section ─── */}
       {contentBlocks.length > 0 ? (
         <div className="max-w-[480px] mx-auto px-4 mt-6">
-          <AnimatePresence mode="wait">
-            {activeCollection ? (
-              <motion.div
-                key="collection-view"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 280, damping: 26 }}
-              >
-                <button
-                  onClick={() => setActiveCollection(null)}
-                  className="flex items-center gap-2 text-[#00ff88] font-mono text-sm mb-4 hover:opacity-80 transition-opacity"
-                >
-                  ← {activeCollection.title}
-                </button>
-                <CardsGrid
-                  blocks={(activeCollection.children || []).map((c) => ({ ...c, children: [] }))}
-                  commonProps={{
-                    userId: user.id,
-                    accentColor: resolvedAccent,
-                    buttonStyle: buttonStyle || "glass",
-                    username: user.username,
-                    creatorStripeReady,
-                  }}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="root-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 0.18 }}
-              >
-                <CardsGrid
-                  blocks={contentBlocks}
-                  commonProps={{
-                    userId: user.id,
-                    accentColor: resolvedAccent,
-                    buttonStyle: buttonStyle || "glass",
-                    username: user.username,
-                    creatorStripeReady,
-                  }}
-                  onOpenCollection={setActiveCollection}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <CardsGrid
+            blocks={contentBlocks}
+            commonProps={{
+              userId: user.id,
+              accentColor: resolvedAccent,
+              buttonStyle: buttonStyle || "glass",
+              username: user.username,
+              creatorStripeReady,
+            }}
+          />
         </div>
       ) : (
         <div className="max-w-[480px] mx-auto px-4 mt-6">
@@ -281,16 +250,18 @@ export function ProfileClient({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1, type: "spring", stiffness: 300, damping: 20 }}
             onClick={() => setShowAiChat(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#00ff88] flex items-center justify-center shadow-lg"
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
             style={{
-              boxShadow: "0 0 20px rgba(0,255,136,0.3), 0 4px 16px rgba(0,0,0,0.3)",
+              background: resolvedAccent,
+              boxShadow: `0 0 20px ${resolvedAccent}4d, 0 4px 16px rgba(0,0,0,0.3)`,
             }}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >
             <motion.div
-              className="absolute inset-0 rounded-full bg-[#00ff88]"
-              animate={{ boxShadow: ["0 0 0 0 rgba(0,255,136,0.4)", "0 0 0 12px rgba(0,255,136,0)", "0 0 0 0 rgba(0,255,136,0.4)"] }}
+              className="absolute inset-0 rounded-full"
+              style={{ background: resolvedAccent }}
+              animate={{ boxShadow: [`0 0 0 0 ${resolvedAccent}66`, `0 0 0 12px ${resolvedAccent}00`, `0 0 0 0 ${resolvedAccent}66`] }}
               transition={{ duration: 2.5, repeat: Infinity }}
             />
             <Sparkles size={22} className="text-black relative z-10" />

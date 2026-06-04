@@ -64,7 +64,7 @@ function GlassShell({ type, children }: { type: string; children: ReactNode }) {
   return (
     <motion.div
       className="relative"
-      style={{ borderRadius: "var(--block-radius, 16px)", transition: "all 150ms ease" }}
+      style={{ borderRadius: "var(--block-radius, 16px)", overflow: "hidden", transition: "all 150ms ease" }}
       whileHover={{ y: -1 }}
     >
       {/* Top reflection line — sits above the inner card's own border */}
@@ -312,7 +312,7 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
     case "stats":
       return (
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">
-          <div className="text-3xl font-bold text-[#00ff88] font-mono">{(cfg.value as string) || "0"}</div>
+          <div className="text-3xl font-bold font-mono" style={{ color: "var(--accent, #00ff88)" }}>{(cfg.value as string) || "0"}</div>
           <div className="text-xs font-mono uppercase tracking-widest text-[#444] mt-2">{(cfg.label as string) || block.title}</div>
         </div>
       )
@@ -358,6 +358,37 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
 
 // ─── ProfileLinkCard ─────────────────────────────────────────
 
+function getButtonCardStyle(buttonStyle: string, accentColor: string): React.CSSProperties {
+  switch (buttonStyle) {
+    case "solid":
+      return {
+        background: "rgba(255,255,255,0.05)",
+        border: "0.5px solid rgba(255,255,255,0.1)",
+        borderRadius: "var(--block-radius, 16px)",
+      }
+    case "gradient":
+      return {
+        background: `linear-gradient(135deg, ${accentColor}33, ${accentColor}11)`,
+        border: `0.5px solid ${accentColor}40`,
+        borderRadius: "var(--block-radius, 16px)",
+      }
+    case "glow":
+      return {
+        ...glass.card,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 0 20px ${accentColor}22`,
+      }
+    case "neon":
+      return {
+        background: "transparent",
+        border: `1px solid ${accentColor}66`,
+        borderRadius: "var(--block-radius, 16px)",
+      }
+    case "glass":
+    default:
+      return glass.card
+  }
+}
+
 function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const url = block.url || (cfg.url as string) || "#"
@@ -381,7 +412,10 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
         <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-2 left-2">
-          <span className="bg-[#00ff88]/20 text-[#00ff88] text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+          <span
+            className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+            style={{ background: `${accentColor}33`, color: accentColor }}
+          >
             Featured
           </span>
         </div>
@@ -398,7 +432,7 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
   return (
     <motion.div
       className="flex items-center gap-3 px-4 cursor-pointer group"
-      style={{ ...glass.card, height: 60 }}
+      style={{ ...getButtonCardStyle(buttonStyle, accentColor), height: 60 }}
       whileHover={{ scale: 1.0 }}
       whileTap={{ scale: 0.98 }}
       transition={spring}
@@ -449,7 +483,7 @@ function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, userna
           animate={{ rotate: !useTransition && expanded ? 90 : 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         >
-          <ChevronRight size={16} className="text-[#00ff88]" />
+          <ChevronRight size={16} style={{ color: "var(--accent, #00ff88)" }} />
         </motion.div>
       </motion.div>
 
@@ -567,14 +601,14 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
         <div className="h-[2px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-[#00ff88]/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent, #00ff88)1a" }}>
+              <svg className="w-5 h-5" style={{ color: "var(--accent, #00ff88)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div>
               <p className="text-sm font-semibold text-white">{block.title}</p>
-              <p className="text-xs text-[#00ff88] font-mono">Unlocked</p>
+              <p className="text-xs font-mono" style={{ color: "var(--accent, #00ff88)" }}>Unlocked</p>
             </div>
           </div>
           {vaultContent && (
@@ -582,13 +616,15 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
           )}
           {downloadUrl && (
             <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity">
+              className="inline-flex items-center gap-2 text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
+              style={{ background: "var(--accent, #00ff88)" }}>
               ↓ {downloadName || "Download"}
             </a>
           )}
           {accessUrl && (
             <a href={accessUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity ml-2">
+              className="inline-flex items-center gap-2 text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity ml-2"
+              style={{ background: "var(--accent, #00ff88)" }}>
               Access now →
             </a>
           )}
@@ -632,7 +668,8 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-[#e0e0e0] font-mono focus:border-amber-500/30 outline-none mb-3" />
               <button type="submit" disabled={loading}
-                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                className="w-full text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent, #00ff88)" }}>
                 {loading ? "Sending..." : "Send unlock code →"}
               </button>
             </form>
@@ -641,11 +678,13 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
         {step === "code" && (
           <motion.div key="code-step" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={spring} className="p-4">
             <form onSubmit={handleVerify}>
-              <p className="text-xs text-[#00ff88] mb-3 font-mono">Code sent to {email}</p>
+              <p className="text-xs mb-3 font-mono" style={{ color: "var(--accent, #00ff88)" }}>Code sent to {email}</p>
               <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="000000" maxLength={6} required
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-[#00ff88] text-lg tracking-widest text-center mb-3 outline-none focus:border-[#00ff88]/30" />
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-lg tracking-widest text-center mb-3 outline-none"
+                style={{ color: "var(--accent, #00ff88)" }} />
               <button type="submit" disabled={loading}
-                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                className="w-full text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent, #00ff88)" }}>
                 {loading ? "Verifying..." : "Verify code →"}
               </button>
             </form>
@@ -659,7 +698,7 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
 
 // ─── ProfileDropCard ─────────────────────────────────────────
 
-function ProfileDropCard({ block }: BaseBlockProps) {
+function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const dropAt = (cfg.dropAt as string) || new Date().toISOString()
   const [now, setNow] = useState(Date.now())
@@ -680,22 +719,23 @@ function ProfileDropCard({ block }: BaseBlockProps) {
   const seconds = Math.max(0, Math.floor((diff % 60000) / 1000))
 
   const status = isEnded ? "ENDED" : isLive ? "LIVE" : "SCHEDULED"
-  const statusColor = isEnded ? "#555" : "#00ff88"
+  const statusColor = isEnded ? "#555" : accentColor
 
   return (
     <div
       className="rounded-2xl overflow-hidden"
       style={{
-        backgroundColor: "rgba(0,255,136,0.04)",
-        border: "1px solid rgba(0,255,136,0.2)",
+        backgroundColor: `${accentColor}0a`,
+        border: `1px solid ${accentColor}33`,
       }}
     >
-      <div className="h-[2px] bg-gradient-to-r from-transparent via-[#00ff88]/40 to-transparent" />
+      <div className="h-[2px]" style={{ background: `linear-gradient(to right, transparent, ${accentColor}66, transparent)` }} />
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
           {isLive && (
             <motion.div
-              className="w-2 h-2 rounded-full bg-[#00ff88]"
+              className="w-2 h-2 rounded-full"
+              style={{ background: accentColor }}
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
@@ -719,7 +759,8 @@ function ProfileDropCard({ block }: BaseBlockProps) {
                   initial={{ scale: 1.1, opacity: 0.7 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                  className="text-[#00ff88] font-mono font-bold text-lg leading-none"
+                  className="font-mono font-bold text-lg leading-none"
+                  style={{ color: accentColor }}
                 >
                   {unit.value}
                 </motion.div>
@@ -749,7 +790,8 @@ function ProfileDropCard({ block }: BaseBlockProps) {
             )}
             {((cfg.revealUrl as string) || block.url) && (
               <a href={(cfg.revealUrl as string) || block.url || "#"} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity">
+                className="inline-flex items-center gap-2 text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
+                style={{ background: accentColor }}>
                 View reveal →
               </a>
             )}
@@ -880,13 +922,14 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
         <p className="text-sm font-medium text-white mb-1">{block.title}</p>
         {block.description && <p className="text-xs text-[#666] mb-2 line-clamp-2">{block.description}</p>}
         {formattedPrice && (
-          <p className="text-base font-mono font-bold text-[#00ff88] mb-3">{formattedPrice}</p>
+          <p className="text-base font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{formattedPrice}</p>
         )}
         {!creatorStripeReady ? (
           <div className="text-[#444] font-mono text-xs">Payments not set up</div>
         ) : (
           <button onClick={handleBuy} disabled={loading}
-            className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+            className="w-full text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ background: "var(--accent, #00ff88)" }}>
             {loading ? "Loading..." : "Buy now →"}
           </button>
         )}
@@ -1148,17 +1191,20 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-[#e0e0e0] font-mono focus:border-amber-500/30 outline-none mb-3" />
               <button type="submit" disabled={loading}
-                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                className="w-full text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent, #00ff88)" }}>
                 {loading ? "Sending..." : "Send unlock code →"}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerify}>
-              <p className="text-xs text-[#00ff88] mb-3 font-mono">Code sent to {email}</p>
+              <p className="text-xs mb-3 font-mono" style={{ color: "var(--accent, #00ff88)" }}>Code sent to {email}</p>
               <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="000000" maxLength={6} required
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-[#00ff88] text-lg tracking-widest text-center mb-3 outline-none focus:border-[#00ff88]/30" />
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-lg tracking-widest text-center mb-3 outline-none"
+                style={{ color: "var(--accent, #00ff88)" }} />
               <button type="submit" disabled={loading}
-                className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+                className="w-full text-black font-mono font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent, #00ff88)" }}>
                 {loading ? "Verifying..." : "Verify code →"}
               </button>
             </form>
@@ -1177,7 +1223,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
           <span className="text-lg">💰</span>
           <span className="text-sm font-semibold text-white">{block.title}</span>
         </div>
-        {price && <p className="text-lg font-mono font-bold text-[#00ff88] mb-3">{price}</p>}
+        {price && <p className="text-lg font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{price}</p>}
         <button
           onClick={async () => {
             setLoading(true)
@@ -1190,7 +1236,8 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
             finally { setLoading(false) }
           }}
           disabled={loading}
-          className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm disabled:opacity-50"
+          className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm disabled:opacity-50"
+          style={{ background: "var(--accent, #00ff88)" }}
         >
           {loading ? "Loading..." : "Buy to unlock →"}
         </button>
@@ -1213,7 +1260,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
         }} className="flex gap-2">
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" required
             className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none" />
-          <button type="submit" className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm">Unlock</button>
+          <button type="submit" className="text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm" style={{ background: "var(--accent, #00ff88)" }}>Unlock</button>
         </form>
       </div>
     )
@@ -1226,7 +1273,8 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
         <p className="text-sm text-white font-semibold mb-1">{block.title}</p>
         <p className="text-xs text-[#888] mb-4">You must be 18+ to view this content</p>
         <button onClick={() => setAgeConfirmed(true)}
-          className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 py-3 text-sm">
+          className="text-black font-mono font-semibold rounded-xl px-6 py-3 text-sm"
+          style={{ background: "var(--accent, #00ff88)" }}>
           I am 18 or older
         </button>
       </div>
@@ -1303,8 +1351,8 @@ function ContactFormBlock({ block, username }: { block: Block; username: string 
   if (sent) {
     return (
       <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">
-        <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-[#00ff88]/10 flex items-center justify-center">
-          <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: "var(--accent, #00ff88)1a" }}>
+          <svg className="w-5 h-5" style={{ color: "var(--accent, #00ff88)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -1324,7 +1372,8 @@ function ContactFormBlock({ block, username }: { block: Block; username: string 
       <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message" required rows={3}
         className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30 resize-none" />
       <button type="submit" disabled={loading}
-        className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+        className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+        style={{ background: "var(--accent, #00ff88)" }}>
         {loading ? "Sending..." : "Send message"}
       </button>
     </form>
@@ -1340,7 +1389,7 @@ function DiscountCodeBlock({ block, cfg }: { block: Block; cfg: Record<string, u
     <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
       {block.title && <p className="text-sm font-medium text-[#e0e0e0] mb-3">{block.title}</p>}
       <div className="flex items-center gap-3">
-        <div className="flex-1 bg-black/40 border border-white/[0.1] rounded-xl p-4 text-center font-mono text-[#00ff88] text-xl tracking-widest">
+        <div className="flex-1 bg-black/40 border border-white/[0.1] rounded-xl p-4 text-center font-mono text-xl tracking-widest" style={{ color: "var(--accent, #00ff88)" }}>
           {code}
         </div>
         <button onClick={() => { navigator.clipboard.writeText(code); toast.success("Copied!") }}

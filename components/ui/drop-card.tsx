@@ -40,18 +40,15 @@ export function DropCard({ drop }: { drop: Drop }) {
   const soldOut = drop.spotsLeft !== undefined && drop.spotsLeft <= 0
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[rgba(0,255,136,0.03)] border border-[rgba(0,255,136,0.12)] p-5">
+    <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "var(--accent, #00ff88)08", border: "1px solid var(--accent, #00ff88)20" }}>
       <div
         className="absolute top-0 left-0 right-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(0,255,136,0.3), transparent)",
-        }}
+        style={{ background: "linear-gradient(90deg, transparent, var(--accent, #00ff88)4d, transparent)" }}
         aria-hidden="true"
       />
 
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[#00ff88]/60 text-xs font-mono uppercase tracking-widest">
+        <div className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--accent, #00ff88)", opacity: 0.6 }}>
           DROP · {statusLabel}
         </div>
         {drop.limitedSpots !== undefined && drop.spotsLeft !== undefined && (
@@ -108,7 +105,8 @@ export function DropCard({ drop }: { drop: Drop }) {
           href={drop.revealUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center justify-center w-full px-4 py-3 rounded-xl bg-[#00ff88] text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
+          className="mt-2 inline-flex items-center justify-center w-full px-4 py-3 rounded-xl text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
+          style={{ background: "var(--accent, #00ff88)" }}
         >
           Access now →
         </a>

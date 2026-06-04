@@ -23,7 +23,7 @@ import {
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
   Tv, Hash, Copy, Pencil, CopyPlus,
-  LayoutGrid, Paintbrush, Settings,
+  LayoutGrid, Paintbrush, Settings, Menu,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────
@@ -190,6 +190,7 @@ export default function DashboardPage() {
   const [editTab, setEditTab] = useState<"content" | "style" | "settings">("content")
   const [previewKey, setPreviewKey] = useState(0)
   const [previewUrl, setPreviewUrl] = useState("")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
 
   const sensors = useSensors(
@@ -224,6 +225,13 @@ export default function DashboardPage() {
     }
     if (clerkUser) load()
   }, [clerkUser])
+
+  // Sync accent color CSS var for dashboard (affects BlockRenderer cards in preview)
+  useEffect(() => {
+    if (profile?.accentColor) {
+      document.documentElement.style.setProperty("--accent", profile.accentColor)
+    }
+  }, [profile?.accentColor])
 
   const userPlan = profile ? resolveUserPlan(profile as never) : "free"
 
@@ -416,16 +424,107 @@ export default function DashboardPage() {
 
   return (
     <div className="fixed inset-0 bg-[#030303]">
+      {/* ─── Left Sidebar (desktop) ─── */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[200px] z-40 flex-col bg-[#080808] border-r border-white/[0.06]">
+        {/* Logo */}
+        <div className="p-5 flex-shrink-0">
+          <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 px-3 space-y-1">
+          <SidebarItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} />
+          <SidebarItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} />
+          <SidebarItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} />
+          <SidebarItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} />
+        </nav>
+
+        {/* User info */}
+        {profile?.username && (
+          <div className="p-3 flex-shrink-0 border-t border-white/[0.06]">
+            <Link
+              href={`/${profile.username}`}
+              target="_blank"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group"
+            >
+              <div className="w-7 h-7 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-mono text-[#00ff88] font-bold">
+                  {profile.username.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-mono text-[#888] truncate">@{profile.username}</p>
+              </div>
+              <ArrowUpRight size={12} className="text-[#444] group-hover:text-[#888] transition-colors flex-shrink-0" />
+            </Link>
+          </div>
+        )}
+      </aside>
+
+      {/* ─── Mobile Sidebar Overlay ─── */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/60 z-40"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -200 }} animate={{ x: 0 }} exit={{ x: -200 }}
+              transition={{ type: "spring", stiffness: 400, damping: 32 }}
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-[200px] z-50 flex flex-col bg-[#080808] border-r border-white/[0.06]"
+            >
+              <div className="p-5 flex items-center justify-between flex-shrink-0">
+                <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
+                <button onClick={() => setSidebarOpen(false)} className="text-[#555] hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+              <nav className="flex-1 px-3 space-y-1">
+                <SidebarItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} onClick={() => setSidebarOpen(false)} />
+                <SidebarItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} onClick={() => setSidebarOpen(false)} />
+                <SidebarItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} onClick={() => setSidebarOpen(false)} />
+                <SidebarItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} onClick={() => setSidebarOpen(false)} />
+              </nav>
+              {profile?.username && (
+                <div className="p-3 flex-shrink-0 border-t border-white/[0.06]">
+                  <Link href={`/${profile.username}`} target="_blank"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group"
+                    onClick={() => setSidebarOpen(false)}>
+                    <div className="w-7 h-7 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-mono text-[#00ff88] font-bold">{profile.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-[#888] truncate">@{profile.username}</p>
+                    </div>
+                    <ArrowUpRight size={12} className="text-[#444] group-hover:text-[#888] transition-colors flex-shrink-0" />
+                  </Link>
+                </div>
+              )}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ─── Top Bar ─── */}
       <div
-        className="fixed top-0 left-0 right-0 h-12 z-50 flex items-center justify-between px-5 bg-[#080808] border-b border-white/[0.06]"
+        className="fixed top-0 left-0 lg:left-[200px] right-0 h-12 z-50 flex items-center justify-between px-5 bg-[#080808] border-b border-white/[0.06]"
         style={{ boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)" }}
       >
-        <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
-        <span className="absolute left-1/2 -translate-x-1/2 text-[#444] font-mono text-sm hidden sm:block">
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden text-[#555] hover:text-white transition-colors mr-3"
+          aria-label="Open menu"
+        >
+          <Menu size={18} />
+        </button>
+        <span className="text-[#00ff88] font-mono font-bold text-lg lg:hidden">Paytree</span>
+        <span className="hidden lg:block absolute left-1/2 lg:left-[calc(100px+50%)] -translate-x-1/2 text-[#444] font-mono text-sm">
           @{profile?.username}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {profile?.username && (
             <Link href={`/${profile.username}`} target="_blank"
               className="flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 py-1.5 rounded-lg hover:bg-white/[0.04]">
@@ -444,8 +543,8 @@ export default function DashboardPage() {
 
       {/* ─── Canvas (scrollable) ─── */}
       <div
-        className="fixed inset-0 overflow-y-auto lg:mr-[360px] bg-[#060606]"
-        style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 56, paddingBottom: 80 }}
+        className="fixed inset-0 overflow-y-auto lg:ml-[200px] lg:mr-[360px] bg-[#060606]"
+        style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 56, paddingBottom: 40 }}
       >
         {/* Upgrade Banner */}
         {userPlan === "free" && profile?.pageStatus !== "published" && (
@@ -591,14 +690,6 @@ export default function DashboardPage() {
           </>
         )}
       </AnimatePresence>
-
-      {/* ─── Bottom Nav ─── */}
-      <nav className="fixed bottom-0 left-0 right-0 h-14 z-50 bg-[#080808] border-t border-white/[0.06] flex items-center justify-around px-8">
-        <NavItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} />
-        <NavItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} />
-        <NavItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} />
-        <NavItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} />
-      </nav>
 
       {/* ─── Add Card Picker ─── */}
       <AnimatePresence>
@@ -1598,15 +1689,23 @@ function SizeOption({ active, full, onClick }: { active: boolean; full?: boolean
   )
 }
 
-// ─── Nav Item ─────────────────────────────────────────────────
+// ─── Sidebar Item ─────────────────────────────────────────────
 
-function NavItem({ href, icon: Icon, label, active }: {
-  href: string; icon: typeof LayoutGrid; label: string; active: boolean
+function SidebarItem({ href, icon: Icon, label, active, onClick }: {
+  href: string; icon: typeof LayoutGrid; label: string; active: boolean; onClick?: () => void
 }) {
   return (
-    <Link href={href} className={`flex flex-col items-center gap-1 transition-colors ${active ? "text-[#00ff88]" : "text-[#333] hover:text-[#888]"}`}>
-      <Icon size={20} />
-      <span className="text-[9px] font-mono">{label}</span>
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-mono transition-all ${
+        active
+          ? "bg-[#00ff88]/[0.08] text-[#00ff88] border border-[#00ff88]/[0.15]"
+          : "text-[#444] hover:text-[#888] hover:bg-white/[0.03] border border-transparent"
+      }`}
+    >
+      <Icon size={16} />
+      <span>{label}</span>
     </Link>
   )
 }
