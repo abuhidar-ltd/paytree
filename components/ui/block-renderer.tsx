@@ -171,7 +171,7 @@ export function getURLMeta(url: string): URLMeta {
     if (hostname.includes("github.com"))
       return { icon: <GitHubIcon />, color: "#ffffff", label: "GitHub" }
   } catch {}
-  return { icon: <LinkIcon size={16} />, color: "#00ff88", label: "Link" }
+  return { icon: <LinkIcon size={16} />, color: "var(--accent, #00ff88)", label: "Link" }
 }
 
 // ─── Utilities ────────────────────────────────────────────────
@@ -1366,11 +1366,11 @@ function ContactFormBlock({ block, username }: { block: Block; username: string 
     <form onSubmit={handleSubmit} className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 space-y-3">
       <p className="text-sm font-medium text-[#e0e0e0] mb-1">{block.title || "Get in touch"}</p>
       <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required
-        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30" />
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-white/20" />
       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required
-        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30" />
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-white/20" />
       <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Message" required rows={3}
-        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30 resize-none" />
+        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-white/20 resize-none" />
       <button type="submit" disabled={loading}
         className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         style={{ background: "var(--accent, #00ff88)" }}>
