@@ -44,7 +44,10 @@ export async function GET(req: Request) {
 
     const apiKey = process.env.YOUTUBE_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: "YouTube API key not configured" }, { status: 500 })
+      return NextResponse.json(
+        { error: "YouTube API key not configured", missingKey: true },
+        { status: 500 }
+      )
     }
 
     const searchUrl =

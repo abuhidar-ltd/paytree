@@ -409,7 +409,8 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
         transition={spring}
         onClick={handleClick}
       >
-        <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
+        {/* Plain <img> always — next/image kills GIF animation */}
+        <img src={block.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-2 left-2">
           <span
@@ -808,15 +809,46 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   const [fetchError, setFetchError] = useState(false)
+  const [missingKey, setMissingKey] = useState(false)
 
   useEffect(() => {
     const channelId = cfg.channelId as string
     if (!channelId) { setFetchError(true); return }
     fetch(`/api/social/youtube?channelId=${channelId}`)
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(setData)
+      .then(async (r) => {
+        const json = await r.json()
+        if (!r.ok) {
+          if (json?.missingKey) setMissingKey(true)
+          setFetchError(true)
+          return
+        }
+        setData(json)
+      })
       .catch(() => setFetchError(true))
   }, [cfg.channelId])
+
+  const channelId = cfg.channelId as string | undefined
+
+  // API key not configured — show a branded YouTube placeholder that looks intentional
+  if (missingKey || (fetchError && !data && !channelId)) {
+    return (
+      <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #ff000018, #ff000008)", border: "1px solid #ff000030" }}>
+        <div className="flex flex-col items-center justify-center py-8 gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#ff0000] flex items-center justify-center">
+            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-white">{block.title || "YouTube"}</p>
+            {channelId && (
+              <p className="text-[11px] font-mono text-[#555] mt-0.5">@{channelId}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (fetchError) {
     return (
@@ -905,7 +937,8 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
     <div className="bg-blue-500/[0.03] border border-blue-500/[0.15] rounded-2xl overflow-hidden">
       {block.thumbnail ? (
         <div className="relative h-[90px] overflow-hidden">
-          <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
+          {/* Plain <img> always — next/image kills GIF animation */}
+          <img src={block.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 to-transparent" />
           <div className="absolute top-2 left-2">
             <span className="bg-blue-500/20 text-blue-400 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">

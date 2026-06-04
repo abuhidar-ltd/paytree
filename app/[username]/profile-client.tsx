@@ -123,10 +123,16 @@ export function ProfileClient({
   const resolvedFont = FONT_FAMILY_MAP[user.fontFamily ?? ""] ?? "'Inter', sans-serif"
   const resolvedRadius = BLOCK_RADIUS_MAP[user.cornerRadius ?? ""] ?? "16px"
 
-  // Set --block-radius on :root so all BlockRenderer cards can inherit via var()
+  // Set CSS vars on :root — inline style on motion.div is wiped during framer-motion hydration
   useEffect(() => {
     document.documentElement.style.setProperty("--block-radius", resolvedRadius)
   }, [resolvedRadius])
+  useEffect(() => {
+    const accent = resolvedAccent
+    document.documentElement.style.setProperty("--accent", accent)
+    document.documentElement.style.setProperty("--accent-dim", accent + "22")
+    document.documentElement.style.setProperty("--accent-border", accent + "40")
+  }, [resolvedAccent])
   const showStats = user.statsStudents > 0 || user.statsWinRate > 0 || user.statsFollowers > 0
   const socialBlocks = blocks.filter(b => b.type === "social_link")
   const contentBlocks = blocks.filter(b => b.type !== "social_link")
@@ -138,12 +144,7 @@ export function ProfileClient({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
       className={`min-h-screen ${isPreview ? "pointer-events-none" : ""}`}
-      style={{
-        fontFamily: resolvedFont,
-        ["--accent" as string]: resolvedAccent,
-        ["--accent-dim" as string]: `${resolvedAccent}22`,
-        ["--accent-border" as string]: `${resolvedAccent}40`,
-      }}
+      style={{ fontFamily: resolvedFont }}
     >
       {/* ─── Hero ─── */}
       {heroStyle === "cinematic" ? (

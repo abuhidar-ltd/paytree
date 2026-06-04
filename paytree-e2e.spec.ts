@@ -412,7 +412,7 @@ test.describe("4 — Screenshot matrix", () => {
 test.describe("5 — Auth and protected routes", () => {
 
   test("5-A: Dashboard requires auth — redirects to sign-in or shows Clerk wall", async ({ page }) => {
-    await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" })
+    await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(2000) // Clerk client-side redirect may be delayed
     const url = page.url()
     console.log(`/dashboard unauthenticated → ${url}`)
