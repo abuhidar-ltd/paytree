@@ -1,3 +1,6 @@
+// DEPRECATED — use /api/blocks. The Link table is no longer queried by the
+// public profile or dashboard; this route is preserved only for any external
+// integrations still pointing at it.
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"

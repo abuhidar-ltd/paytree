@@ -51,12 +51,6 @@ function useLoadFont(fontFamily: string | null | undefined) {
 
 // ─── Interfaces ───────────────────────────────────────────────
 
-interface SocialLink {
-  id: string
-  platform: string
-  url: string
-}
-
 interface User {
   id: string
   name: string | null
@@ -82,7 +76,6 @@ interface User {
 interface ProfileClientProps {
   user: User
   blocks: Block[]
-  socialLinks: SocialLink[]
   socialIconPosition: string
   isPublished: boolean
   isLive?: boolean
@@ -100,7 +93,6 @@ interface ProfileClientProps {
 export function ProfileClient({
   user,
   blocks,
-  socialLinks,
   socialIconPosition,
   isPublished,
   isLive = false,
@@ -137,7 +129,7 @@ export function ProfileClient({
   const showStats = user.statsStudents > 0 || user.statsWinRate > 0 || user.statsFollowers > 0
   const socialBlocks = blocks.filter(b => b.type === "social_link")
   const contentBlocks = blocks.filter(b => b.type !== "social_link")
-  const hasSocials = socialLinks.length > 0 || socialBlocks.length > 0
+  const hasSocials = socialBlocks.length > 0
 
   return (
     <motion.div
@@ -149,9 +141,9 @@ export function ProfileClient({
     >
       {/* ─── Hero ─── */}
       {heroStyle === "cinematic" ? (
-        <CinematicHero user={user} socialLinks={socialLinks} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isLive={isLive} />
+        <CinematicHero user={user} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isLive={isLive} />
       ) : (
-        <ClassicHero user={user} socialLinks={socialLinks} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isPublished={isPublished} isLive={isLive} accentColor={resolvedAccent} />
+        <ClassicHero user={user} socialBlocks={socialBlocks} socialIconPosition={socialIconPosition} isPublished={isPublished} isLive={isLive} accentColor={resolvedAccent} />
       )}
 
       {/* ─── Stats ─── */}
@@ -216,17 +208,11 @@ export function ProfileClient({
       {socialIconPosition === "bottom" && hasSocials && (
         <div className="max-w-[480px] mx-auto px-4 mt-8 mb-4">
           <div className="flex justify-center gap-3">
-            {socialLinks.map((s, i) => (
-              <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
-                <SocialIcon platform={s.platform} url={s.url} size={36} />
-              </motion.div>
-            ))}
             {socialBlocks.map((b, i) => {
               const bCfg = (b.config || {}) as Record<string, string>
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                  transition={{ delay: 0.3 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
                   <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
                 </motion.div>
               )
@@ -260,9 +246,8 @@ export function ProfileClient({
 
 // ─── Classic Hero ─────────────────────────────────────────────
 
-function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPublished, isLive, accentColor }: {
+function ClassicHero({ user, socialBlocks, socialIconPosition, isPublished, isLive, accentColor }: {
   user: ProfileClientProps["user"]
-  socialLinks: SocialLink[]
   socialBlocks: Block[]
   socialIconPosition: string
   isPublished: boolean
@@ -349,19 +334,13 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
         )}
 
         {/* Social Icons Top */}
-        {socialIconPosition === "top" && (socialLinks.length > 0 || socialBlocks.length > 0) && (
+        {socialIconPosition === "top" && socialBlocks.length > 0 && (
           <div className="flex justify-center gap-3 mt-5">
-            {socialLinks.map((s, i) => (
-              <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
-                <SocialIcon platform={s.platform} url={s.url} size={36} />
-              </motion.div>
-            ))}
             {socialBlocks.map((b, i) => {
               const bCfg = (b.config || {}) as Record<string, string>
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                  transition={{ delay: 0.5 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
                   <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
                 </motion.div>
               )
@@ -377,9 +356,8 @@ function ClassicHero({ user, socialLinks, socialBlocks, socialIconPosition, isPu
 // The parent page renders the hero image at z-[1] as a full-bleed background.
 // This component only renders the overlaid text content — no image here.
 
-function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, isLive }: {
+function CinematicHero({ user, socialBlocks, socialIconPosition, isLive }: {
   user: ProfileClientProps["user"]
-  socialLinks: SocialLink[]
   socialBlocks: Block[]
   socialIconPosition: string
   isLive: boolean
@@ -418,19 +396,13 @@ function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, is
           </motion.div>
         )}
 
-        {socialIconPosition === "top" && (socialLinks.length > 0 || socialBlocks.length > 0) && (
+        {socialIconPosition === "top" && socialBlocks.length > 0 && (
           <div className="flex gap-3 mt-4">
-            {socialLinks.map((s, i) => (
-              <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
-                <SocialIcon platform={s.platform} url={s.url} size={36} />
-              </motion.div>
-            ))}
             {socialBlocks.map((b, i) => {
               const bCfg = (b.config || {}) as Record<string, string>
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + (socialLinks.length + i) * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                  transition={{ delay: 0.8 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
                   <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
                 </motion.div>
               )

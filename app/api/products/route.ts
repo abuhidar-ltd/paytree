@@ -1,3 +1,6 @@
+// DEPRECATED — use /api/blocks. Product blocks (type "product") replace the
+// Product table on the public profile. Route preserved for legacy integrations
+// and Stripe webhooks that still reference Product/Purchase rows.
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"

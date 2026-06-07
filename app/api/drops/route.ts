@@ -1,3 +1,5 @@
+// DEPRECATED — use /api/blocks with type="drop". The Drop table is no longer
+// queried by the public profile; route preserved for legacy integrations.
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"

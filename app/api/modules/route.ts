@@ -1,3 +1,6 @@
+// DEPRECATED — use /api/blocks. The Module table is no longer queried by the
+// public profile or dashboard; this route is preserved only for any external
+// integrations still pointing at it.
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"

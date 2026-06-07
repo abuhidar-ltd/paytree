@@ -1,3 +1,6 @@
+// DEPRECATED — use /api/blocks with type="crypto". The CryptoAddress table
+// is no longer queried by the public profile; route preserved for legacy
+// integrations and existing user data.
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/clerk-auth"

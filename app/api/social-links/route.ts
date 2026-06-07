@@ -1,3 +1,6 @@
+// DEPRECATED — use /api/blocks with type="social_link". The SocialLink table
+// is no longer queried by the public profile; route preserved for legacy
+// integrations.
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"

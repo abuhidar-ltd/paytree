@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ProfileClient } from "@/app/[username]/profile-client"
-import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
 
 export const metadata = {
   robots: 'noindex, nofollow',
@@ -15,26 +14,9 @@ export default async function PreviewPage({
 }) {
   const { username } = await params
 
+  // Profile-only — all content lives in the Block table.
   const user = await prisma.user.findUnique({
     where: { username },
-    include: {
-      links: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      socialLinks: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      cryptoAddresses: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      modules: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-    },
   })
 
   if (!user) {
@@ -43,49 +25,18 @@ export default async function PreviewPage({
 
   const socialIconPosition = user.socialIconPosition || "bottom"
 
-  const topLevelLinks = user.links.filter(l => !l.parentId && !l.isVaultItem)
-  const portalLinks = topLevelLinks.map(link => ({
-    id: link.id,
-    title: link.title,
-    url: link.isFolder ? undefined : link.url,
-    icon: link.icon || undefined,
-    isFolder: link.isFolder,
-    cardStyle: link.style || undefined,
-    cardSize: link.cardSize || undefined,
-    children: link.isFolder
-      ? user.links.filter(child => child.parentId === link.id).map(child => ({
-          id: child.id,
-          title: child.title,
-          url: child.url,
-          icon: child.icon || undefined,
-          isFolder: false,
-          cardStyle: child.style || undefined,
-          children: []
-        }))
-      : []
-  }))
-
-  const vaultItems = user.links.filter(l => l.isVaultItem && l.isEmailLocked).map(item => ({
-    id: item.id,
-    title: item.title,
-    icon: item.icon || undefined,
-    url: item.url || undefined,
-    downloadUrl: item.downloadUrl || undefined,
-    downloadName: item.downloadName || undefined,
-    vaultContent: item.vaultContent || undefined,
-  }))
-
-  const cryptoAddresses = user.cryptoAddresses.map(addr => ({
-    id: addr.id,
-    currency: addr.currency,
-    address: addr.address,
-    label: addr.label || undefined,
-    enabled: addr.enabled,
-  }))
-
+  const now = new Date()
   const blocks = await prisma.block.findMany({
-    where: { userId: user.id, enabled: true, parentId: null },
-    orderBy: { position: "asc" },
+    where: {
+      userId: user.id,
+      enabled: true,
+      parentId: null,
+      AND: [
+        { OR: [{ scheduleStart: null }, { scheduleStart: { lte: now } }] },
+        { OR: [{ scheduleEnd: null }, { scheduleEnd: { gte: now } }] },
+      ],
+    },
+    orderBy: [{ priority: "desc" }, { position: "asc" }],
     include: {
       children: {
         where: { enabled: true },
@@ -93,22 +44,6 @@ export default async function PreviewPage({
       },
     },
   })
-
-  const dropsRaw = await prisma.drop.findMany({
-    where: { userId: user.id, enabled: true },
-    orderBy: { dropAt: "asc" },
-  })
-  const drops = dropsRaw.map((d) => ({
-    id: d.id,
-    title: d.title,
-    description: d.description || undefined,
-    dropAt: d.dropAt.toISOString(),
-    revealUrl: d.revealUrl || undefined,
-    revealText: d.revealText || undefined,
-    status: d.status,
-    limitedSpots: d.limitedSpots ?? undefined,
-    spotsLeft: d.spotsLeft ?? undefined,
-  }))
 
   const bgVariant =
     user.backgroundStyle === "particles" ? "particles"
@@ -198,7 +133,6 @@ export default async function PreviewPage({
                 config: c.config as Record<string, unknown>,
               })),
             }))}
-            socialLinks={user.socialLinks}
             socialIconPosition={socialIconPosition}
             isPublished={false}
             buttonStyle={user.buttonStyle ?? undefined}

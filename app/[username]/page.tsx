@@ -61,17 +61,6 @@ async function trackView(userId: string, wasLive: boolean, ip: string | null) {
   }
 }
 
-/**
- * Determine if a link is currently visible based on scheduling.
- */
-function isLinkVisible(link: { scheduledFrom: Date | null; scheduledTo: Date | null; enabled: boolean }): boolean {
-  if (!link.enabled) return false
-  const now = new Date()
-  if (link.scheduledFrom && now < link.scheduledFrom) return false
-  if (link.scheduledTo && now > link.scheduledTo) return false
-  return true
-}
-
 export default async function ProfilePage({
   params,
 }: {
@@ -80,30 +69,9 @@ export default async function ProfilePage({
   const currentUser = await getCurrentUser()
   const { username } = await params
 
+  // Profile data only — no relations. All content lives in the Block table.
   const user = await prisma.user.findUnique({
     where: { username },
-    include: {
-      links: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      socialLinks: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      cryptoAddresses: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      modules: {
-        where: { enabled: true },
-        orderBy: { order: "asc" },
-      },
-      products: {
-        where: { enabled: true },
-        orderBy: { createdAt: "desc" },
-      },
-    },
   })
 
   if (!user) {
@@ -135,75 +103,22 @@ export default async function ProfilePage({
   const profileUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"}/${user.username}`
   const showPublishBanner = isOwner && !isPublished
 
-  // Filter links by schedule (server-side)
-  const visibleLinks = user.links.filter(isLinkVisible)
-
-  // Transform links into portal structure (excluding vault items)
-  const topLevelLinks = visibleLinks.filter((l) => !l.parentId && !l.isVaultItem)
-  const portalLinks = topLevelLinks.map((link) => ({
-    id: link.id,
-    title: link.title,
-    url: link.isFolder ? undefined : link.url,
-    icon: link.icon || undefined,
-    isFolder: link.isFolder,
-    isStarred: link.isStarred,
-    type: link.type,
-    cardStyle: link.style || undefined,
-    cardSize: link.cardSize || undefined,
-    children: link.isFolder
-      ? visibleLinks
-          .filter((child) => child.parentId === link.id)
-          .map((child) => ({
-            id: child.id,
-            title: child.title,
-            url: child.url,
-            icon: child.icon || undefined,
-            isFolder: false,
-            isStarred: child.isStarred,
-            type: child.type,
-            cardStyle: child.style || undefined,
-            children: [],
-          }))
-      : [],
-  }))
-
-  // Transform vault items
-  const vaultItems = visibleLinks
-    .filter((l) => l.isVaultItem && l.isEmailLocked)
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      icon: item.icon || undefined,
-      url: item.url || undefined,
-      downloadUrl: item.downloadUrl || undefined,
-      downloadName: item.downloadName || undefined,
-      vaultContent: item.vaultContent || undefined,
-    }))
-
-  // Transform crypto addresses
-  const cryptoAddresses = user.cryptoAddresses.map((addr) => ({
-    id: addr.id,
-    currency: addr.currency,
-    address: addr.address,
-    label: addr.label || undefined,
-    enabled: addr.enabled,
-  }))
-
-  // Transform products for shop cards
-  const shopProducts = user.products.map((p) => ({
-    id: p.id,
-    title: p.title,
-    description: p.description || undefined,
-    price: p.price,
-    currency: p.currency,
-    imageUrl: p.imageUrl || undefined,
-    downloadUrl: p.downloadUrl || undefined,
-  }))
-
-  // Fetch top-level enabled blocks with their children
+  // ─── Single Block query — the only source of truth ──────────────
+  // - Enabled + top-level only (children come via include)
+  // - Schedule window enforced in SQL: scheduleStart null OR <= now AND scheduleEnd null OR >= now
+  // - Order: starred first (priority desc, "starred" > "none" string-wise), then position asc
+  const now = new Date()
   const blocks = await prisma.block.findMany({
-    where: { userId: user.id, enabled: true, parentId: null },
-    orderBy: { position: "asc" },
+    where: {
+      userId: user.id,
+      enabled: true,
+      parentId: null,
+      AND: [
+        { OR: [{ scheduleStart: null }, { scheduleStart: { lte: now } }] },
+        { OR: [{ scheduleEnd: null }, { scheduleEnd: { gte: now } }] },
+      ],
+    },
+    orderBy: [{ priority: "desc" }, { position: "asc" }],
     include: {
       children: {
         where: { enabled: true },
@@ -211,23 +126,6 @@ export default async function ProfilePage({
       },
     },
   })
-
-  // Fetch enabled drops
-  const dropsRaw = await prisma.drop.findMany({
-    where: { userId: user.id, enabled: true },
-    orderBy: { dropAt: "asc" },
-  })
-  const drops = dropsRaw.map((d) => ({
-    id: d.id,
-    title: d.title,
-    description: d.description || undefined,
-    dropAt: d.dropAt.toISOString(),
-    revealUrl: d.revealUrl || undefined,
-    revealText: d.revealText || undefined,
-    status: d.status,
-    limitedSpots: d.limitedSpots ?? undefined,
-    spotsLeft: d.spotsLeft ?? undefined,
-  }))
 
   const bgVariant =
     user.backgroundStyle === "particles" ? "particles"
@@ -271,7 +169,6 @@ export default async function ProfilePage({
         />
       )}
 
-      {/* Content */}
       <div
         className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 pb-8 sm:pb-12 ${
           user.heroStyle === 'cinematic'
@@ -284,7 +181,6 @@ export default async function ProfilePage({
         }`}
       >
         <div className="w-full max-w-[500px] mx-auto">
-          {/* Profile Client Component - Handles all interactive features */}
           <ProfileClient
             user={{
               id: user.id,
@@ -335,7 +231,6 @@ export default async function ProfilePage({
                 config: c.config as Record<string, unknown>,
               })),
             }))}
-            socialLinks={user.socialLinks}
             socialIconPosition={socialIconPosition}
             isPublished={isPublished}
             isLive={user.liveStatus}
