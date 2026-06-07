@@ -40,10 +40,10 @@ export function DropCard({ drop }: { drop: Drop }) {
   const soldOut = drop.spotsLeft !== undefined && drop.spotsLeft <= 0
 
   return (
-    <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "var(--accent, #00ff88)08", border: "1px solid var(--accent, #00ff88)20" }}>
+    <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "var(--accent-faint, #00ff8808)", border: "1px solid var(--accent-border, #00ff8840)" }}>
       <div
         className="absolute top-0 left-0 right-0 h-px"
-        style={{ background: "linear-gradient(90deg, transparent, var(--accent, #00ff88)4d, transparent)" }}
+        style={{ background: "linear-gradient(90deg, transparent, var(--accent-glow, #00ff884d), transparent)" }}
         aria-hidden="true"
       />
 

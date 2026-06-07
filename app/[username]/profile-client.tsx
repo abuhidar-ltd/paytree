@@ -1,14 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import React, { useEffect } from "react"
+import { motion } from "framer-motion"
 import { LiveStatusPill } from "@/components/ui/live-status-pill"
 import { SocialIcon } from "@/components/social-icon"
 import { useApplyAccentColor } from "@/contexts/accent-color-context"
 import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 import { SocialProofToast } from "@/components/ui/social-proof-toast"
 import { BlockRenderer, type Block } from "@/components/ui/block-renderer"
-import { Sparkles } from "lucide-react"
 
 // ─── Font loading ─────────────────────────────────────────────
 
@@ -113,8 +112,6 @@ export function ProfileClient({
   isPreview = false,
   isOwner = false,
 }: ProfileClientProps) {
-  const [showAiChat, setShowAiChat] = useState(false)
-
   useApplyAccentColor(user.accentColor)
   useLoadFont(user.fontFamily)
 
@@ -130,8 +127,12 @@ export function ProfileClient({
   useEffect(() => {
     const accent = resolvedAccent
     document.documentElement.style.setProperty("--accent", accent)
+    document.documentElement.style.setProperty("--accent-faint", accent + "08")
+    document.documentElement.style.setProperty("--accent-soft", accent + "1a")
     document.documentElement.style.setProperty("--accent-dim", accent + "22")
     document.documentElement.style.setProperty("--accent-border", accent + "40")
+    document.documentElement.style.setProperty("--accent-glow", accent + "4d")
+    document.documentElement.style.setProperty("--accent-strong", accent + "66")
   }, [resolvedAccent])
   const showStats = user.statsStudents > 0 || user.statsWinRate > 0 || user.statsFollowers > 0
   const socialBlocks = blocks.filter(b => b.type === "social_link")
@@ -243,52 +244,13 @@ export function ProfileClient({
         </div>
       )}
 
-      {/* ─── AI Agent Button ─── */}
+      {/* ─── AI Agent (renders its own FAB + sheet) ─── */}
       {showAiAgent && !isPreview && (
-        <>
-          <motion.button
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1, type: "spring", stiffness: 300, damping: 20 }}
-            onClick={() => setShowAiChat(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-            style={{
-              background: resolvedAccent,
-              boxShadow: `0 0 20px ${resolvedAccent}4d, 0 4px 16px rgba(0,0,0,0.3)`,
-            }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <motion.div
-              className="absolute inset-0 rounded-full"
-              style={{ background: resolvedAccent }}
-              animate={{ boxShadow: [`0 0 0 0 ${resolvedAccent}66`, `0 0 0 12px ${resolvedAccent}00`, `0 0 0 0 ${resolvedAccent}66`] }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-            />
-            <Sparkles size={22} className="text-black relative z-10" />
-          </motion.button>
-
-          <AnimatePresence>
-            {showAiChat && (
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed inset-0 z-[60]"
-              >
-                <div className="absolute inset-0 bg-black/60" onClick={() => setShowAiChat(false)} />
-                <div className="absolute bottom-0 left-0 right-0 max-h-[80vh]">
-                  <AiAgentChat
-                    username={user.username}
-                    creatorName={user.name || user.username}
-                    accentColor={resolvedAccent}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
+        <AiAgentChat
+          username={user.username}
+          creatorName={user.name || user.username}
+          accentColor={resolvedAccent}
+        />
       )}
 
       <SocialProofToast username={user.username} />
@@ -437,7 +399,7 @@ function CinematicHero({ user, socialLinks, socialBlocks, socialIconPosition, is
         {user.name && (
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
             className="text-sm font-mono mt-1 drop-shadow"
-            style={{ color: "var(--accent-color, #00ff88)" }}>
+            style={{ color: "var(--accent, #00ff88)" }}>
             @{user.username}
           </motion.p>
         )}

@@ -602,7 +602,7 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
         <div className="h-[2px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent, #00ff88)1a" }}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft, #00ff881a)" }}>
               <svg className="w-5 h-5" style={{ color: "var(--accent, #00ff88)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
@@ -805,13 +805,38 @@ function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
 
 // ─── ProfileYouTubeCard ──────────────────────────────────────
 
+function extractYouTubeVideoId(input: string): string | null {
+  if (!input) return null
+  const trimmed = input.trim()
+  if (/^[\w-]{11}$/.test(trimmed)) return trimmed
+  try {
+    const u = new URL(trimmed)
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.slice(1).split("/")[0]
+      return /^[\w-]{11}$/.test(id) ? id : null
+    }
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v")
+      if (v && /^[\w-]{11}$/.test(v)) return v
+      const parts = u.pathname.split("/").filter(Boolean)
+      const shorts = parts[0] === "shorts" || parts[0] === "embed"
+      if (shorts && /^[\w-]{11}$/.test(parts[1] || "")) return parts[1]
+    }
+  } catch {}
+  return null
+}
+
 function ProfileYouTubeCard({ block }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
+  const mode = (cfg.mode as string) === "video" ? "video" : "channel"
+  const pinnedVideoId = mode === "video" ? extractYouTubeVideoId((cfg.videoId as string) || (cfg.videoUrl as string) || "") : null
+
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   const [fetchError, setFetchError] = useState(false)
   const [missingKey, setMissingKey] = useState(false)
 
   useEffect(() => {
+    if (mode === "video") return
     const channelId = cfg.channelId as string
     if (!channelId) { setFetchError(true); return }
     fetch(`/api/social/youtube?channelId=${channelId}`)
@@ -825,7 +850,53 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
         setData(json)
       })
       .catch(() => setFetchError(true))
-  }, [cfg.channelId])
+  }, [cfg.channelId, mode])
+
+  // ─── Specific video mode: zero API calls ───
+  if (mode === "video") {
+    if (!pinnedVideoId) {
+      return (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #ff000018, #ff000008)", border: "1px solid #ff000030" }}>
+          <div className="flex flex-col items-center justify-center py-8 gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#ff0000] flex items-center justify-center">
+              <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+            <p className="text-xs font-mono text-[#888]">Paste a YouTube URL</p>
+          </div>
+        </div>
+      )
+    }
+    const thumb = `https://img.youtube.com/vi/${pinnedVideoId}/maxresdefault.jpg`
+    const fallback = `https://img.youtube.com/vi/${pinnedVideoId}/hqdefault.jpg`
+    return (
+      <a
+        href={`https://youtube.com/watch?v=${pinnedVideoId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackBlockClick(block.id)}
+        className="block rounded-2xl overflow-hidden bg-red-500/[0.03] border border-red-500/[0.15] hover:border-red-500/30 transition-colors"
+      >
+        <motion.div className="relative h-[160px] overflow-hidden" whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
+          <img
+            src={thumb}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallback }}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-red-600/90 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+          </div>
+        </motion.div>
+        {block.title && block.title !== "Untitled" && (
+          <div className="p-3">
+            <p className="text-xs font-medium text-white line-clamp-2">{block.title}</p>
+          </div>
+        )}
+      </a>
+    )
+  }
 
   const channelId = cfg.channelId as string | undefined
 
@@ -1384,7 +1455,7 @@ function ContactFormBlock({ block, username }: { block: Block; username: string 
   if (sent) {
     return (
       <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">
-        <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: "var(--accent, #00ff88)1a" }}>
+        <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: "var(--accent-soft, #00ff881a)" }}>
           <svg className="w-5 h-5" style={{ color: "var(--accent, #00ff88)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>

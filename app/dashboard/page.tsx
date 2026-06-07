@@ -76,8 +76,16 @@ function detectBlockFromUrl(url: string): { type: string; title: string; url: st
     const u = new URL(url)
     const h = u.hostname.toLowerCase()
     if (h.includes("youtube.com") || h.includes("youtu.be")) {
+      // Detect specific video first (watch?v=, youtu.be/, /shorts/)
+      const videoId =
+        u.searchParams.get("v") ||
+        (h.includes("youtu.be") ? u.pathname.slice(1).split("/")[0] : null) ||
+        url.match(/\/(?:shorts|embed)\/([\w-]{11})/)?.[1] || null
+      if (videoId && /^[\w-]{11}$/.test(videoId)) {
+        return { type: "youtube", title: "YouTube video", url, config: { mode: "video", videoUrl: url, videoId } }
+      }
       const channelMatch = url.match(/\/@?([\w-]+)/) || url.match(/\/channel\/([\w-]+)/)
-      return { type: "youtube", title: "YouTube", url, config: channelMatch ? { channelId: channelMatch[1] } : {} }
+      return { type: "youtube", title: "YouTube", url, config: { mode: "channel", ...(channelMatch ? { channelId: channelMatch[1] } : {}) } }
     }
     if (h.includes("open.spotify.com") && url.includes("/show"))
       return { type: "podcast", title: "Podcast", url, config: { rssUrl: url } }
@@ -1008,11 +1016,18 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
 
     case "youtube": {
       const channelName = (cfg.channelId as string) || ""
+      const ytMode = (cfg.mode as string) === "video" ? "video" : "channel"
+      const ytVideoRaw = (cfg.videoUrl as string) || (cfg.videoId as string) || ""
+      const ytVideoId = ytMode === "video" ? (ytVideoRaw.match(/[?&]v=([\w-]{11})/)?.[1]
+        || ytVideoRaw.match(/youtu\.be\/([\w-]{11})/)?.[1]
+        || (/^[\w-]{11}$/.test(ytVideoRaw.trim()) ? ytVideoRaw.trim() : "")) : ""
+      const videoThumb = ytVideoId ? `https://img.youtube.com/vi/${ytVideoId}/maxresdefault.jpg` : ""
+      const displayThumb = block.thumbnail || videoThumb
       return (
         <div style={{ minHeight: 100, backgroundColor: "rgba(255,0,0,0.03)" }}>
-          {block.thumbnail ? (
+          {displayThumb ? (
             <div className="h-[80px] overflow-hidden relative">
-              <img src={block.thumbnail} alt="" className="w-full h-full object-cover" />
+              <img src={displayThumb} alt="" className="w-full h-full object-cover" />
               <span className="absolute top-2 left-2 bg-black/70 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded uppercase">YouTube</span>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full bg-red-600/90 flex items-center justify-center">
@@ -1321,9 +1336,33 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
       )}
 
       {block.type === "youtube" && (
-        <FieldGroup label="Channel ID or @handle">
-          <GlassInput defaultValue={(cfg.channelId as string) || ""} onBlur={(e) => updateConfig("channelId", e.target.value)} placeholder="UCxxxxx or @channel" />
-        </FieldGroup>
+        <>
+          <FieldGroup label="Mode">
+            <div className="flex gap-2">
+              {([
+                { id: "channel", label: "Latest video" },
+                { id: "video", label: "Specific video" },
+              ] as const).map(m => (
+                <PillButton
+                  key={m.id}
+                  active={((cfg.mode as string) || "channel") === m.id}
+                  onClick={() => updateConfig("mode", m.id)}
+                >
+                  {m.label}
+                </PillButton>
+              ))}
+            </div>
+          </FieldGroup>
+          {((cfg.mode as string) || "channel") === "channel" ? (
+            <FieldGroup label="Channel ID or @handle">
+              <GlassInput defaultValue={(cfg.channelId as string) || ""} onBlur={(e) => updateConfig("channelId", e.target.value)} placeholder="UCxxxxx or @channel" />
+            </FieldGroup>
+          ) : (
+            <FieldGroup label="YouTube video URL">
+              <GlassInput defaultValue={(cfg.videoUrl as string) || (cfg.videoId as string) || ""} onBlur={(e) => updateConfig("videoUrl", e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+            </FieldGroup>
+          )}
+        </>
       )}
 
       {block.type === "podcast" && (
