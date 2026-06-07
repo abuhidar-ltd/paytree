@@ -1,11 +1,17 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import {
-  BarChart, Bar, XAxis, YAxis,
-  Tooltip as ChartTooltip, ResponsiveContainer, Cell,
-} from "recharts"
+import { useEffect, useState, useRef, type ReactNode } from "react"
+import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
+import {
+  AreaChart, Area, XAxis, YAxis,
+  Tooltip as ChartTooltip, ResponsiveContainer, CartesianGrid,
+} from "recharts"
+import {
+  Eye, Users, MousePointerClick, TrendingUp, ChevronRight, Sparkles, Lock,
+} from "lucide-react"
+import { glass, glassReflection } from "@/lib/glass"
+import { resolveUserPlan } from "@/lib/plans"
 
 const AudienceTable = dynamic(
   () => import("@/components/ui/audience-table").then((m) => m.AudienceTable),
@@ -27,39 +33,21 @@ interface OverviewStats {
   vaultUnlocks: number
   vaultConversionRate: number
 }
-
 interface ViewData { date: string; views: number; unique: number }
-
 interface GeoPoint { lat: number; lng: number; country: string | null; city: string | null }
-interface GeoData {
-  topCountries: { country: string; count: number }[]
-  points: GeoPoint[]
-}
-
+interface GeoData { topCountries: { country: string; count: number }[]; points: GeoPoint[] }
 interface LinkStat {
-  id: string
-  title: string
-  icon: string | null
-  totalClicks: number
-  isFolder: boolean
-  isVaultItem: boolean
+  id: string; title: string; icon: string | null
+  totalClicks: number; isFolder: boolean; isVaultItem: boolean
 }
-interface ClickData {
-  totalClicks: number
-  linkStats: LinkStat[]
-  chartData: { date: string; clicks: number }[]
-}
-
-interface Product {
-  id: string
-  title: string
-  price: number
-  totalRevenue: number
-  salesCount: number
-}
-
-interface RenderedDot {
-  px: number; py: number; count: number; country: string; city: string
+interface ClickData { totalClicks: number; linkStats: LinkStat[]; chartData: { date: string; clicks: number }[] }
+interface Product { id: string; title: string; price: number; totalRevenue: number; salesCount: number }
+interface RenderedDot { px: number; py: number; count: number; country: string; city: string }
+interface ProfileData {
+  subscriptionStatus?: string | null
+  subscriptionPlan?: string | null
+  trialEndsAt?: string | null
+  subscriptionEndsAt?: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,34 +82,39 @@ function fmt(n: number): string {
   return n.toLocaleString()
 }
 
-function fmtRevenue(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// Count-up hook — eases from 0 → target on mount/value change
+function useCountUp(target: number, duration = 1100): number {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    if (!target) { setValue(0); return }
+    let start: number | null = null
+    let frame: number
+    const tick = (t: number) => {
+      if (start === null) start = t
+      const p = Math.min((t - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setValue(Math.round(target * eased))
+      if (p < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [target, duration])
+  return value
 }
 
-function Spinner() {
-  return (
-    <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-[#00ff88] animate-spin" />
-  )
-}
-
-// Simplified continent outlines as [lat, lng] polygon arrays
+// Continent polygons used by the canvas globe
 const CONTINENTS: [number, number][][] = [
-  // North America
   [[70,-141],[60,-147],[54,-130],[48,-124],[37,-122],[22,-106],[14,-90],[8,-77],
    [22,-87],[25,-90],[29,-89],[25,-81],[35,-76],[41,-70],[44,-66],[47,-52],
    [52,-56],[60,-64],[62,-78],[66,-86],[70,-90],[75,-95],[70,-141]],
-  // South America
   [[12,-72],[8,-62],[5,-52],[-5,-35],[-15,-38],[-23,-43],[-33,-52],
    [-40,-62],[-54,-68],[-52,-75],[-38,-73],[-18,-70],[-5,-80],[0,-78],[5,-77],[8,-77],[12,-72]],
-  // Europe
   [[36,-8],[42,-8],[44,-1],[50,2],[54,8],[58,6],[68,14],[70,28],[60,28],[59,24],
    [55,21],[54,18],[50,14],[47,22],[44,28],[42,28],[40,22],[38,22],[40,18],[44,14],
    [44,12],[38,16],[38,13],[37,12],[38,10],[44,8],[44,4],[42,4],[37,0],[36,-5],[36,-8]],
-  // Africa
   [[35,-5],[36,10],[33,13],[30,20],[22,30],[12,43],[2,45],[-10,40],[-20,35],[-26,32],
    [-34,26],[-34,18],[-28,15],[-18,12],[-5,12],[4,8],[5,2],[5,-6],[5,-8],[8,-14],
    [12,-17],[20,-17],[28,-12],[35,-5]],
-  // Asia
   [[42,27],[36,28],[36,36],[32,35],[28,34],[22,38],[18,42],[12,44],[12,52],
    [22,60],[24,62],[20,72],[14,74],[8,78],[12,80],[20,86],[20,90],[22,92],
    [16,98],[4,100],[1,104],[4,110],[16,108],[22,114],[32,122],[38,122],[42,130],
@@ -129,110 +122,314 @@ const CONTINENTS: [number, number][][] = [
    [70,140],[73,120],[73,80],[70,68],[62,62],[54,55],[50,52],[44,52],[40,48],
    [36,54],[36,58],[38,65],[32,62],[25,63],[24,57],[26,56],[28,48],[30,48],
    [33,44],[36,38],[37,36],[38,28],[42,27]],
-  // Australia
   [[-14,127],[-12,136],[-14,140],[-12,142],[-18,148],[-28,154],[-34,151],
    [-38,148],[-38,140],[-34,136],[-32,130],[-26,114],[-22,114],[-18,122],[-14,127]],
 ]
 
-// ─── Globe (canvas) ───────────────────────────────────────────────────────────
+// Demo dots when there is no real geo data yet
+const DEMO_POINTS: GeoPoint[] = [
+  { lat: 40.7, lng: -74.0, country: "United States", city: "New York" },
+  { lat: 51.5, lng: -0.1, country: "United Kingdom", city: "London" },
+  { lat: 35.7, lng: 139.7, country: "Japan", city: "Tokyo" },
+  { lat: -33.9, lng: 151.2, country: "Australia", city: "Sydney" },
+  { lat: 31.95, lng: 35.93, country: "Jordan", city: "Amman" },
+  { lat: 25.2, lng: 55.3, country: "United Arab Emirates", city: "Dubai" },
+]
+
+// ─── Glass primitives ────────────────────────────────────────────────────────
+
+function GlassCard({ children, className = "", padding = "p-5" }: {
+  children: ReactNode; className?: string; padding?: string
+}) {
+  return (
+    <div className={`relative overflow-hidden ${padding} ${className}`} style={glass.card}>
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: glassReflection }} />
+      {children}
+    </div>
+  )
+}
+
+function SectionLabel({ children, right }: { children: ReactNode; right?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">{children}</span>
+      {right}
+    </div>
+  )
+}
+
+// ─── Metric card ─────────────────────────────────────────────────────────────
+
+function MetricCard({
+  label, value, trend, sub, icon: Icon, accent = false,
+}: {
+  label: string
+  value: number
+  trend?: number
+  sub?: string
+  icon: typeof Eye
+  accent?: boolean
+}) {
+  const animated = useCountUp(value)
+  return (
+    <GlassCard padding="p-6">
+      <Icon size={16} className="absolute top-6 right-6 text-[#333]" />
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">{label}</div>
+      <div className="flex items-baseline gap-2">
+        <span className={`text-[32px] leading-none font-bold tabular-nums ${accent ? "text-[#00ff88]" : "text-white"}`}>
+          {fmt(animated)}
+        </span>
+        {trend !== undefined && Number.isFinite(trend) && trend !== 0 && (
+          <span
+            className={`text-xs font-mono font-semibold ${trend >= 0 ? "text-[#00ff88]" : "text-red-400"}`}
+            aria-label={trend >= 0 ? "Up" : "Down"}
+          >
+            {trend >= 0 ? "↑" : "↓"}{Math.abs(trend)}%
+          </span>
+        )}
+      </div>
+      {sub && <div className="text-[11px] font-mono text-[#555] mt-1.5">{sub}</div>}
+    </GlassCard>
+  )
+}
+
+// ─── Funnel strip ────────────────────────────────────────────────────────────
+
+function FunnelStrip({ steps }: { steps: { label: string; value: number }[] }) {
+  return (
+    <GlassCard padding="px-5 py-3">
+      <div className="flex items-center justify-between gap-3 overflow-x-auto">
+        {steps.map((step, i) => {
+          const prev = i > 0 ? steps[i - 1].value || 1 : 1
+          const pct = i === 0 ? 100 : Math.round((step.value / prev) * 100)
+          return (
+            <div key={step.label} className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-[#444] truncate">
+                  {step.label}
+                </span>
+                <span className="text-base font-bold font-mono text-white tabular-nums leading-none">
+                  {fmt(step.value)}
+                </span>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="flex items-center gap-1 text-[#444] px-2">
+                  <span className="text-[10px] font-mono">{pct}%</span>
+                  <ChevronRight size={12} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </GlassCard>
+  )
+}
+
+// ─── Views chart (AreaChart) ─────────────────────────────────────────────────
+
+function AreaTooltip({ active, payload, label }: {
+  active?: boolean
+  payload?: Array<{ value: number }>
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+  const formattedLabel = label
+    ? new Date(label).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : ""
+  return (
+    <div
+      className="rounded-xl px-3 py-2 text-xs font-mono shadow-2xl"
+      style={{
+        background: "#0f0f0f",
+        border: "0.5px solid rgba(255,255,255,0.1)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)",
+      }}
+    >
+      <div className="text-[#555] mb-0.5">{formattedLabel}</div>
+      <div className="text-[#00ff88]">{payload[0].value} views</div>
+    </div>
+  )
+}
+
+function ViewsAreaChart({ data, period, loading }: { data: ViewData[]; period: string; loading: boolean }) {
+  return (
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{period} days</span>}>
+        Views · {period} days
+      </SectionLabel>
+      {loading ? (
+        <div className="h-[200px] flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+      ) : data.length === 0 ? (
+        <div className="h-[200px] flex items-center justify-center text-[#444] text-xs font-mono">No data yet</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="viewsAreaFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#00ff88" stopOpacity={0.32} />
+                <stop offset="100%" stopColor="#00ff88" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: "#333", fontSize: 10, fontFamily: "monospace" }}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+              tickFormatter={(v: string) =>
+                new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              }
+            />
+            <YAxis hide />
+            <ChartTooltip content={<AreaTooltip />} cursor={{ stroke: "rgba(0,255,136,0.3)", strokeWidth: 1 }} />
+            <Area
+              type="monotone"
+              dataKey="views"
+              stroke="#00ff88"
+              strokeWidth={1.5}
+              fill="url(#viewsAreaFill)"
+              dot={false}
+              activeDot={{ r: 4, fill: "#00ff88", stroke: "#030303", strokeWidth: 2 }}
+              isAnimationActive
+              animationDuration={900}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </GlassCard>
+  )
+}
+
+// ─── Top blocks list ─────────────────────────────────────────────────────────
+
+function TopBlocksList({ links, loading }: { links: LinkStat[]; loading: boolean }) {
+  const max = links[0]?.totalClicks || 1
+  return (
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel>Top cards</SectionLabel>
+      {loading ? (
+        <div className="h-32 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+      ) : links.length === 0 ? (
+        <div className="h-32 flex items-center justify-center text-[#444] text-xs font-mono">No clicks yet</div>
+      ) : (
+        <div>
+          {links.map((link, i) => {
+            const pct = Math.round((link.totalClicks / max) * 100)
+            return (
+              <div key={link.id} className={`flex items-center gap-3 py-3 ${i === links.length - 1 ? "" : "border-b border-white/[0.04]"}`}>
+                <span className="text-base flex-shrink-0 leading-none">{link.icon || "🔗"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-[#d8d8d8] truncate">{link.title}</p>
+                  <div className="h-[3px] mt-1.5 rounded-full" style={{ background: "rgba(0,255,136,0.12)" }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: "rgba(0,255,136,0.6)" }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                    />
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-[#00ff88] tabular-nums flex-shrink-0">{fmt(link.totalClicks)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </GlassCard>
+  )
+}
+
+// ─── Globe canvas (responsive, aspect 1:1) ───────────────────────────────────
 
 function GlobeCanvas({ points }: { points: GeoPoint[] }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotRef = useRef(0)
   const dragging = useRef(false)
   const lastX = useRef(0)
   const dotsRef = useRef<RenderedDot[]>([])
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [size, setSize] = useState(0)
+
+  // Track wrapper size — keeps the canvas square at any container width
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const update = () => setSize(wrap.clientWidth)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(wrap)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || size <= 0) return
     const rawCtx = canvas.getContext("2d")
     if (!rawCtx) return
-    const ctx: CanvasRenderingContext2D = rawCtx
-
+    const ctx = rawCtx
     const dpr = window.devicePixelRatio || 1
-    const W = canvas.clientWidth
-    const H = canvas.clientHeight
-    canvas.width = W * dpr
-    canvas.height = H * dpr
-    ctx.scale(dpr, dpr)
+    canvas.width = size * dpr
+    canvas.height = size * dpr
+    canvas.style.width = `${size}px`
+    canvas.style.height = `${size}px`
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    const W = size, H = size
+    const cx = W / 2, cy = H / 2
+    const r = Math.min(W, H) / 2 - 14
 
-    const cx = W / 2
-    const cy = H / 2
-    const r = Math.min(W, H) / 2 - 18
-
-    function project(lat: number, lng: number): [number, number, number] {
+    const project = (lat: number, lng: number): [number, number, number] => {
       const phi = (90 - lat) * (Math.PI / 180)
       const theta = (lng + 180) * (Math.PI / 180)
       const x0 = Math.sin(phi) * Math.cos(theta)
       const y0 = Math.cos(phi)
       const z0 = Math.sin(phi) * Math.sin(theta)
       const rot = rotRef.current
-      const c = Math.cos(rot)
-      const s = Math.sin(rot)
-      const xr = x0 * c - z0 * s
-      const yr = y0
-      const zr = x0 * s + z0 * c
-      return [cx + xr * r, cy - yr * r, zr]
+      const c = Math.cos(rot), s = Math.sin(rot)
+      return [cx + (x0 * c - z0 * s) * r, cy - y0 * r, x0 * s + z0 * c]
     }
 
-    function drawGridSegment(coords: [number, number][]) {
+    const drawGridSegment = (coords: [number, number][]) => {
       let started = false
       for (const [lat, lng] of coords) {
         const [px, py, z] = project(lat, lng)
         if (z >= -0.02) {
           if (!started) { ctx.beginPath(); ctx.moveTo(px, py); started = true }
           else ctx.lineTo(px, py)
-        } else if (started) {
-          ctx.stroke()
-          started = false
-        }
+        } else if (started) { ctx.stroke(); started = false }
       }
       if (started) ctx.stroke()
     }
 
-    function draw() {
+    const draw = () => {
       ctx.clearRect(0, 0, W, H)
-
-      // Sphere gradient
+      // Sphere body
       const bg = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.3, 0, cx, cy, r)
       bg.addColorStop(0, "#121212")
-      bg.addColorStop(1, "#030303")
+      bg.addColorStop(1, "#050505")
       ctx.fillStyle = bg
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
 
-      // Clip grid to sphere
+      // Grid + continents inside the sphere
       ctx.save()
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.clip()
-      ctx.strokeStyle = "rgba(0,255,136,0.08)"
-      ctx.lineWidth = 0.6
-
-      // Latitude lines
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip()
+      ctx.strokeStyle = "rgba(255,255,255,0.04)"
+      ctx.lineWidth = 0.5
       for (const lat of [-60, -30, 0, 30, 60]) {
         const coords: [number, number][] = []
         for (let lng = -180; lng <= 180; lng += 4) coords.push([lat, lng])
         drawGridSegment(coords)
       }
-      // Longitude lines
       for (let lng = -180; lng < 180; lng += 30) {
         const coords: [number, number][] = []
         for (let lat = -90; lat <= 90; lat += 4) coords.push([lat, lng])
         drawGridSegment(coords)
       }
-      ctx.restore()
-
-      // Draw continent outlines
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.clip()
-      ctx.strokeStyle = "rgba(0,255,136,0.15)"
-      ctx.lineWidth = 0.8
+      ctx.strokeStyle = "rgba(255,255,255,0.08)"
+      ctx.lineWidth = 0.7
       for (const poly of CONTINENTS) {
         ctx.beginPath()
         let penDown = false
@@ -241,17 +438,13 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
           if (z > 0) {
             if (!penDown) { ctx.moveTo(px, py); penDown = true }
             else ctx.lineTo(px, py)
-          } else if (penDown) {
-            ctx.stroke()
-            ctx.beginPath()
-            penDown = false
-          }
+          } else if (penDown) { ctx.stroke(); ctx.beginPath(); penDown = false }
         }
         if (penDown) ctx.stroke()
       }
       ctx.restore()
 
-      // Aggregate geo dots by bucketed location
+      // Visitor dots (clustered)
       const dotMap = new Map<string, RenderedDot>()
       for (const pt of points) {
         const [px, py, z] = project(pt.lat, pt.lng)
@@ -262,47 +455,38 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
         else dotMap.set(key, { px, py, count: 1, country: pt.country ?? "", city: pt.city ?? "" })
       }
       dotsRef.current = [...dotMap.values()]
-
       for (const d of dotsRef.current) {
-        const sz = Math.max(2.5, Math.min(1.5 + d.count * 0.7, 7.5))
+        const sz = Math.max(2.5, Math.min(1.5 + d.count * 0.7, 7))
         const glow = ctx.createRadialGradient(d.px, d.py, 0, d.px, d.py, sz * 4.5)
         glow.addColorStop(0, `rgba(0,255,136,${Math.min(0.6, 0.22 + d.count * 0.08)})`)
         glow.addColorStop(1, "rgba(0,255,136,0)")
         ctx.fillStyle = glow
-        ctx.beginPath()
-        ctx.arc(d.px, d.py, sz * 4.5, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.beginPath(); ctx.arc(d.px, d.py, sz * 4.5, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = "#00ff88"
-        ctx.beginPath()
-        ctx.arc(d.px, d.py, sz, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.beginPath(); ctx.arc(d.px, d.py, sz, 0, Math.PI * 2); ctx.fill()
       }
 
-      // Atmosphere rim glow
-      const atm = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.06)
+      // Edge atmosphere
+      const atm = ctx.createRadialGradient(cx, cy, r * 0.85, cx, cy, r * 1.06)
       atm.addColorStop(0, "rgba(0,255,136,0)")
-      atm.addColorStop(1, "rgba(0,255,136,0.1)")
+      atm.addColorStop(1, "rgba(0,255,136,0.05)")
       ctx.fillStyle = atm
-      ctx.beginPath()
-      ctx.arc(cx, cy, r * 1.06, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.beginPath(); ctx.arc(cx, cy, r * 1.06, 0, Math.PI * 2); ctx.fill()
     }
 
     let animId: number
-    function tick() {
-      if (!dragging.current) rotRef.current += 0.004
+    const tick = () => {
+      if (!dragging.current) rotRef.current += 0.0035
       draw()
       animId = requestAnimationFrame(tick)
     }
     tick()
     return () => cancelAnimationFrame(animId)
-  }, [points])
+  }, [size, points])
 
-  function onMouseDown(e: React.MouseEvent) {
-    dragging.current = true
-    lastX.current = e.clientX
-  }
-  function onMouseMove(e: React.MouseEvent) {
+  const onMouseDown = (e: React.MouseEvent) => { dragging.current = true; lastX.current = e.clientX }
+  const onMouseUp = () => { dragging.current = false }
+  const onMouseMove = (e: React.MouseEvent) => {
     if (dragging.current) {
       rotRef.current += (e.clientX - lastX.current) * 0.006
       lastX.current = e.clientX
@@ -314,25 +498,23 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
     for (const d of dotsRef.current) {
       if (Math.hypot(mx - d.px, my - d.py) < 14) {
         const place = d.city ? `${d.city}, ${d.country}` : d.country
-        setTooltip({ x: mx, y: my - 48, text: `${place} · ${d.count} ${d.count === 1 ? "visit" : "visits"}` })
+        setTooltip({ x: mx, y: my - 40, text: `${place} · ${d.count} ${d.count === 1 ? "visit" : "visits"}` })
         return
       }
     }
     setTooltip(null)
   }
-  function onMouseUp() { dragging.current = false }
-
-  function onTouchStart(e: React.TouchEvent) { lastX.current = e.touches[0].clientX }
-  function onTouchMove(e: React.TouchEvent) {
+  const onTouchStart = (e: React.TouchEvent) => { lastX.current = e.touches[0].clientX }
+  const onTouchMove = (e: React.TouchEvent) => {
     rotRef.current += (e.touches[0].clientX - lastX.current) * 0.006
     lastX.current = e.touches[0].clientX
   }
 
   return (
-    <div className="relative w-full h-[300px]">
+    <div ref={wrapRef} className="relative w-full mx-auto" style={{ aspectRatio: "1 / 1", maxWidth: 420 }}>
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing select-none"
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
@@ -343,8 +525,11 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
       />
       {tooltip && (
         <div
-          className="absolute z-10 pointer-events-none bg-[#111] border border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono text-[#e0e0e0] whitespace-nowrap shadow-xl"
-          style={{ left: tooltip.x, top: tooltip.y, transform: "translateX(-50%)" }}
+          className="absolute z-10 pointer-events-none rounded-lg px-3 py-1.5 text-xs font-mono text-[#e0e0e0] whitespace-nowrap shadow-xl"
+          style={{
+            left: tooltip.x, top: tooltip.y, transform: "translateX(-50%)",
+            background: "#0f0f0f", border: "0.5px solid rgba(255,255,255,0.1)",
+          }}
         >
           {tooltip.text}
         </div>
@@ -353,48 +538,120 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
   )
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  label, value, sub, trend, accent = false,
-}: {
-  label: string
-  value: string
-  sub?: string
-  trend?: number
-  accent?: boolean
+function AudienceGlobePanel({ points, isUltra, countryCount }: {
+  points: GeoPoint[]; isUltra: boolean; countryCount: number
 }) {
+  const hasReal = points.length > 0
+  const displayPoints = hasReal ? points : DEMO_POINTS
+  const [show, setShow] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setShow(true), 500); return () => clearTimeout(t) }, [])
+
   return (
-    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-      <div className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-3">{label}</div>
-      <div className="flex items-baseline gap-2 mb-1">
-        <span className={`text-2xl sm:text-3xl font-bold font-mono ${accent ? "text-[#00ff88]" : "text-white"}`}>
-          {value}
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel right={
+        <span className="text-[10px] font-mono text-[#00ff88]">
+          {isUltra ? `${countryCount} ${countryCount === 1 ? "country" : "countries"}` : "ULTRA"}
         </span>
-        {trend !== undefined && (
-          <span className={`text-xs font-mono font-semibold ${trend >= 0 ? "text-[#00ff88]" : "text-red-400"}`}>
-            {trend >= 0 ? "↑" : "↓"}{Math.abs(trend)}%
-          </span>
+      }>
+        Audience globe · ultra
+      </SectionLabel>
+      <div className="relative flex items-center justify-center" style={{ minHeight: 480 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: show ? 1 : 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full"
+          style={{ filter: isUltra ? "none" : "blur(6px) brightness(0.55)" }}
+        >
+          <GlobeCanvas points={displayPoints} />
+        </motion.div>
+
+        {!isUltra && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3"
+              style={{ background: "var(--accent-soft, #00ff881a)", border: "1px solid #00ff8833" }}>
+              <Lock size={16} className="text-[#00ff88]" />
+            </div>
+            <p className="text-sm font-medium text-white mb-1">See where your audience is</p>
+            <p className="text-xs font-mono text-[#666] mb-4 max-w-[260px]">
+              Upgrade to Ultra to unlock the audience globe and country-level insights.
+            </p>
+            <a
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-xs hover:opacity-90 transition-opacity"
+            >
+              <Sparkles size={12} /> Upgrade to Ultra
+            </a>
+          </div>
+        )}
+
+        {isUltra && !hasReal && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-[#444]">
+            No visits yet — showing sample locations
+          </div>
         )}
       </div>
-      {sub && <div className="text-[11px] font-mono text-[#444]">{sub}</div>}
-    </div>
+    </GlassCard>
   )
 }
 
-// ─── Custom recharts tooltip ───────────────────────────────────────────────────
+// ─── Audience breakdown (countries) ──────────────────────────────────────────
 
-function BarTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
+function AudiencePanel({ topCountries, loading }: {
+  topCountries: { country: string; count: number }[]; loading: boolean
+}) {
+  const max = topCountries[0]?.count || 1
+  const total = topCountries.reduce((s, c) => s + c.count, 0)
+
   return (
-    <div className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono shadow-xl">
-      <div className="text-[#555] mb-0.5">{label}</div>
-      <div className="text-[#00ff88]">{payload[0].value} views</div>
-    </div>
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} visits</span>}>
+        Audience
+      </SectionLabel>
+
+      <p className="text-[10px] font-mono uppercase tracking-widest text-[#555] mb-3">Top countries</p>
+      {loading ? (
+        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+      ) : topCountries.length === 0 ? (
+        <div className="text-[#444] text-xs font-mono py-3">No geo data yet</div>
+      ) : (
+        <div className="space-y-3">
+          {topCountries.slice(0, 7).map((c, i) => (
+            <div key={c.country} className="flex items-center gap-3">
+              <span className="w-5 text-center text-base flex-shrink-0 leading-none">{countryFlag(c.country)}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[13px] text-[#d8d8d8] truncate">{c.country}</span>
+                  <span className="text-xs font-mono text-[#888] ml-2 tabular-nums flex-shrink-0">{c.count}</span>
+                </div>
+                <div className="h-[3px] rounded-full" style={{ background: "rgba(0,255,136,0.12)" }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: "rgba(0,255,136,0.6)" }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(c.count / max) * 100}%` }}
+                    transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </GlassCard>
   )
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 280, damping: 24 } },
+}
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+}
 
 export default function AnalyticsDashboard() {
   const [overview, setOverview] = useState<OverviewStats | null>(null)
@@ -402,6 +659,7 @@ export default function AnalyticsDashboard() {
   const [geoData, setGeoData] = useState<GeoData | null>(null)
   const [clickData, setClickData] = useState<ClickData | null>(null)
   const [products, setProducts] = useState<Product[]>([])
+  const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState("30")
 
@@ -413,8 +671,9 @@ export default function AnalyticsDashboard() {
       fetch("/api/analytics/views?geo=true"),
       fetch(`/api/analytics/clicks?period=${period}`),
       fetch("/api/products"),
+      fetch("/api/profile"),
     ]).then(async (results) => {
-      const [ovR, viewsR, geoR, clicksR, prodsR] = results
+      const [ovR, viewsR, geoR, clicksR, prodsR, profR] = results
       if (ovR.status === "fulfilled" && ovR.value.ok) setOverview(await ovR.value.json())
       if (viewsR.status === "fulfilled" && viewsR.value.ok) setViewsData(await viewsR.value.json())
       if (geoR.status === "fulfilled" && geoR.value.ok) setGeoData(await geoR.value.json())
@@ -423,264 +682,163 @@ export default function AnalyticsDashboard() {
         const data = await prodsR.value.json()
         setProducts(Array.isArray(data) ? data : [])
       }
+      if (profR.status === "fulfilled" && profR.value.ok) setProfile(await profR.value.json())
       setLoading(false)
     })
   }, [period])
 
-  const totalRevenue = products.reduce((s, p) => s + (p.totalRevenue || 0), 0)
   const totalSales = products.reduce((s, p) => s + (p.salesCount || 0), 0)
+  const userPlan = profile ? resolveUserPlan({
+    subscriptionStatus: profile.subscriptionStatus,
+    subscriptionPlan: profile.subscriptionPlan,
+    trialEndsAt: profile.trialEndsAt ? new Date(profile.trialEndsAt) : null,
+    subscriptionEndsAt: profile.subscriptionEndsAt ? new Date(profile.subscriptionEndsAt) : null,
+  }) : "free"
+  const isUltra = userPlan === "ultra"
 
   const funnelSteps = [
     { label: "Visited", value: overview?.totalViews ?? 0 },
-    { label: "Clicked link", value: overview?.totalClicks ?? 0 },
-    { label: "Email captured", value: overview?.totalAudience ?? 0 },
+    { label: "Clicked", value: overview?.totalClicks ?? 0 },
+    { label: "Email", value: overview?.totalAudience ?? 0 },
     { label: "Purchased", value: totalSales },
   ]
-  const funnelMax = funnelSteps[0].value || 1
 
-  const topCountries = geoData?.topCountries.slice(0, 7) ?? []
-  const countryMax = topCountries[0]?.count || 1
+  const topCountries = geoData?.topCountries ?? []
   const topLinks = clickData?.linkStats.slice(0, 5) ?? []
+  const ctr = overview?.ctr ?? 0
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-7 pb-5">
-        <h1 className="text-base font-bold text-white">Analytics</h1>
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="input-obsidian text-sm py-1.5 px-3 w-auto"
+    <div className="min-h-screen bg-[#030303] text-white">
+      <div className="max-w-[1100px] mx-auto px-6 py-8">
+
+        {/* ── Header ────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between mb-6"
         >
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
-      </div>
-
-      <div className="px-6 pb-12 space-y-5">
-
-        {/* ── Section 1: Stats row ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Page Views"
-            value={loading ? "—" : fmt(overview?.totalViews ?? 0)}
-            trend={overview?.viewsTrend}
-            sub={`${fmt(overview?.totalViewsLast7Days ?? 0)} this week`}
-          />
-          <StatCard
-            label="Unique Visitors"
-            value={loading ? "—" : fmt(overview?.uniqueViews ?? 0)}
-            sub={`${fmt(overview?.uniqueViewsLast7Days ?? 0)} this week`}
-          />
-          <StatCard
-            label="Emails Captured"
-            value={loading ? "—" : fmt(overview?.totalAudience ?? 0)}
-            sub={`${overview?.vaultConversionRate ?? 0}% conversion`}
-            accent
-          />
-          <StatCard
-            label="Revenue"
-            value={loading ? "—" : fmtRevenue(totalRevenue)}
-            sub={`${totalSales} ${totalSales === 1 ? "sale" : "sales"}`}
-          />
-        </div>
-
-        {/* ── Section 2: Main layout ──────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-[3fr,2fr] gap-5 items-start">
-
-          {/* Left column */}
-          <div className="space-y-5">
-
-            {/* Globe */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">
-                  Visitor locations
-                </span>
-                <span className="text-xs font-mono text-[#00ff88]">
-                  {geoData ? `${geoData.topCountries.length} countries` : "—"}
-                </span>
-              </div>
-              <GlobeCanvas points={geoData?.points ?? []} />
-            </div>
-
-            {/* Daily views bar chart */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-white/30">
-                  Daily views
-                </span>
-                <span className="text-[10px] font-mono text-[#444]">{period} days</span>
-              </div>
-              {loading ? (
-                <div className="h-[180px] flex items-center justify-center">
-                  <Spinner />
-                </div>
-              ) : viewsData.length === 0 ? (
-                <div className="h-[180px] flex items-center justify-center text-[#444] text-sm font-mono">
-                  No data yet
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={viewsData} barGap={2} barCategoryGap="25%">
-                    <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} />
-                    <YAxis
-                      tick={{ fill: "#444", fontSize: 10, fontFamily: "monospace" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={28}
-                    />
-                    <ChartTooltip content={<BarTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                    <Bar dataKey="views" radius={[3, 3, 0, 0]} maxBarSize={18}>
-                      {viewsData.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={i === viewsData.length - 1 ? "#00ff88" : "rgba(0,255,136,0.35)"}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Analytics</h1>
+            <p className="text-xs font-mono text-[#555] mt-1">Your audience, in numbers.</p>
           </div>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="text-sm font-mono py-2 px-3 rounded-xl outline-none focus:border-[#00ff88]/30"
+            style={glass.input}
+          >
+            <option value="7" className="bg-[#111]">Last 7 days</option>
+            <option value="30" className="bg-[#111]">Last 30 days</option>
+            <option value="90" className="bg-[#111]">Last 90 days</option>
+          </select>
+        </motion.div>
 
-          {/* Right column */}
-          <div className="space-y-4">
+        {/* ── Funnel strip ──────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, type: "spring", stiffness: 280, damping: 24 }}
+          className="mb-5"
+        >
+          <FunnelStrip steps={funnelSteps} />
+        </motion.div>
 
-            {/* Top countries */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-4">
-                Top countries
-              </div>
-              {loading ? (
-                <div className="h-32 flex items-center justify-center"><Spinner /></div>
-              ) : topCountries.length === 0 ? (
-                <div className="text-center py-6 text-[#444] text-xs font-mono">
-                  No geo data yet — views will populate once visitors arrive
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {topCountries.map(({ country, count }, i) => (
-                    <div key={country} className="flex items-center gap-3">
-                      <span className="w-7 text-center text-base flex-shrink-0 leading-none">
-                        {countryFlag(country)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-mono text-[#e0e0e0] truncate">{country}</span>
-                          <span className="text-xs font-mono text-[#888] ml-2 flex-shrink-0">{count}</span>
-                        </div>
-                        <div className="h-1 rounded-full bg-white/[0.05]">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(count / countryMax) * 100}%`,
-                              background: "#00ff88",
-                              opacity: Math.max(0.35, 1 - i * 0.1),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* ── Metric cards ──────────────────────────────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5"
+        >
+          <motion.div variants={cardVariants}>
+            <MetricCard label="Total views" value={overview?.totalViews ?? 0} trend={overview?.viewsTrend} icon={Eye} sub={`${fmt(overview?.totalViewsLast7Days ?? 0)} this week`} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <MetricCard label="Unique visitors" value={overview?.uniqueViews ?? 0} icon={Users} sub={`${fmt(overview?.uniqueViewsLast7Days ?? 0)} this week`} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <MetricCard label="Link clicks" value={overview?.totalClicks ?? 0} trend={overview?.clicksTrend} icon={MousePointerClick} sub={`${fmt(clickData?.totalClicks ?? 0)} in window`} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <ConversionRateCard ctr={ctr} icon={TrendingUp} />
+          </motion.div>
+        </motion.div>
 
-            {/* Conversion funnel */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-4">
-                Conversion funnel
-              </div>
-              <div className="space-y-3">
-                {funnelSteps.map((step, i) => {
-                  const pct = Math.round((step.value / funnelMax) * 100)
-                  return (
-                    <div key={step.label}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-mono text-[#888]">{step.label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-[#e0e0e0]">{fmt(step.value)}</span>
-                          {i > 0 && (
-                            <span className="text-[10px] font-mono text-[#555]">{pct}%</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-white/[0.04]">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${pct}%`,
-                            background: `rgba(0,255,136,${0.95 - i * 0.18})`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+        {/* ── Row 2: Views chart 60% + Top blocks 40% ────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 mb-5"
+        >
+          <motion.div variants={cardVariants}>
+            <ViewsAreaChart data={viewsData} period={period} loading={loading} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <TopBlocksList links={topLinks} loading={loading} />
+          </motion.div>
+        </motion.div>
 
-            {/* Top performing blocks */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-4">
-                Top blocks
-              </div>
-              {loading ? (
-                <div className="h-24 flex items-center justify-center"><Spinner /></div>
-              ) : topLinks.length === 0 ? (
-                <div className="text-center py-4 text-[#444] text-xs font-mono">No clicks yet</div>
-              ) : (
-                <div className="space-y-1">
-                  {topLinks.map((link, i) => (
-                    <div key={link.id} className="flex items-center gap-2.5 py-1.5">
-                      <span className="text-[#333] font-mono text-[10px] w-4 flex-shrink-0 text-right">
-                        {i + 1}
-                      </span>
-                      <span className="text-base flex-shrink-0 leading-none">{link.icon || "🔗"}</span>
-                      <span className="flex-1 text-xs font-mono text-[#e0e0e0] truncate">{link.title}</span>
-                      <span
-                        className={`text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0 ${
-                          link.isVaultItem
-                            ? "bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20"
-                            : link.isFolder
-                            ? "bg-white/[0.05] text-[#555] border border-white/[0.07]"
-                            : "bg-white/[0.04] text-[#444] border border-white/[0.06]"
-                        }`}
-                      >
-                        {link.isVaultItem ? "Vault" : link.isFolder ? "Portal" : "Link"}
-                      </span>
-                      <span className="text-xs font-mono text-[#00ff88] w-10 text-right flex-shrink-0">
-                        {fmt(link.totalClicks)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* ── Row 3: Globe 50% + Audience 50% ────────────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5"
+        >
+          <motion.div variants={cardVariants}>
+            <AudienceGlobePanel
+              points={geoData?.points ?? []}
+              isUltra={isUltra}
+              countryCount={topCountries.length}
+            />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <AudiencePanel topCountries={topCountries} loading={loading} />
+          </motion.div>
+        </motion.div>
 
-        {/* ── Section 3: Audience CRM ─────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-white/30">
+        {/* ── Row 4: Audience CRM ────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, type: "spring", stiffness: 280, damping: 24 }}
+        >
+          <GlassCard padding="p-5">
+            <SectionLabel right={
+              <a
+                href="/api/audience/export"
+                download
+                className="text-[11px] font-mono text-[#888] hover:text-[#00ff88] transition-colors"
+              >
+                Export CSV →
+              </a>
+            }>
               Audience CRM
-            </div>
-            <a
-              href="/api/audience/export"
-              download
-              className="text-xs font-mono text-[#00ff88] hover:opacity-75 transition-opacity"
-            >
-              Export CSV →
-            </a>
-          </div>
-          <AudienceTable />
-        </div>
+            </SectionLabel>
+            <AudienceTable />
+          </GlassCard>
+        </motion.div>
 
       </div>
     </div>
+  )
+}
+
+// CTR uses a decimal so we render it differently (no count-up via fmt())
+function ConversionRateCard({ ctr, icon: Icon }: { ctr: number; icon: typeof Eye }) {
+  const animated = useCountUp(Math.round(ctr * 10), 1100) / 10
+  return (
+    <GlassCard padding="p-6">
+      <Icon size={16} className="absolute top-6 right-6 text-[#333]" />
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Conversion rate</div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-[32px] leading-none font-bold tabular-nums text-[#00ff88]">
+          {animated.toFixed(1)}%
+        </span>
+      </div>
+      <div className="text-[11px] font-mono text-[#555] mt-1.5">clicks ÷ views</div>
+    </GlassCard>
   )
 }

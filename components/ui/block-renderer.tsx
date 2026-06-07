@@ -1029,7 +1029,19 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
           <p className="text-base font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{formattedPrice}</p>
         )}
         {!creatorStripeReady ? (
-          <div className="text-[#444] font-mono text-xs">Payments not set up</div>
+          <div
+            className="rounded-xl px-3 py-2.5"
+            style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)" }}
+          >
+            <p className="text-xs text-[#888] font-mono mb-1.5">Set up payments to sell this product</p>
+            <a
+              href="/dashboard/payments"
+              className="inline-flex items-center gap-1 text-xs font-mono font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: "var(--accent, #00ff88)" }}
+            >
+              Go to Payments →
+            </a>
+          </div>
         ) : (
           <button onClick={handleBuy} disabled={loading}
             className="w-full text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"

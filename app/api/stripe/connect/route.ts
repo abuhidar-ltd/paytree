@@ -41,7 +41,7 @@ export async function GET() {
     body: new URLSearchParams({
       account: stripeAccountId,
       refresh_url: `${appUrl}/api/stripe/connect`,
-      return_url: `${appUrl}/settings?stripe=success`,
+      return_url: `${appUrl}/dashboard/payments?stripe=success`,
       type: "account_onboarding",
     }).toString(),
   })

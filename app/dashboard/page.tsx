@@ -23,7 +23,7 @@ import {
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
   Tv, Hash, Copy, Pencil, CopyPlus,
-  LayoutGrid, Paintbrush, Settings, Menu,
+  LayoutGrid, Paintbrush, Settings, Menu, CreditCard,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────
@@ -61,6 +61,7 @@ interface Profile {
   subscriptionStatus: string | null
   subscriptionPlan: string | null
   stripeAccountId: string | null
+  stripeAccountStatus: string | null
   accentColor: string | null
 }
 
@@ -195,6 +196,7 @@ export default function DashboardPage() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [showAddPicker, setShowAddPicker] = useState(false)
   const [collectionViewId, setCollectionViewId] = useState<string | null>(null)
+  const [stripeBannerDismissed, setStripeBannerDismissed] = useState(true)
   const [editTab, setEditTab] = useState<"content" | "style" | "settings">("content")
   const [previewKey, setPreviewKey] = useState(0)
   const [previewUrl, setPreviewUrl] = useState("")
@@ -240,6 +242,19 @@ export default function DashboardPage() {
       document.documentElement.style.setProperty("--accent", profile.accentColor)
     }
   }, [profile?.accentColor])
+
+  // Read the Stripe banner dismissed state (gated to client to avoid SSR flash)
+  useEffect(() => {
+    setStripeBannerDismissed(
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("paytree_stripe_banner_dismissed") === "1"
+    )
+  }, [])
+
+  const dismissStripeBanner = () => {
+    try { window.localStorage.setItem("paytree_stripe_banner_dismissed", "1") } catch {}
+    setStripeBannerDismissed(true)
+  }
 
   const userPlan = profile ? resolveUserPlan(profile as never) : "free"
 
@@ -444,6 +459,7 @@ export default function DashboardPage() {
           <SidebarItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} />
           <SidebarItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} />
           <SidebarItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} />
+          <SidebarItem href="/dashboard/payments" icon={CreditCard} label="Payments" active={pathname.startsWith("/dashboard/payments")} />
           <SidebarItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} />
         </nav>
 
@@ -493,6 +509,7 @@ export default function DashboardPage() {
                 <SidebarItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} onClick={() => setSidebarOpen(false)} />
                 <SidebarItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} onClick={() => setSidebarOpen(false)} />
                 <SidebarItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} onClick={() => setSidebarOpen(false)} />
+                <SidebarItem href="/dashboard/payments" icon={CreditCard} label="Payments" active={pathname.startsWith("/dashboard/payments")} onClick={() => setSidebarOpen(false)} />
                 <SidebarItem href="/settings" icon={Settings} label="Settings" active={pathname === "/settings"} onClick={() => setSidebarOpen(false)} />
               </nav>
               {profile?.username && (
@@ -564,6 +581,38 @@ export default function DashboardPage() {
             <Link href="/pricing" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
               Upgrade $7/mo →
             </Link>
+          </div>
+        )}
+
+        {/* Stripe Connect Banner — paid users without an active Stripe account */}
+        {userPlan !== "free"
+          && profile?.stripeAccountStatus !== "active"
+          && !stripeBannerDismissed && (
+          <div
+            className="mb-4 px-4 py-2.5 flex items-center justify-between gap-3 rounded-xl"
+            style={{
+              background: "linear-gradient(to right, rgba(99,91,255,0.08), transparent)",
+              border: "0.5px solid rgba(99,91,255,0.18)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
+          >
+            <span className="text-xs text-[#d0d0ff] font-mono flex-1 truncate">
+              💳 Want to sell products? Connect Stripe to start accepting payments.
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href="/dashboard/payments"
+                className="text-[11px] text-white bg-[#635BFF] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90"
+              >
+                Set up payments →
+              </Link>
+              <button
+                onClick={dismissStripeBanner}
+                className="text-[11px] font-mono text-[#666] hover:text-[#aaa] transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
 
