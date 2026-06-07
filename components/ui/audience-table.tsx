@@ -1,9 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
+import {
+  Search, Download, Loader2, Check, AlertCircle,
+  Mail, Sparkles, ArrowRight, Trash2, ChevronUp,
+} from "lucide-react"
 import { GlassBrick } from "./obsidian-card"
+import type { PlanId } from "@/lib/plans"
 
 interface AudienceMember {
   id: string
@@ -26,9 +31,23 @@ interface Pagination {
 
 interface AudienceTableProps {
   className?: string
+  userPlan?: PlanId
 }
 
-export function AudienceTable({ className = "" }: AudienceTableProps) {
+type ExportState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "success" }
+  | { kind: "error"; message: string }
+
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+
+export function AudienceTable({ className = "", userPlan = "free" }: AudienceTableProps) {
   const [audience, setAudience] = useState<AudienceMember[]>([])
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -43,9 +62,12 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState<string | null>(null)
-  
-  // Fetch audience data
-  const fetchAudience = async () => {
+  const [exportState, setExportState] = useState<ExportState>({ kind: "idle" })
+  const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const canExport = userPlan !== "free"
+
+  const fetchAudience = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -53,13 +75,12 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
         sortBy,
         sortOrder,
       })
-      
       if (search) params.set("search", search)
       if (sourceFilter) params.set("source", sourceFilter)
-      
+
       const res = await fetch(`/api/audience?${params}`)
       if (!res.ok) throw new Error("Failed to fetch")
-      
+
       const data = await res.json()
       setAudience(data.audience)
       setPagination(data.pagination)
@@ -69,30 +90,37 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
     } finally {
       setLoading(false)
     }
-  }
-  
+  }, [pagination.page, pagination.limit, sortBy, sortOrder, search, sourceFilter])
+
   useEffect(() => {
     fetchAudience()
-  }, [pagination.page, sortBy, sortOrder, sourceFilter])
-  
+  }, [pagination.page, sortBy, sortOrder, sourceFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPagination(p => ({ ...p, page: 1 }))
+      setPagination((p) => ({ ...p, page: 1 }))
       fetchAudience()
     }, 300)
     return () => clearTimeout(timer)
-  }, [search])
-  
-  // Handle delete
+  }, [search]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => { if (exportTimer.current) clearTimeout(exportTimer.current) }, [])
+
+  // Clear selection when the visible page changes
+  useEffect(() => { setSelectedIds(new Set()) }, [pagination.page])
+
   const handleDelete = async (id: string) => {
     setDeleting(id)
     try {
       const res = await fetch(`/api/audience/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to delete")
-      
-      setAudience(prev => prev.filter(a => a.id !== id))
-      setPagination(prev => ({ ...prev, total: prev.total - 1 }))
+
+      setAudience((prev) => prev.filter((a) => a.id !== id))
+      setPagination((prev) => ({ ...prev, total: prev.total - 1 }))
+      setSelectedIds((prev) => {
+        const next = new Set(prev); next.delete(id); return next
+      })
       toast.success("Email removed")
     } catch {
       toast.error("Failed to delete")
@@ -100,99 +128,204 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
       setDeleting(null)
     }
   }
-  
-  // Handle CSV export
-  const handleExport = async () => {
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExport = async (ids?: string[]) => {
+    if (!canExport) return
+    if (exportTimer.current) clearTimeout(exportTimer.current)
+    setExportState({ kind: "loading" })
     try {
-      const res = await fetch("/api/audience/export")
-      if (!res.ok) throw new Error("Failed to export")
-      
+      const qs = ids && ids.length > 0 ? `?ids=${encodeURIComponent(ids.join(","))}` : ""
+      const res = await fetch(`/api/audience/export${qs}`)
+      if (!res.ok) {
+        let message = "Export failed"
+        try {
+          const body = await res.json()
+          if (body?.error) message = body.error
+        } catch { /* non-JSON */ }
+        throw new Error(message)
+      }
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `paytree-audience-${new Date().toISOString().split("T")[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-      toast.success("Exported to CSV!")
-    } catch {
-      toast.error("Export failed")
+      const today = new Date().toISOString().split("T")[0]
+      const suffix = ids && ids.length > 0 ? "-selected" : ""
+      downloadBlob(blob, `paytree-audience${suffix}-${today}.csv`)
+
+      setExportState({ kind: "success" })
+      exportTimer.current = setTimeout(() => setExportState({ kind: "idle" }), 2000)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Export failed"
+      setExportState({ kind: "error", message })
+      exportTimer.current = setTimeout(() => setExportState({ kind: "idle" }), 3000)
     }
   }
-  
-  // Toggle select all
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === audience.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(audience.map(a => a.id)))
-    }
+    if (selectedIds.size === audience.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(audience.map((a) => a.id)))
   }
-  
-  // Toggle sort
+
   const handleSort = (column: string) => {
-    if (sortBy === column) {
-      setSortOrder(prev => prev === "asc" ? "desc" : "asc")
-    } else {
-      setSortBy(column)
-      setSortOrder("desc")
+    if (sortBy === column) setSortOrder((p) => (p === "asc" ? "desc" : "asc"))
+    else { setSortBy(column); setSortOrder("desc") }
+  }
+
+  const totalContacts = pagination.total
+  const selectedCount = selectedIds.size
+  const showEmptyState =
+    !loading && totalContacts === 0 && !search && !sourceFilter
+
+  // ── Empty state ─────────────────────────────────────────────────
+  if (showEmptyState) {
+    return (
+      <div className={className}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          className="flex flex-col items-center justify-center text-center py-12 px-6"
+        >
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+            style={{
+              background: "rgba(0,255,136,0.08)",
+              border: "1px solid rgba(0,255,136,0.18)",
+            }}
+          >
+            <Mail size={22} className="text-[#00ff88]" />
+          </div>
+          <p className="text-sm font-medium text-white mb-1.5">
+            No emails captured yet
+          </p>
+          <p className="text-xs font-mono text-[#666] max-w-[320px] mb-5 leading-relaxed">
+            Add a vault card to your page to start capturing emails from visitors.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-xs hover:opacity-90 transition-opacity"
+          >
+            Add vault card <ArrowRight size={12} />
+          </a>
+        </motion.div>
+      </div>
+    )
+  }
+
+  // ── Export button styling ───────────────────────────────────────
+  const exportLabel = (() => {
+    if (!canExport) return "Export CSV"
+    if (selectedCount > 0 && exportState.kind === "idle") {
+      return `Export selected (${selectedCount})`
     }
-  }
-  
-  // Format date
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-  
+    switch (exportState.kind) {
+      case "loading": return "Exporting…"
+      case "success": return "Downloaded"
+      case "error":   return "Export failed"
+      default:        return "Export CSV"
+    }
+  })()
+
+  const exportColor =
+    exportState.kind === "success" ? "#00ff88"
+    : exportState.kind === "error" ? "#ff5555"
+    : canExport ? "#d8d8d8" : "#555"
+
+  const exportDisabled =
+    !canExport || exportState.kind === "loading" || exportState.kind === "success"
+
   return (
     <div className={className}>
-      {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
-        {/* Search */}
-        <div className="relative flex-1">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888888]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search emails..."
-            className="input-obsidian w-full pl-11"
-          />
+      {/* ── Header row: count + controls ──────────────────────────── */}
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-[11px] font-mono text-[#888] tabular-nums">
+            {totalContacts.toLocaleString()}{" "}
+            {totalContacts === 1 ? "contact" : "contacts"} captured
+          </span>
+
+          {/* Export button (stateful) */}
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={() => handleExport(selectedCount > 0 ? Array.from(selectedIds) : undefined)}
+              disabled={exportDisabled}
+              className="inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-xl transition-all disabled:cursor-not-allowed"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "0.5px solid rgba(255,255,255,0.08)",
+                color: exportColor,
+                opacity: !canExport ? 0.55 : 1,
+              }}
+            >
+              {exportState.kind === "loading" ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : exportState.kind === "success" ? (
+                <Check size={12} />
+              ) : exportState.kind === "error" ? (
+                <AlertCircle size={12} />
+              ) : (
+                <Download size={12} />
+              )}
+              <span>{exportLabel}</span>
+            </button>
+
+            {!canExport && (
+              <div
+                className="pointer-events-none absolute right-0 top-full mt-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-[#d8d8d8] shadow-xl"
+                style={{
+                  background: "#0f0f0f",
+                  border: "0.5px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                <Sparkles size={10} className="inline mr-1 text-[#00ff88]" />
+                Upgrade to Starter to export emails
+              </div>
+            )}
+          </div>
         </div>
-        
-        {/* Source Filter */}
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="input-obsidian min-w-[140px]"
-        >
-          <option value="">All Sources</option>
-          <option value="vault">Vault</option>
-          <option value="manual">Manual</option>
-          <option value="newsletter">Newsletter</option>
-        </select>
-        
-        {/* Export Button */}
-        <button onClick={handleExport} className="btn-accent flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export CSV
-        </button>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search emails…"
+              className="input-obsidian w-full pl-9 text-sm"
+            />
+          </div>
+
+          {/* Source filter */}
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="input-obsidian min-w-[140px] text-sm"
+          >
+            <option value="">All sources</option>
+            <option value="vault">Vault</option>
+            <option value="form">Form</option>
+            <option value="purchase">Purchase</option>
+            <option value="manual">Manual</option>
+            <option value="newsletter">Newsletter</option>
+          </select>
+        </div>
       </div>
-      
-      {/* Table */}
+
+      {/* ── Table ──────────────────────────────────────────────────── */}
       <GlassBrick className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -204,37 +337,40 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
                     checked={selectedIds.size === audience.length && audience.length > 0}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 rounded border-[rgba(255,255,255,0.2)] bg-transparent"
+                    aria-label="Select all rows on this page"
                   />
                 </th>
-                <th 
-                  className="text-left p-4 text-xs font-bold uppercase text-[#888888] cursor-pointer hover:text-white transition-colors"
+                <th
+                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888] cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort("email")}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     Email
                     {sortBy === "email" && (
-                      <svg className={`w-3 h-3 transition-transform ${sortOrder === "asc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <ChevronUp
+                        size={12}
+                        className={`transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                      />
                     )}
                   </span>
                 </th>
-                <th className="text-left p-4 text-xs font-bold uppercase text-[#888888]">
+                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888]">
                   Source
                 </th>
-                <th className="text-left p-4 text-xs font-bold uppercase text-[#888888]">
-                  Vault Item
+                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888]">
+                  Vault item
                 </th>
-                <th 
-                  className="text-left p-4 text-xs font-bold uppercase text-[#888888] cursor-pointer hover:text-white transition-colors"
+                <th
+                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888] cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort("capturedAt")}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     Captured
                     {sortBy === "capturedAt" && (
-                      <svg className={`w-3 h-3 transition-transform ${sortOrder === "asc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <ChevronUp
+                        size={12}
+                        className={`transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                      />
                     )}
                   </span>
                 </th>
@@ -244,7 +380,6 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
             <tbody>
               <AnimatePresence mode="popLayout">
                 {loading ? (
-                  // Loading skeleton
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`skeleton-${i}`} className="border-b border-[rgba(255,255,255,0.05)]">
                       <td className="p-4"><div className="w-4 h-4 bg-[rgba(255,255,255,0.05)] rounded animate-pulse" /></td>
@@ -258,10 +393,9 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
                 ) : audience.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center">
-                      <div className="text-3xl mb-2 opacity-40">📧</div>
-                      <p className="text-[#888888]">No emails captured yet</p>
-                      <p className="text-sm text-[#555555] mt-1">
-                        Add vault items to start collecting emails
+                      <p className="text-sm text-[#888]">No emails match your filters</p>
+                      <p className="text-xs font-mono text-[#555] mt-1">
+                        Try clearing your search or source filter
                       </p>
                     </td>
                   </tr>
@@ -279,57 +413,53 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
                           type="checkbox"
                           checked={selectedIds.has(member.id)}
                           onChange={() => {
-                            const newSet = new Set(selectedIds)
-                            if (newSet.has(member.id)) {
-                              newSet.delete(member.id)
-                            } else {
-                              newSet.add(member.id)
-                            }
-                            setSelectedIds(newSet)
+                            const next = new Set(selectedIds)
+                            if (next.has(member.id)) next.delete(member.id)
+                            else next.add(member.id)
+                            setSelectedIds(next)
                           }}
                           className="w-4 h-4 rounded border-[rgba(255,255,255,0.2)] bg-transparent"
+                          aria-label={`Select ${member.email}`}
                         />
                       </td>
                       <td className="p-4">
-                        <span className="font-medium text-white">{member.email}</span>
+                        <span className="font-medium text-white text-sm">{member.email}</span>
                       </td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                          member.source === "vault" 
-                            ? "bg-[rgba(0,255,136,0.1)] text-[#00ff88]"
-                            : "bg-[rgba(255,255,255,0.05)] text-[#888888]"
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider ${
+                            member.source === "vault"
+                              ? "bg-[rgba(0,255,136,0.1)] text-[#00ff88]"
+                              : "bg-[rgba(255,255,255,0.05)] text-[#888]"
+                          }`}
+                        >
                           {member.source || "unknown"}
                         </span>
                       </td>
                       <td className="p-4">
                         {member.vaultItem ? (
-                          <span className="flex items-center gap-2 text-sm text-[#888888]">
+                          <span className="flex items-center gap-2 text-sm text-[#888]">
                             <span>{member.vaultItem.icon || "🔒"}</span>
                             <span className="truncate max-w-[120px]">{member.vaultItem.title}</span>
                           </span>
                         ) : (
-                          <span className="text-[#555555]">—</span>
+                          <span className="text-[#555]">—</span>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-[#888888]">
+                      <td className="p-4 text-sm font-mono text-[#888]">
                         {formatDate(member.capturedAt)}
                       </td>
                       <td className="p-4">
                         <button
                           onClick={() => handleDelete(member.id)}
                           disabled={deleting === member.id}
-                          className="p-2 text-[#888888] hover:text-red-500 transition-colors disabled:opacity-50"
+                          className="p-2 text-[#666] hover:text-red-500 transition-colors disabled:opacity-50"
+                          aria-label="Delete contact"
                         >
                           {deleting === member.id ? (
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
+                            <Loader2 size={14} className="animate-spin" />
                           ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <Trash2 size={14} />
                           )}
                         </button>
                       </td>
@@ -340,25 +470,27 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between p-4 border-t border-[rgba(255,255,255,0.1)]">
-            <p className="text-sm text-[#888888]">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+            <p className="text-xs font-mono text-[#888] tabular-nums">
+              Showing {((pagination.page - 1) * pagination.limit) + 1}–
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+              {pagination.total}
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
+                onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
                 disabled={pagination.page === 1}
-                className="btn-obsidian px-3 py-1.5 text-sm disabled:opacity-50"
+                className="btn-obsidian px-3 py-1.5 text-xs font-mono disabled:opacity-40"
               >
-                Previous
+                Prev
               </button>
               <button
-                onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
+                onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
                 disabled={pagination.page === pagination.totalPages}
-                className="btn-obsidian px-3 py-1.5 text-sm disabled:opacity-50"
+                className="btn-obsidian px-3 py-1.5 text-xs font-mono disabled:opacity-40"
               >
                 Next
               </button>
@@ -369,4 +501,3 @@ export function AudienceTable({ className = "" }: AudienceTableProps) {
     </div>
   )
 }
-

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { detectDevice, normalizeReferrer } from "@/lib/tracking"
 
 export async function POST(req: Request) {
   try {
@@ -19,13 +20,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Link not found" }, { status: 404 })
     }
 
+    const userAgent = req.headers.get("user-agent")
+    const referer = req.headers.get("referer")
+
     // Track click with metadata
     await prisma.click.create({
       data: {
         linkId,
         userId: link.userId,
-        userAgent: req.headers.get("user-agent") || undefined,
-        referrer: req.headers.get("referer") || undefined,
+        userAgent: userAgent || undefined,
+        referrer: normalizeReferrer(referer),
+        device: detectDevice(userAgent),
         isPortalOpen: isPortalOpen ?? false,
         isLiveClick: isLiveClick ?? false,
       }

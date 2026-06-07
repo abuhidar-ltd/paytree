@@ -159,9 +159,10 @@ model Click {
   userId    String
   timestamp DateTime @default(now())
   userAgent String?
-  referrer  String?
+  referrer  String? // normalized source: direct, instagram, tiktok, twitter, youtube, facebook, google, linkedin, other
+  device    String?  @default("unknown") // mobile, desktop, tablet, unknown
   country   String?
-  
+
   // ===== OBSIDIAN ANALYTICS =====
   isPortalOpen Boolean @default(false) // Track portal folder opens
   isLiveClick  Boolean @default(false) // Track clicks during live status
@@ -172,6 +173,8 @@ model Click {
   @@index([linkId])
   @@index([userId])
   @@index([timestamp])
+  @@index([userId, device])
+  @@index([userId, referrer])
 }
 
 model View {
@@ -179,7 +182,8 @@ model View {
   userId    String
   timestamp DateTime @default(now())
   userAgent String?
-  referrer  String?
+  referrer  String? // normalized source: direct, instagram, tiktok, twitter, youtube, facebook, google, linkedin, other
+  device    String?  @default("unknown") // mobile, desktop, tablet, unknown
   country   String?
   city      String?
   lat       Float?
@@ -195,6 +199,8 @@ model View {
   @@index([userId])
   @@index([timestamp])
   @@index([fingerprint])
+  @@index([userId, device])
+  @@index([userId, referrer])
 }
 
 model SocialLink {

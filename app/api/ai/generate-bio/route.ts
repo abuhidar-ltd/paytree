@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
-import { getUserFeatures } from "@/lib/plans"
 
 /**
  * POST /api/ai/generate-bio
  *
- * Uses OpenAI to generate a professional bio based on the user's
- * profile data, links, and an optional prompt/tone.
+ * Generates 3 short bio variations via Anthropic Claude Haiku 4.5.
+ * Available to all plans. Rate-limited to 10 generations per user per UTC day.
  *
- * Body: { tone?: "professional" | "casual" | "bold" | "minimal", prompt?: string }
- *
- * Saves the generated bio in BioHistory for versioning.
+ * Body: { currentBio?: string, name?: string, username?: string, niche?: string }
+ * Returns: { bios: string[], remaining: number }
  */
+const DAILY_LIMIT = 10
+
+interface AnthropicTextBlock { type: "text"; text: string }
+interface AnthropicResponse { content?: AnthropicTextBlock[] }
+
 export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser()
@@ -20,118 +23,133 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check Ultra plan
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        bio: true,
-        subscriptionStatus: true,
-        subscriptionPlan: true,
-        trialEndsAt: true,
-        subscriptionEndsAt: true,
-        links: {
-          where: { enabled: true, isVaultItem: false },
-          select: { title: true, url: true, type: true },
-          take: 10,
-        },
-        socialLinks: {
-          where: { enabled: true },
-          select: { platform: true },
-        },
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Anthropic API key not configured" },
+        { status: 503 },
+      )
+    }
+
+    // ── Rate limit: count today's generations ────────────────────
+    const startOfDay = new Date()
+    startOfDay.setUTCHours(0, 0, 0, 0)
+
+    const usedToday = await prisma.bioHistory.count({
+      where: {
+        userId: currentUser.id,
+        createdAt: { gte: startOfDay },
       },
     })
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    const features = getUserFeatures(user)
-    if (!features.hasAiFeatures) {
+    if (usedToday >= DAILY_LIMIT) {
       return NextResponse.json(
-        { error: "AI Bio Generator requires an Ultra plan.", code: "UPGRADE_REQUIRED" },
-        { status: 403 }
+        {
+          error: `You've used all ${DAILY_LIMIT} AI generations today. Try again tomorrow.`,
+          code: "RATE_LIMITED",
+          remaining: 0,
+        },
+        { status: 429 },
       )
     }
 
+    // ── Inputs ───────────────────────────────────────────────────
     const body = await req.json().catch(() => ({}))
-    const tone = body.tone || "professional"
-    const customPrompt = body.prompt || ""
+    const currentBio: string = typeof body.currentBio === "string" ? body.currentBio.slice(0, 500) : ""
+    const name: string = typeof body.name === "string" ? body.name.slice(0, 80) : ""
+    const username: string = typeof body.username === "string" ? body.username.slice(0, 60) : ""
+    const niche: string = typeof body.niche === "string" ? body.niche.slice(0, 120) : ""
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "OpenAI API key not configured. Set OPENAI_API_KEY in .env" },
-        { status: 500 }
-      )
-    }
+    const systemPrompt =
+      "You are a professional copywriter specializing in creator bio pages. " +
+      "Write compelling, authentic bios that convert visitors."
 
-    // Build context about the user
-    const linkSummary = user.links
-      .map((l) => `${l.title} (${l.type})`)
-      .join(", ")
-    const platforms = user.socialLinks.map((s) => s.platform).join(", ")
+    const userPrompt = `Write 3 different bio variations for a creator with these details:
+Name: ${name || "(unknown)"}
+Username: @${username || "creator"}
+Current bio: ${currentBio || "none"}
+Niche/focus: ${niche || "content creator"}
 
-    const systemPrompt = `You are a professional bio writer for a link-in-bio platform called PayTree. Write short, punchy bios (2-3 sentences max, under 160 characters preferred). The bio should feel authentic and engaging.`
+Requirements:
+- Each bio max 160 characters
+- Conversational and authentic tone
+- Mention what they do and what value they provide
+- No generic phrases like "passionate about"
+- Format as JSON array: ["bio1", "bio2", "bio3"]
+- Return ONLY the JSON array, nothing else`
 
-    const userPrompt = `Write a ${tone} bio for:
-Name: ${user.name || user.username}
-Current bio: ${user.bio || "(none)"}
-Links: ${linkSummary || "(none)"}
-Social platforms: ${platforms || "(none)"}
-${customPrompt ? `\nAdditional instructions: ${customPrompt}` : ""}
-
-Return ONLY the bio text, nothing else.`
-
-    // Call OpenAI
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    // ── Anthropic call ───────────────────────────────────────────
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 200,
-        temperature: 0.8,
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
       }),
     })
 
-    if (!openaiRes.ok) {
-      const err = await openaiRes.text()
-      console.error("[ai/generate-bio] OpenAI error:", err)
-      return NextResponse.json({ error: "Failed to generate bio" }, { status: 502 })
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "unknown")
+      console.error("[ai/generate-bio] Anthropic error:", errText)
+      return NextResponse.json(
+        { error: "AI service unavailable" },
+        { status: 502 },
+      )
     }
 
-    const openaiData = await openaiRes.json()
-    const generatedBio = openaiData.choices?.[0]?.message?.content?.trim()
+    const data = (await res.json()) as AnthropicResponse
+    const rawText = data.content?.find((b) => b.type === "text")?.text?.trim() ?? ""
 
-    if (!generatedBio) {
-      return NextResponse.json({ error: "No bio generated" }, { status: 500 })
+    // Robust JSON extraction — accept code fences or raw array
+    const arrayMatch = rawText.match(/\[[\s\S]*\]/)
+    if (!arrayMatch) {
+      console.error("[ai/generate-bio] No JSON array in model output:", rawText)
+      return NextResponse.json({ error: "Failed to parse bios" }, { status: 500 })
     }
 
-    // Save to history
-    await prisma.bioHistory.create({
-      data: {
-        userId: user.id,
-        bio: generatedBio,
-        prompt: `tone=${tone}${customPrompt ? ` | ${customPrompt}` : ""}`,
-      },
+    let bios: unknown
+    try {
+      bios = JSON.parse(arrayMatch[0])
+    } catch (e) {
+      console.error("[ai/generate-bio] JSON parse failed:", e, arrayMatch[0])
+      return NextResponse.json({ error: "Failed to parse bios" }, { status: 500 })
+    }
+
+    if (!Array.isArray(bios) || bios.length === 0) {
+      return NextResponse.json({ error: "No bios generated" }, { status: 500 })
+    }
+
+    const cleanBios = bios
+      .filter((b): b is string => typeof b === "string")
+      .map((b) => b.trim())
+      .filter((b) => b.length > 0)
+      .slice(0, 3)
+
+    if (cleanBios.length === 0) {
+      return NextResponse.json({ error: "No valid bios generated" }, { status: 500 })
+    }
+
+    // ── Persist to history ───────────────────────────────────────
+    const promptTag = niche ? `ai | niche=${niche}` : "ai"
+    await prisma.bioHistory.createMany({
+      data: cleanBios.map((bio) => ({
+        userId: currentUser.id,
+        bio,
+        prompt: promptTag,
+      })),
     })
 
-    return NextResponse.json({
-      success: true,
-      bio: generatedBio,
-      tone,
-    })
-  } catch (error: any) {
-    console.error("[ai/generate-bio] Error:", error.message)
+    const remaining = Math.max(0, DAILY_LIMIT - usedToday - 1)
+    return NextResponse.json({ bios: cleanBios, remaining })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error"
+    console.error("[ai/generate-bio] Error:", message)
     return NextResponse.json({ error: "Failed to generate bio" }, { status: 500 })
   }
 }

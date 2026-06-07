@@ -7,7 +7,8 @@ import { resolveUserPlan } from "@/lib/plans"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
-import { Check, ChevronDown, Upload } from "lucide-react"
+import { Check, ChevronDown, Upload, Sparkles } from "lucide-react"
+import { AiBioWriter } from "@/components/ui/ai-bio-writer"
 
 interface Profile {
   id: string
@@ -113,6 +114,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   const [publishedLink, setPublishedLink] = useState<string | null>(null)
   const [processingPayment, setProcessingPayment] = useState(checkoutSuccess || false)
   const [cornerRadius, setCornerRadius] = useState(initialProfile.cornerRadius || "xl")
+  const [aiBioOpen, setAiBioOpen] = useState(false)
 
   const userPlan = resolveUserPlan(profile as any)
   const isPro = userPlan !== "free"
@@ -384,7 +386,23 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">Bio</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest block">Bio</label>
+                      <button
+                        type="button"
+                        onClick={() => setAiBioOpen(true)}
+                        className="inline-flex items-center gap-1 text-[#00ff88] text-xs font-mono px-2 py-1 rounded-lg transition-colors"
+                        style={{
+                          background: "transparent",
+                          border: "0.5px solid rgba(0,255,136,0.2)",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,255,136,0.06)" }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+                      >
+                        <Sparkles size={11} />
+                        Write with AI
+                      </button>
+                    </div>
                     <textarea
                       value={profile.bio || ""}
                       onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
@@ -697,6 +715,15 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
       )}
 
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} username={profile.username} />
+
+      <AiBioWriter
+        open={aiBioOpen}
+        onClose={() => setAiBioOpen(false)}
+        currentBio={profile.bio || ""}
+        name={profile.name || ""}
+        username={profile.username}
+        onSelect={(bio) => setProfile({ ...profile, bio })}
+      />
 
       {publishedLink && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

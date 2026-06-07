@@ -8,6 +8,7 @@ import { ShareButton } from "@/components/share-button"
 import { ProfileLocked } from "./profile-locked"
 import { PublishBanner } from "./publish-banner"
 import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
+import { detectDevice, normalizeReferrer } from "@/lib/tracking"
 
 export const revalidate = 60
 
@@ -45,13 +46,21 @@ async function lookupGeo(ip: string): Promise<{ country?: string; city?: string;
   }
 }
 
-async function trackView(userId: string, wasLive: boolean, ip: string | null) {
+async function trackView(
+  userId: string,
+  wasLive: boolean,
+  ip: string | null,
+  userAgent: string | null,
+  referer: string | null,
+) {
   try {
     const geo = ip ? await lookupGeo(ip) : {}
     await prisma.view.create({
       data: {
         userId,
-        userAgent: "server-side",
+        userAgent: userAgent || undefined,
+        device: detectDevice(userAgent),
+        referrer: normalizeReferrer(referer),
         wasLive,
         ...geo,
       },
@@ -89,14 +98,16 @@ export default async function ProfilePage({
     return <ProfileLocked username={user.username} />
   }
 
-  // Track view for non-owners (with geo lookup)
+  // Track view for non-owners (with geo lookup, device, and referrer)
   if (!isOwner && isPublished) {
     const reqHeaders = await headers()
     const forwarded = reqHeaders.get("x-forwarded-for")
     const ip = forwarded
       ? forwarded.split(",")[0].trim()
       : (reqHeaders.get("x-real-ip") ?? null)
-    trackView(user.id, user.liveStatus, ip).catch(console.error)
+    const userAgent = reqHeaders.get("user-agent")
+    const referer = reqHeaders.get("referer")
+    trackView(user.id, user.liveStatus, ip, userAgent, referer).catch(console.error)
   }
 
   const socialIconPosition = user.socialIconPosition || "bottom"

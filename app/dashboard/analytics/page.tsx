@@ -9,6 +9,7 @@ import {
 } from "recharts"
 import {
   Eye, Users, MousePointerClick, TrendingUp, ChevronRight, Sparkles, Lock,
+  Smartphone, Monitor, Tablet, Link as LinkIcon, Globe,
 } from "lucide-react"
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan } from "@/lib/plans"
@@ -32,6 +33,8 @@ interface OverviewStats {
   totalAudience: number
   vaultUnlocks: number
   vaultConversionRate: number
+  deviceBreakdown?: { device: string; count: number }[]
+  referrerBreakdown?: { source: string; count: number }[]
 }
 interface ViewData { date: string; views: number; unique: number }
 interface GeoPoint { lat: number; lng: number; country: string | null; city: string | null }
@@ -642,6 +645,153 @@ function AudiencePanel({ topCountries, loading }: {
   )
 }
 
+// ─── Devices panel ────────────────────────────────────────────────────────────
+
+const DEVICE_META: Record<string, { label: string; color: string; Icon: typeof Smartphone }> = {
+  mobile:  { label: "Mobile",  color: "#00ff88", Icon: Smartphone },
+  desktop: { label: "Desktop", color: "#378add", Icon: Monitor },
+  tablet:  { label: "Tablet",  color: "#9146ff", Icon: Tablet },
+  unknown: { label: "Other",   color: "#666",    Icon: Monitor },
+}
+
+function DevicesPanel({
+  breakdown, loading,
+}: { breakdown: { device: string; count: number }[]; loading: boolean }) {
+  const total = breakdown.reduce((s, d) => s + d.count, 0)
+
+  // Always render Mobile + Desktop. Include Tablet only if it has any data.
+  const rows = ["mobile", "desktop", ...(breakdown.some((b) => b.device === "tablet") ? ["tablet"] : [])]
+    .map((device) => {
+      const found = breakdown.find((b) => b.device === device)
+      return { device, count: found?.count ?? 0 }
+    })
+
+  return (
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} views</span>}>
+        Devices
+      </SectionLabel>
+      {loading ? (
+        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+      ) : total === 0 ? (
+        <div className="text-[#444] text-xs font-mono py-3">No device data yet</div>
+      ) : (
+        <div className="space-y-4">
+          {rows.map(({ device, count }, i) => {
+            const meta = DEVICE_META[device] ?? DEVICE_META.unknown
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0
+            const Icon = meta.Icon
+            return (
+              <div key={device}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-2 text-[13px] text-[#d8d8d8]">
+                    <Icon size={13} style={{ color: meta.color }} />
+                    {meta.label}
+                  </span>
+                  <span className="text-xs font-mono tabular-nums" style={{ color: meta.color }}>
+                    {pct}%
+                  </span>
+                </div>
+                <div className="h-[6px] rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: meta.color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.06 }}
+                  />
+                </div>
+                <div className="text-[10px] font-mono text-[#555] mt-1 tabular-nums">
+                  {fmt(count)} {count === 1 ? "view" : "views"}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </GlassCard>
+  )
+}
+
+// ─── Sources panel ────────────────────────────────────────────────────────────
+
+const SOURCE_META: Record<string, { label: string; color: string; Icon: typeof Globe }> = {
+  direct:    { label: "Direct",    color: "#888",     Icon: LinkIcon },
+  instagram: { label: "Instagram", color: "#e1306c",  Icon: Globe },
+  tiktok:    { label: "TikTok",    color: "#f0f0f0",  Icon: Globe },
+  twitter:   { label: "Twitter",   color: "#e8e8e8",  Icon: Globe },
+  youtube:   { label: "YouTube",   color: "#ff0033",  Icon: Globe },
+  facebook:  { label: "Facebook",  color: "#1877f2",  Icon: Globe },
+  google:    { label: "Google",    color: "#378add",  Icon: Globe },
+  linkedin:  { label: "LinkedIn",  color: "#0a66c2",  Icon: Globe },
+  other:     { label: "Other",     color: "#666",     Icon: Globe },
+}
+const SOURCE_ORDER = ["direct", "instagram", "tiktok", "twitter", "youtube", "facebook", "google", "linkedin", "other"]
+
+function SourcesPanel({
+  breakdown, loading,
+}: { breakdown: { source: string; count: number }[]; loading: boolean }) {
+  const total = breakdown.reduce((s, r) => s + r.count, 0)
+  const max = Math.max(1, ...breakdown.map((b) => b.count))
+
+  // Merge into known sources, sort by count desc, keep zeros out except Direct
+  const merged = SOURCE_ORDER
+    .map((source) => {
+      const found = breakdown.find((b) => b.source === source)
+      return { source, count: found?.count ?? 0 }
+    })
+    .filter((r) => r.count > 0 || r.source === "direct")
+    .sort((a, b) => b.count - a.count)
+
+  return (
+    <GlassCard className="h-full" padding="p-5">
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} views</span>}>
+        Traffic sources
+      </SectionLabel>
+      {loading ? (
+        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+      ) : total === 0 ? (
+        <div className="text-[#444] text-xs font-mono py-3">No referrer data yet</div>
+      ) : (
+        <div className="space-y-3">
+          {merged.map((row, i) => {
+            const meta = SOURCE_META[row.source] ?? SOURCE_META.other
+            const pct = Math.round((row.count / max) * 100)
+            const Icon = meta.Icon
+            return (
+              <div key={row.source} className="flex items-center gap-3">
+                <span
+                  className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${meta.color}1a`, border: `0.5px solid ${meta.color}33` }}
+                >
+                  <Icon size={12} style={{ color: meta.color }} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[13px] text-[#d8d8d8] truncate">{meta.label}</span>
+                    <span className="text-xs font-mono text-[#888] ml-2 tabular-nums flex-shrink-0">
+                      {fmt(row.count)}
+                    </span>
+                  </div>
+                  <div className="h-[3px] rounded-full" style={{ background: `${meta.color}1f` }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: meta.color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.04 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </GlassCard>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const cardVariants = {
@@ -799,25 +949,30 @@ export default function AnalyticsDashboard() {
           </motion.div>
         </motion.div>
 
-        {/* ── Row 4: Audience CRM ────────────────────────────────── */}
+        {/* ── Row 4: Devices + Sources ───────────────────────────── */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5"
+        >
+          <motion.div variants={cardVariants}>
+            <DevicesPanel breakdown={overview?.deviceBreakdown ?? []} loading={loading} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <SourcesPanel breakdown={overview?.referrerBreakdown ?? []} loading={loading} />
+          </motion.div>
+        </motion.div>
+
+        {/* ── Row 5: Audience CRM ────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, type: "spring", stiffness: 280, damping: 24 }}
         >
           <GlassCard padding="p-5">
-            <SectionLabel right={
-              <a
-                href="/api/audience/export"
-                download
-                className="text-[11px] font-mono text-[#888] hover:text-[#00ff88] transition-colors"
-              >
-                Export CSV →
-              </a>
-            }>
-              Audience CRM
-            </SectionLabel>
-            <AudienceTable />
+            <SectionLabel>Audience CRM</SectionLabel>
+            <AudienceTable userPlan={userPlan} />
           </GlassCard>
         </motion.div>
 

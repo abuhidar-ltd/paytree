@@ -1,53 +1,74 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/clerk-auth"
+import { getUserFeatures } from "@/lib/plans"
 
 /**
- * GET /api/audience/export?linkId=xxx
+ * GET /api/audience/export
  *
- * Exports audience data as CSV.
- * If `linkId` is provided, exports only emails captured by that specific locked link.
- * Otherwise exports all audience emails.
+ * Query params (all optional):
+ *   linkId  — export only emails captured by this vault item
+ *   ids     — comma-separated audience IDs (used for "Export selected")
+ *
+ * Email export is gated to Starter+ plans.
  */
 export async function GET(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
-
-    if (!user) {
+    const current = await getCurrentUser()
+    if (!current) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const linkId = req.nextUrl.searchParams.get("linkId")
+    const user = await prisma.user.findUnique({
+      where: { id: current.id },
+      select: {
+        id: true,
+        subscriptionStatus: true,
+        subscriptionPlan: true,
+        trialEndsAt: true,
+        subscriptionEndsAt: true,
+      },
+    })
 
-    // Build where clause
-    const where: any = { userId: user.id }
-    if (linkId) {
-      where.vaultItemId = linkId
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Get all audience data
+    const features = getUserFeatures(user)
+    if (!features.hasEmailExport) {
+      return NextResponse.json(
+        {
+          error: "Upgrade to Starter to export emails",
+          code: "UPGRADE_REQUIRED",
+          upgrade: true,
+        },
+        { status: 403 },
+      )
+    }
+
+    const linkId = req.nextUrl.searchParams.get("linkId")
+    const idsParam = req.nextUrl.searchParams.get("ids")
+    const ids = idsParam
+      ? idsParam.split(",").map((s) => s.trim()).filter(Boolean)
+      : null
+
+    const where: Prisma.AudienceWhereInput = { userId: user.id }
+    if (linkId) where.vaultItemId = linkId
+    if (ids && ids.length > 0) where.id = { in: ids }
+
     const audience = await prisma.audience.findMany({
       where,
-      include: {
-        vaultItem: {
-          select: {
-            title: true,
-          },
-        },
-      },
+      include: { vaultItem: { select: { title: true } } },
       orderBy: { capturedAt: "desc" },
     })
 
-    // Generate CSV
-    const headers = ["Email", "Source", "Vault Item", "Captured At"]
-    const rows = audience.map((member) => [
-      member.email,
-      member.source || "unknown",
-      member.vaultItem?.title || "",
-      member.capturedAt.toISOString(),
-    ])
+    const dateFmt = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
 
-    // Escape CSV values
     const escapeCSV = (value: string) => {
       if (value.includes(",") || value.includes('"') || value.includes("\n")) {
         return `"${value.replace(/"/g, '""')}"`
@@ -55,19 +76,28 @@ export async function GET(req: NextRequest) {
       return value
     }
 
+    const headers = ["Email", "Source", "Vault Item", "Captured Date"]
+    const rows = audience.map((m) => [
+      m.email,
+      m.source || "unknown",
+      m.vaultItem?.title || "",
+      dateFmt.format(m.capturedAt),
+    ])
+
     const csv = [
       headers.join(","),
       ...rows.map((row) => row.map(escapeCSV).join(",")),
     ].join("\n")
 
-    const suffix = linkId ? `-link-${linkId}` : ""
-    const filename = `paytree-audience${suffix}-${new Date().toISOString().split("T")[0]}.csv`
+    const today = new Date().toISOString().split("T")[0]
+    const suffix = linkId ? `-link-${linkId}` : ids ? "-selected" : ""
+    const filename = `paytree-audience${suffix}-${today}.csv`
 
-    // Return as downloadable file
     return new NextResponse(csv, {
       headers: {
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "no-store",
       },
     })
   } catch (error) {

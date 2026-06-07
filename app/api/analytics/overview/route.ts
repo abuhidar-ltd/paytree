@@ -25,6 +25,8 @@ export async function GET() {
       totalClicksLast7Days,
       totalAudience,
       vaultUnlocks,
+      deviceRaw,
+      referrerRaw,
     ] = await Promise.all([
       // Total views (all time)
       prisma.view.count({
@@ -74,6 +76,24 @@ export async function GET() {
           source: "vault"
         }
       }),
+      // Device breakdown (last 30 days)
+      prisma.view.groupBy({
+        by: ["device"],
+        where: {
+          userId: user.id,
+          timestamp: { gte: thirtyDaysAgo },
+        },
+        _count: { device: true },
+      }),
+      // Referrer breakdown (last 30 days)
+      prisma.view.groupBy({
+        by: ["referrer"],
+        where: {
+          userId: user.id,
+          timestamp: { gte: thirtyDaysAgo },
+        },
+        _count: { referrer: true },
+      }),
     ])
     
     // Calculate trends (percent change from previous 7 days)
@@ -118,6 +138,16 @@ export async function GET() {
       ? Math.round((vaultUnlocks / uniqueViews) * 100 * 100) / 100
       : 0
     
+    // Normalize groupBy results into stable shapes for the client
+    const deviceBreakdown = deviceRaw.map((row) => ({
+      device: row.device ?? "unknown",
+      count: row._count.device,
+    }))
+    const referrerBreakdown = referrerRaw.map((row) => ({
+      source: row.referrer ?? "direct",
+      count: row._count.referrer,
+    }))
+
     return NextResponse.json({
       totalViews,
       totalViewsLast7Days,
@@ -131,6 +161,8 @@ export async function GET() {
       totalAudience,
       vaultUnlocks,
       vaultConversionRate,
+      deviceBreakdown,
+      referrerBreakdown,
     })
   } catch (error) {
     console.error("Analytics overview error:", error)
