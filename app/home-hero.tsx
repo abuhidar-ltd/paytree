@@ -41,7 +41,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   )
 
   return (
-    <section className="min-h-screen flex items-start pt-24 relative overflow-hidden">
+    <section className="min-h-[calc(100vh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
       {/* Background gradient */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -119,20 +119,20 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
 
             {/* CTAs */}
             <motion.div
-              className="mt-8 flex flex-col sm:flex-row items-center gap-3"
+              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, type: "spring", stiffness: 120, damping: 20 }}
             >
               <Link
                 href={isLoggedIn ? "/dashboard" : "/register"}
-                className="bg-[#00ff88] text-black font-mono font-semibold px-6 py-3 rounded-xl text-sm hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_30px_rgba(0,255,136,0.3)]"
+                className="bg-[#00ff88] text-black font-mono font-semibold px-6 py-3.5 rounded-xl text-sm hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_30px_rgba(0,255,136,0.3)] text-center min-h-[44px] inline-flex items-center justify-center"
               >
                 Start building free →
               </Link>
               <button
                 onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-                className="border border-white/[0.1] text-[#888] font-mono px-6 py-3 rounded-xl text-sm hover:border-white/[0.2] hover:text-[#aaa] transition-all"
+                className="border border-white/[0.1] text-[#888] font-mono px-6 py-3.5 rounded-xl text-sm hover:border-white/[0.2] hover:text-[#aaa] transition-all text-center min-h-[44px] inline-flex items-center justify-center"
               >
                 See it in action ↓
               </button>

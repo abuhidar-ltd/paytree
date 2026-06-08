@@ -37,22 +37,40 @@ export default function LoginPage() {
 
         {/* Clerk Sign In Component */}
         <div className="flex justify-center">
-          <SignIn 
+          <SignIn
             appearance={{
+              variables: {
+                colorBackground: "#0a0a0a",
+                colorText: "#f0f0f0",
+                colorTextSecondary: "#888",
+                colorInputBackground: "rgba(255,255,255,0.04)",
+                colorInputText: "#f0f0f0",
+                colorPrimary: "#00ff88",
+                colorTextOnPrimaryBackground: "#030303",
+                colorNeutral: "#ffffff",
+                borderRadius: "12px",
+                fontFamily: "'Inter', system-ui, sans-serif",
+              },
               elements: {
                 rootBox: "w-full",
-                card: "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl",
+                card: "bg-[#0a0a0a] border border-white/[0.08] shadow-2xl",
                 headerTitle: "text-white",
-                headerSubtitle: "text-gray-300",
-                socialButtonsBlockButton: "bg-white/10 border-white/20 hover:bg-white/20 text-white",
-                socialButtonsBlockButtonText: "text-white",
-                formFieldLabel: "text-gray-200",
-                formFieldInput: "bg-white/5 border-white/20 text-white placeholder:text-gray-400",
-                formButtonPrimary: "bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold",
-                footerActionLink: "text-blue-400 hover:text-blue-300",
-                identityPreviewText: "text-white",
-                identityPreviewEditButton: "text-blue-400",
-              }
+                headerSubtitle: "text-[#888]",
+                socialButtonsBlockButton:
+                  "bg-white/[0.03] border border-white/[0.08] hover:border-white/20 text-[#e0e0e0]",
+                socialButtonsBlockButtonText: "text-[#e0e0e0]",
+                dividerLine: "bg-white/[0.06]",
+                dividerText: "text-[#555]",
+                formFieldLabel: "text-[#888] font-mono uppercase tracking-wider text-[10px]",
+                formFieldInput:
+                  "bg-white/[0.03] border border-white/[0.08] text-[#f0f0f0] placeholder:text-[#444] focus:border-[#00ff88]/30",
+                formButtonPrimary:
+                  "bg-[#00ff88] text-black font-mono font-semibold hover:opacity-90 normal-case",
+                footerActionLink: "text-[#00ff88] hover:text-[#00ff88]/80",
+                identityPreviewText: "text-[#e0e0e0]",
+                identityPreviewEditButton: "text-[#00ff88]",
+                footer: "hidden",
+              },
             }}
             routing="path"
             path="/login"

@@ -1340,6 +1340,141 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
 
 // ─── Content Tab ──────────────────────────────────────────────
 
+interface FaqItemLocal {
+  _id: string
+  question: string
+  answer: string
+}
+
+function FaqItemsEditor({
+  block, onUpdate,
+}: { block: Block; onUpdate: (id: string, data: Partial<Block>) => void }) {
+  const cfg = (block.config || {}) as Record<string, unknown>
+
+  // Seed from cfg.items, or legacy cfg.question/cfg.answer, or a single empty row
+  const seed = (): FaqItemLocal[] => {
+    const raw = cfg.items
+    if (Array.isArray(raw) && raw.length > 0) {
+      return (raw as Array<{ question?: string; answer?: string }>).map((it, i) => ({
+        _id: `${block.id}-seed-${i}`,
+        question: it.question || "",
+        answer: it.answer || "",
+      }))
+    }
+    if (cfg.question || cfg.answer) {
+      return [{
+        _id: `${block.id}-legacy`,
+        question: (cfg.question as string) || "",
+        answer: (cfg.answer as string) || "",
+      }]
+    }
+    return [{ _id: `${block.id}-empty`, question: "", answer: "" }]
+  }
+
+  const [items, setItems] = useState<FaqItemLocal[]>(seed)
+
+  // Resync when switching to a different block
+  useEffect(() => { setItems(seed()) }, [block.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commit = (next: FaqItemLocal[]) => {
+    onUpdate(block.id, {
+      config: {
+        ...cfg,
+        items: next
+          .filter((i) => i.question.trim() || i.answer.trim())
+          .map((i) => ({ question: i.question, answer: i.answer })),
+      },
+    })
+  }
+
+  const addItem = () => {
+    const next = [
+      ...items,
+      { _id: `${block.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, question: "", answer: "" },
+    ]
+    setItems(next)
+    // Don't commit empty rows — wait until user types
+  }
+
+  const removeItem = (id: string) => {
+    const next = items.filter((i) => i._id !== id)
+    // Always keep at least one editable row
+    const safe = next.length > 0 ? next : [{ _id: `${block.id}-empty-${Date.now()}`, question: "", answer: "" }]
+    setItems(safe)
+    commit(safe)
+  }
+
+  const setField = (id: string, field: "question" | "answer", value: string) => {
+    setItems((prev) => prev.map((i) => (i._id === id ? { ...i, [field]: value } : i)))
+  }
+
+  return (
+    <FieldGroup label={`Questions · ${items.length}`}>
+      <div className="space-y-3">
+        {items.map((item, idx) => (
+          <div
+            key={item._id}
+            className="rounded-xl p-3 space-y-2"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "0.5px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className="inline-flex items-center justify-center text-[10px] font-mono font-semibold rounded-md w-5 h-5"
+                style={{
+                  background: "rgba(0,255,136,0.1)",
+                  color: "#00ff88",
+                  border: "0.5px solid rgba(0,255,136,0.2)",
+                }}
+              >
+                {idx + 1}
+              </span>
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeItem(item._id)}
+                  aria-label="Delete question"
+                  className="text-[#555] hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/[0.08]"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <GlassInput
+              value={item.question}
+              onChange={(e) => setField(item._id, "question", e.target.value)}
+              onBlur={() => commit(items)}
+              placeholder="Question"
+            />
+            <GlassTextarea
+              value={item.answer}
+              onChange={(e) => setField(item._id, "answer", e.target.value)}
+              onBlur={() => commit(items)}
+              placeholder="Answer"
+              rows={3}
+            />
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addItem}
+          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-mono px-3 py-2 rounded-xl transition-colors"
+          style={{
+            background: "rgba(0,255,136,0.04)",
+            border: "0.5px dashed rgba(0,255,136,0.25)",
+            color: "#00ff88",
+          }}
+        >
+          <Plus className="w-3 h-3" />
+          Add question
+        </button>
+      </div>
+    </FieldGroup>
+  )
+}
+
 function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, data: Partial<Block>) => void }) {
   const cfg = block.config || {}
 
@@ -1520,6 +1655,10 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
             <GlassInput defaultValue={(cfg.description as string) || ""} onBlur={(e) => updateConfig("description", e.target.value)} placeholder="20% off all products" />
           </FieldGroup>
         </>
+      )}
+
+      {block.type === "faq" && (
+        <FaqItemsEditor block={block} onUpdate={onUpdate} />
       )}
 
       {/* ─── Lock section (universal) ─── */}

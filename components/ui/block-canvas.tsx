@@ -345,13 +345,17 @@ function BlockPreview({ block }: { block: Block }) {
         </div>
       )
 
-    case "faq":
+    case "faq": {
+      const items = Array.isArray(cfg.items) ? cfg.items.length : (cfg.question ? 1 : 1)
       return (
         <div className="flex items-center gap-2 pl-6">
           <HelpCircle className="w-4 h-4 text-[#888]" />
-          <span className="text-sm text-[#888] font-mono">FAQ</span>
+          <span className="text-sm text-[#888] font-mono">
+            FAQ · {items} {items === 1 ? "question" : "questions"}
+          </span>
         </div>
       )
+    }
 
     case "contact_form":
       return (

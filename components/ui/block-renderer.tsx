@@ -1404,10 +1404,18 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
 
 function FaqBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown> }) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
+  const rawItems = Array.isArray(cfg.items)
+    ? (cfg.items as { question?: string; answer?: string }[])
+    : []
   const items: { question: string; answer: string }[] =
-    Array.isArray(cfg.items) && (cfg.items as { question: string; answer: string }[]).length > 0
-      ? (cfg.items as { question: string; answer: string }[])
-      : [{ question: block.title, answer: (cfg.answer as string) || "" }]
+    rawItems.length > 0
+      ? rawItems
+          .map((it) => ({ question: it.question || "", answer: it.answer || "" }))
+          .filter((it) => it.question.trim() || it.answer.trim())
+      : [{
+          question: (cfg.question as string) || block.title,
+          answer: (cfg.answer as string) || "",
+        }]
 
   return (
     <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden">

@@ -13,6 +13,14 @@ const ITEMS = [
   "Music Producers",
   "Web3 Builders",
   "Community Leaders",
+  "TikTok Creators",
+  "Photographers",
+  "Streamers",
+  "Indie Authors",
+  "Beauty Creators",
+  "Real Estate Agents",
+  "Personal Brands",
+  "Nutrition Coaches",
 ]
 
 export function HomeMarquee() {

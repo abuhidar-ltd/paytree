@@ -82,7 +82,7 @@ const stagger = {
 }
 
 const FEE_TABLE: { plan: PlanId; label: string; fee: string; monthly: string; canSell: boolean }[] = [
-  { plan: "free",    label: "Free",    fee: "8%", monthly: "$0",     canSell: false },
+  { plan: "free",    label: "Free",    fee: "—",  monthly: "$0",     canSell: false },
   { plan: "starter", label: "Starter", fee: "5%", monthly: "$7/mo",  canSell: true },
   { plan: "ultra",   label: "Ultra",   fee: "0%", monthly: "$19/mo", canSell: true },
 ]
@@ -191,7 +191,7 @@ export default function PaymentsPage() {
     subscriptionEndsAt: profile.subscriptionEndsAt ? new Date(profile.subscriptionEndsAt) : null,
   }) : "free"
 
-  const feePercent = userPlan === "ultra" ? 0 : userPlan === "starter" ? 5 : 8
+  const feePercent = userPlan === "ultra" ? 0 : userPlan === "starter" ? 5 : 0
   const stripeStatus: StripeStatus = (profile?.stripeAccountStatus as StripeStatus) ?? "not_connected"
 
   const totalRevenue = products.reduce((s, p) => s + (p.totalRevenue || 0), 0)

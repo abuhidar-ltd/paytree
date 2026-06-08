@@ -54,13 +54,13 @@ export default async function PreviewPage({
     <div className="min-h-screen text-white relative overflow-x-hidden">
       <PremiumBackground variant={bgVariant} />
 
-      {user.image && user.heroStyle === 'cinematic' && (
+      {user.heroStyle === 'cinematic' && (user.heroImage || user.image) && (
         <div
           className="absolute top-0 left-0 right-0 h-[480px] z-[1] overflow-hidden pointer-events-none"
           aria-hidden="true"
         >
           <img
-            src={user.image}
+            src={user.heroImage || user.image || ""}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: 'center 35%', userSelect: 'none', pointerEvents: 'none' }}
@@ -100,7 +100,7 @@ export default async function PreviewPage({
               statsLabel3: user.statsLabel3,
               accentColor: user.accentColor,
               heroStyle: user.heroStyle,
-              heroImage: user.heroStyle === "cinematic" ? user.image : null,
+              heroImage: user.heroStyle === "cinematic" ? (user.heroImage || user.image) : null,
               fontFamily: user.fontFamily,
               cornerRadius: user.cornerRadius,
             }}

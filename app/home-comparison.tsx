@@ -3,22 +3,21 @@
 import { motion } from "framer-motion"
 
 const LINKTREE_ITEMS = [
-  "9% transaction fees on all sales",
-  "No AI sales agent on your page",
+  "9% transaction fees on creator sales",
+  "No AI sales agent",
   "No drop countdown cards",
-  "$35/mo just to remove their branding",
-  "No crypto/Web3 payment support",
-  "Static, boring pages",
+  "No vault / email gate on any block",
+  "No crypto payment support",
+  "$35/mo for equivalent feature tier",
 ]
 
 const PAYTREE_ITEMS = [
-  "0% fees on Ultra ($19/mo)",
-  "AI agent sells for you 24/7",
-  "Drop countdown cards",
-  "Vault with email capture on any block",
-  "Crypto payment support",
-  "Globe analytics + AI insights",
-  "Remove branding from $19/mo",
+  "0% fees on Ultra — keep every dollar",
+  "AI sales agent — answers questions, closes sales",
+  "Drop countdown cards built in",
+  "Vault: gate any card behind an email or payment",
+  "Native crypto payment support",
+  "$19/mo Ultra vs $35/mo for the equivalent tier",
 ]
 
 export function HomeComparison() {
