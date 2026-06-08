@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "sonner"
 
 function feeForPlan(plan: string | null | undefined): number {
@@ -31,6 +32,8 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [disconnecting, setDisconnecting] = useState(false)
+  const [confirmCancelSub, setConfirmCancelSub] = useState(false)
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -92,10 +95,7 @@ export default function SettingsPage() {
   }
 
   const handleCancelSubscription = async () => {
-    if (!confirm("Are you sure you want to cancel your subscription? You'll keep access until the end of your billing period.")) {
-      return
-    }
-
+    setConfirmCancelSub(false)
     setCanceling(true)
     try {
       const res = await fetch("/api/subscription/cancel", {
@@ -142,7 +142,7 @@ export default function SettingsPage() {
   }
 
   const handleDisconnectStripe = async () => {
-    if (!confirm("Disconnect your Stripe account? Buyers will no longer be able to purchase your products.")) return
+    setConfirmDisconnect(false)
     setDisconnecting(true)
     try {
       const res = await fetch("/api/stripe/connect/disconnect", { method: "POST" })
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                   </p>
                   
                   <Button
-                    onClick={handleCancelSubscription}
+                    onClick={() => setConfirmCancelSub(true)}
                     disabled={canceling}
                     variant="outline"
                     className="w-full min-h-[48px] bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-5 py-3 text-sm hover:border-red-500/60 transition-colors"
@@ -368,7 +368,7 @@ export default function SettingsPage() {
                     View Stripe Dashboard →
                   </a>
                   <button
-                    onClick={handleDisconnectStripe}
+                    onClick={() => setConfirmDisconnect(true)}
                     disabled={disconnecting}
                     className="flex-1 bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-4 py-2.5 text-sm hover:border-red-500/60 transition-colors disabled:opacity-50"
                   >
@@ -393,7 +393,7 @@ export default function SettingsPage() {
                     Continue Onboarding →
                   </a>
                   <button
-                    onClick={handleDisconnectStripe}
+                    onClick={() => setConfirmDisconnect(true)}
                     disabled={disconnecting}
                     className="flex-1 bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-4 py-2.5 text-sm hover:border-red-500/60 transition-colors disabled:opacity-50"
                   >
@@ -492,6 +492,26 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmCancelSub}
+        title="Cancel subscription?"
+        description="You'll keep access until the end of your current billing period. You can reactivate any time before that date."
+        confirmLabel="Cancel subscription"
+        cancelLabel="Keep subscription"
+        loading={canceling}
+        onConfirm={handleCancelSubscription}
+        onCancel={() => setConfirmCancelSub(false)}
+      />
+      <ConfirmDialog
+        open={confirmDisconnect}
+        title="Disconnect Stripe?"
+        description="Buyers will no longer be able to purchase your products or send tips until you reconnect."
+        confirmLabel="Disconnect"
+        loading={disconnecting}
+        onConfirm={handleDisconnectStripe}
+        onCancel={() => setConfirmDisconnect(false)}
+      />
     </div>
   )
 }

@@ -27,6 +27,7 @@ interface Profile {
   textColor?: string | null
   socialIconPosition?: string | null
   heroStyle?: string | null
+  heroImage?: string | null
   cornerRadius?: string | null
   subscriptionStatus?: string | null
   pageStatus?: string | null
@@ -467,6 +468,24 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     <div className="text-[10px] text-[#444] mt-0.5">Full photo blend</div>
                   </button>
                 </div>
+
+                {/* Hero image URL — only when cinematic is selected */}
+                {profile.heroStyle === "cinematic" && (
+                  <div className="mt-4">
+                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">
+                      Hero image or video URL
+                    </label>
+                    <input
+                      value={profile.heroImage || ""}
+                      onChange={(e) => setProfile({ ...profile, heroImage: e.target.value || null })}
+                      placeholder="https://... (image or video URL)"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none"
+                    />
+                    <p className="text-[10px] text-[#444] font-mono mt-1.5 leading-relaxed">
+                      Use a landscape image (16:9) for best results. Supports: jpg, png, gif, webp, mp4
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* ── Section 3: Accent color ──────────────────────────────────── */}

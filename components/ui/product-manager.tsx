@@ -115,7 +115,7 @@ export function ProductManager({ products, onProductsChange, isPro }: ProductMan
         <div className="text-5xl mb-4">🛒</div>
         <h3 className="font-bold text-white text-xl mb-2">Sell Digital Products</h3>
         <p className="text-[#888888] mb-6 max-w-sm mx-auto">
-          Create and sell digital products directly from your PayTree. Accept payments via Stripe.
+          Create and sell digital products directly from your Paytree. Accept payments via Stripe.
         </p>
         <a href="/upgrade" className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold">
           Upgrade

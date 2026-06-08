@@ -21,6 +21,7 @@ const profileSchema = z.object({
   textColor: z.string().nullable().optional(),
   socialIconPosition: z.string().nullable().optional(),
   heroStyle: z.string().nullable().optional(),
+  heroImage: z.string().nullable().optional().or(z.literal("")),
   onboarded: z.boolean().optional(),
   aiAgentEnabled: z.boolean().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
@@ -53,6 +54,7 @@ export async function GET() {
         textColor: true,
         socialIconPosition: true,
         heroStyle: true,
+        heroImage: true,
         subscriptionStatus: true,
         pageStatus: true, // Include for polling after checkout
         // Obsidian Terminal fields
@@ -107,6 +109,7 @@ export async function PATCH(req: Request) {
     const {
       name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
       backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
+      heroImage,
       onboarded, aiAgentEnabled,
     } = profileSchema.parse(body)
 
@@ -144,6 +147,7 @@ export async function PATCH(req: Request) {
         textColor,
         socialIconPosition,
         heroStyle,
+        heroImage: heroImage || null,
         ...(onboarded !== undefined && { onboarded }),
         ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
         ...(referralCode !== undefined && { referralCode }),
@@ -166,6 +170,7 @@ export async function PATCH(req: Request) {
         textColor: true,
         socialIconPosition: true,
         heroStyle: true,
+        heroImage: true,
         subscriptionStatus: true,
       }
     })

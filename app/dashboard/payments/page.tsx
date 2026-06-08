@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan, type PlanId } from "@/lib/plans"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,7 @@ export default function PaymentsPage() {
   const [products, setProducts] = useState<ProductSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
 
   const loadProfile = async () => {
     try {
@@ -159,7 +161,7 @@ export default function PaymentsPage() {
   }, [profile?.stripeAccountStatus])
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect your Stripe account? Buyers will no longer be able to purchase your products.")) return
+    setConfirmDisconnect(false)
     setDisconnecting(true)
     try {
       const res = await fetch("/api/stripe/connect/disconnect", { method: "POST" })
@@ -230,7 +232,7 @@ export default function PaymentsPage() {
             <ConnectionCard
               status={stripeStatus}
               feePercent={feePercent}
-              onDisconnect={handleDisconnect}
+              onDisconnect={() => setConfirmDisconnect(true)}
               disconnecting={disconnecting}
               userPlan={userPlan}
             />
@@ -255,6 +257,16 @@ export default function PaymentsPage() {
 
         </motion.div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDisconnect}
+        title="Disconnect Stripe?"
+        description="Buyers will no longer be able to purchase your products or send tips until you reconnect."
+        confirmLabel="Disconnect"
+        loading={disconnecting}
+        onConfirm={handleDisconnect}
+        onCancel={() => setConfirmDisconnect(false)}
+      />
     </div>
   )
 }

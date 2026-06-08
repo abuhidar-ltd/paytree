@@ -80,7 +80,7 @@ const TEMPLATES: InsightTemplate[] = [
     type: "suggestion",
     check: (d) => d.totalViews === 0,
     message: () =>
-      `No views yet! Share your PayTree link on social media to start getting traffic.`,
+      `No views yet! Share your Paytree link on social media to start getting traffic.`,
   },
 ]
 

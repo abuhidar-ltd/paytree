@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       subject: `New message from ${name} via your Paytree`,
       html: `
         <div style="background:#080808;padding:40px;border-radius:12px;font-family:monospace;max-width:480px;margin:0 auto;">
-          <div style="color:#00ff88;font-size:20px;font-weight:600;margin-bottom:8px;">PayTree</div>
+          <div style="color:#00ff88;font-size:20px;font-weight:600;margin-bottom:8px;">Paytree</div>
           <div style="color:#888;font-size:13px;margin-bottom:32px;">New contact form message</div>
           <div style="background:#111;border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:24px;margin-bottom:24px;">
             <div style="color:#444;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">From</div>

@@ -319,7 +319,7 @@ function ClassicHero({ user, socialBlocks, socialIconPosition, isPublished, isLi
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className="text-sm text-[#555] mt-2 max-w-xs mx-auto leading-relaxed"
+            className="text-sm text-[#888] mt-2 max-w-xs mx-auto leading-relaxed"
           >
             {user.bio}
           </motion.p>

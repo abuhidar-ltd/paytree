@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     // Fetch oEmbed data
     const response = await fetch(oembedUrl.toString(), {
       headers: {
-        "User-Agent": "PayTree oEmbed Fetcher/1.0",
+        "User-Agent": "Paytree oEmbed Fetcher/1.0",
         "Accept": "application/json",
       },
       next: { revalidate: 3600 }, // Cache for 1 hour

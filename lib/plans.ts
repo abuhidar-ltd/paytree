@@ -1,5 +1,5 @@
 /**
- * PayTree Plan Definitions & Feature Gating
+ * Paytree Plan Definitions & Feature Gating
  *
  * Plans:
  *  - free:    No subscription (default)

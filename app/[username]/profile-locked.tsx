@@ -54,7 +54,7 @@ export function ProfileLocked({ username }: ProfileLockedProps) {
           <div className="mt-16">
             <Link href="/" className="inline-flex items-center gap-2 text-[#888888] hover:text-white transition-colors">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)]" />
-              <span className="font-bold">PayTree</span>
+              <span className="font-bold">Paytree</span>
             </Link>
           </div>
         </div>

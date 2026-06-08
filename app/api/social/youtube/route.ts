@@ -45,8 +45,8 @@ export async function GET(req: Request) {
     const apiKey = process.env.YOUTUBE_API_KEY
     if (!apiKey) {
       return NextResponse.json(
-        { error: "YouTube API key not configured", missingKey: true },
-        { status: 500 }
+        { error: "YouTube API key not configured", missingKey: true, fallback: true },
+        { status: 200 }
       )
     }
 
@@ -58,8 +58,8 @@ export async function GET(req: Request) {
     const searchRes = await fetch(searchUrl, { next: { revalidate: 600 } })
     if (!searchRes.ok) {
       return NextResponse.json(
-        { error: "YouTube API request failed" },
-        { status: 502 }
+        { error: "Could not load video", fallback: true },
+        { status: 200 }
       )
     }
 
@@ -69,8 +69,8 @@ export async function GET(req: Request) {
 
     if (!item || !videoId) {
       return NextResponse.json(
-        { error: "No videos found for this channel" },
-        { status: 404 }
+        { error: "No videos found for this channel", fallback: true },
+        { status: 200 }
       )
     }
 
@@ -107,8 +107,8 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("YouTube social card error:", error)
     return NextResponse.json(
-      { error: "Failed to load latest video" },
-      { status: 500 }
+      { error: "Failed to load latest video", fallback: true },
+      { status: 200 }
     )
   }
 }

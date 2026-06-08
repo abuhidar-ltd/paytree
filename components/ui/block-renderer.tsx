@@ -332,7 +332,7 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
       return (
         <div className="w-full">
           {(block.thumbnail || cfg.imageUrl) ? (
-            <img src={(block.thumbnail || cfg.imageUrl) as string} alt={block.title || ""} className="w-full rounded-2xl object-cover" />
+            <img src={(block.thumbnail || cfg.imageUrl) as string} alt={block.title || ""} loading="lazy" className="w-full rounded-2xl object-cover" />
           ) : (
             <div className="bg-white/[0.03] border border-dashed border-white/[0.08] rounded-2xl p-8 text-center text-[#333] text-sm">
               Add an image URL in the dashboard
@@ -410,7 +410,7 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
         onClick={handleClick}
       >
         {/* Plain <img> always — next/image kills GIF animation */}
-        <img src={block.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={block.thumbnail} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute top-2 left-2">
           <span
@@ -832,24 +832,23 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
   const pinnedVideoId = mode === "video" ? extractYouTubeVideoId((cfg.videoId as string) || (cfg.videoUrl as string) || "") : null
 
   const [data, setData] = useState<Record<string, unknown> | null>(null)
-  const [fetchError, setFetchError] = useState(false)
-  const [missingKey, setMissingKey] = useState(false)
+  const [fallback, setFallback] = useState(false)
 
   useEffect(() => {
     if (mode === "video") return
     const channelId = cfg.channelId as string
-    if (!channelId) { setFetchError(true); return }
-    fetch(`/api/social/youtube?channelId=${channelId}`)
+    if (!channelId) { setFallback(true); return }
+    fetch(`/api/social/youtube?channelId=${encodeURIComponent(channelId)}`)
       .then(async (r) => {
-        const json = await r.json()
-        if (!r.ok) {
-          if (json?.missingKey) setMissingKey(true)
-          setFetchError(true)
+        let json: Record<string, unknown> = {}
+        try { json = await r.json() } catch { /* not JSON */ }
+        if (!r.ok || json.fallback === true) {
+          setFallback(true)
           return
         }
         setData(json)
       })
-      .catch(() => setFetchError(true))
+      .catch(() => setFallback(true))
   }, [cfg.channelId, mode])
 
   // ─── Specific video mode: zero API calls ───
@@ -881,6 +880,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
             src={thumb}
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = fallback }}
             alt=""
+            loading="lazy"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 flex items-center justify-center">
@@ -900,37 +900,53 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
 
   const channelId = cfg.channelId as string | undefined
 
-  // API key not configured — show a branded YouTube placeholder that looks intentional
-  if (missingKey || (fetchError && !data && !channelId)) {
+  // Any failure mode (no key, 502 upstream, network error, no videos) → branded placeholder
+  if (fallback) {
+    const channelHandle = channelId?.startsWith("@") ? channelId : channelId ? `@${channelId}` : null
+    const channelUrl = channelId
+      ? channelId.startsWith("UC")
+        ? `https://youtube.com/channel/${channelId}`
+        : `https://youtube.com/${channelHandle}`
+      : null
     return (
-      <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #ff000018, #ff000008)", border: "1px solid #ff000030" }}>
-        <div className="flex flex-col items-center justify-center py-8 gap-3">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,0,0,0.12), rgba(255,0,0,0.04))",
+          border: "1px solid rgba(255,0,0,0.2)",
+          minHeight: 120,
+        }}
+      >
+        <div className="flex flex-col items-center justify-center py-7 gap-2.5">
           <div className="w-12 h-12 rounded-full bg-[#ff0000] flex items-center justify-center">
-            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-7 h-7 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold text-white">{block.title || "YouTube"}</p>
-            {channelId && (
-              <p className="text-[11px] font-mono text-[#555] mt-0.5">@{channelId}</p>
+            {channelHandle && (
+              <p className="text-[11px] font-mono text-[#666] mt-0.5">{channelHandle}</p>
             )}
           </div>
+          {channelUrl && (
+            <a
+              href={channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackBlockClick(block.id)}
+              className="text-[11px] font-mono text-[#ff5555] hover:text-[#ff7777] transition-colors mt-1"
+            >
+              Visit channel →
+            </a>
+          )}
         </div>
       </div>
     )
   }
 
-  if (fetchError) {
-    return (
-      <div className="bg-red-500/[0.03] border border-red-500/[0.15] rounded-2xl p-5 text-center">
-        <p className="text-xs text-[#888] font-mono">Could not load latest video</p>
-      </div>
-    )
-  }
-
   if (!data) {
-    return <div className="bg-red-500/[0.03] border border-red-500/[0.15] rounded-2xl h-[180px] animate-pulse" />
+    return <div className="bg-red-500/[0.03] border border-red-500/[0.15] rounded-2xl h-[120px] animate-pulse" />
   }
 
   const videoId = data.videoId as string
@@ -952,7 +968,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
       className="block rounded-2xl overflow-hidden bg-red-500/[0.03] border border-red-500/[0.15] hover:border-red-500/30 transition-colors"
     >
       <motion.div className="relative h-[100px] overflow-hidden" whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
-        <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        <img src={thumbnail} alt="" loading="lazy" className="w-full h-full object-cover" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-red-600/90 flex items-center justify-center">
             <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -1009,7 +1025,7 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
       {block.thumbnail ? (
         <div className="relative h-[90px] overflow-hidden">
           {/* Plain <img> always — next/image kills GIF animation */}
-          <img src={block.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={block.thumbnail} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 to-transparent" />
           <div className="absolute top-2 left-2">
             <span className="bg-blue-500/20 text-blue-400 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -1091,7 +1107,7 @@ function PodcastBlock({ block, cfg }: { block: Block; cfg: Record<string, unknow
     <div className="bg-amber-500/[0.03] border border-amber-500/[0.12] rounded-2xl p-4">
       <div className="flex gap-3 mb-3">
         {(data.showImage as string) && (
-          <img src={data.showImage as string} alt="" className="w-[52px] h-[52px] rounded-xl object-cover flex-shrink-0" />
+          <img src={data.showImage as string} alt="" loading="lazy" className="w-[52px] h-[52px] rounded-xl object-cover flex-shrink-0" />
         )}
         <div className="min-w-0">
           <p className="text-[10px] font-mono uppercase tracking-widest text-amber-400/60 mb-0.5">{(data.showTitle as string) || "Podcast"}</p>

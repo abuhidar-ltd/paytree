@@ -10,20 +10,10 @@ import { PublishBanner } from "./publish-banner"
 import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
 import { detectDevice, normalizeReferrer } from "@/lib/tracking"
 
-export const revalidate = 60
-
-export async function generateStaticParams() {
-  try {
-    const users = await prisma.user.findMany({
-      select: { username: true },
-      take: 100,
-    })
-    return users.map((user) => ({ username: user.username }))
-  } catch (error) {
-    console.error("Error generating static params:", error)
-    return []
-  }
-}
+// Public profile must render dynamically so notFound() returns a real 404 status
+// and view tracking (headers, IP, geo) runs on every request instead of being
+// frozen into a static cache.
+export const dynamic = "force-dynamic"
 
 const PRIVATE_IP = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::ffff:127\.)/
 
@@ -175,7 +165,7 @@ export default async function ProfilePage({
       {isPublished && (
         <ShareButton
           url={profileUrl}
-          title={`${user.name || user.username}'s PayTree`}
+          title={`${user.name || user.username}'s Paytree`}
           text={user.bio || undefined}
         />
       )}

@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { resolveUserPlan } from "@/lib/plans"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
 import {
@@ -810,6 +811,7 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
   onEdit: () => void; onDuplicate: () => void; onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
     <div className="relative">
@@ -845,7 +847,7 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-[#888] hover:bg-white/[0.04] hover:text-white transition-colors">
                 <CopyPlus size={12} /> Duplicate
               </button>
-              <button onClick={(e) => { e.stopPropagation(); setOpen(false); if (confirm("Delete this card?")) onDelete() }}
+              <button onClick={(e) => { e.stopPropagation(); setOpen(false); setConfirmDelete(true) }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-red-400 hover:bg-red-500/10 transition-colors">
                 <Trash2 size={12} /> Delete
               </button>
@@ -853,6 +855,14 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
           </>
         )}
       </AnimatePresence>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete this card?"
+        description="The card and any data attached to it will be permanently removed. This cannot be undone."
+        confirmLabel="Delete card"
+        onConfirm={() => { setConfirmDelete(false); onDelete() }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }
@@ -1798,6 +1808,7 @@ function SettingsTab({ block, onUpdate, onDelete }: {
 }) {
   const hasSchedule = !!block.scheduleStart || !!block.scheduleEnd
   const [scheduleOn, setScheduleOn] = useState(hasSchedule)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
     <>
@@ -1847,11 +1858,20 @@ function SettingsTab({ block, onUpdate, onDelete }: {
       </div>
 
       <div className="border-t border-white/[0.06] pt-4 mt-2">
-        <button onClick={() => { if (confirm("Delete this card? This cannot be undone.")) onDelete(block.id) }}
+        <button onClick={() => setConfirmDelete(true)}
           className="w-full bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-xs rounded-xl py-3 hover:bg-red-500/20 transition-colors">
           Delete card
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete this card?"
+        description="The card and any data attached to it will be permanently removed. This cannot be undone."
+        confirmLabel="Delete card"
+        onConfirm={() => { setConfirmDelete(false); onDelete(block.id) }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </>
   )
 }

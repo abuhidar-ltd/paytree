@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     // Fetch the RSS feed
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "PayTree RSS Fetcher/1.0",
+        "User-Agent": "Paytree RSS Fetcher/1.0",
         "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
       },
       next: { revalidate: 300 }, // Cache for 5 minutes

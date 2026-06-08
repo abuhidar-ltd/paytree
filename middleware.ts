@@ -28,9 +28,17 @@ export default clerkMiddleware(async (auth, request) => {
     await auth.protect();
   }
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  // Only inject x-pathname for dashboard routes that read it. Propagating
+  // request headers via NextResponse.next({ request }) emits a middleware
+  // rewrite that commits the HTTP status to 200, which prevents notFound()
+  // on public profile pages from returning a real 404.
+  if (request.nextUrl.pathname.startsWith("/dashboard")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  return NextResponse.next();
 });
 
 export const config = {

@@ -38,6 +38,8 @@ export default async function StudioPage({ searchParams }: StudioPageProps) {
         textColor: true,
         socialIconPosition: true,
         heroStyle: true,
+        heroImage: true,
+        cornerRadius: true,
         subscriptionStatus: true,
         pageStatus: true,
       }

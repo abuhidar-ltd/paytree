@@ -1089,7 +1089,7 @@ function PhonePreview({
             fontFamily: "monospace",
           }}
         >
-          Powered by PayTree
+          Powered by Paytree
         </div>
       </div>
     </div>

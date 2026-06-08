@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       subject: `Your unlock code for "${itemTitle}"`,
       html: `
         <div style="background:#080808;padding:40px;border-radius:12px;font-family:monospace;max-width:480px;margin:0 auto;">
-          <div style="color:#00ff88;font-size:20px;font-weight:600;margin-bottom:8px;">PayTree</div>
+          <div style="color:#00ff88;font-size:20px;font-weight:600;margin-bottom:8px;">Paytree</div>
           <div style="color:#888;font-size:13px;margin-bottom:32px;">Vault unlock code</div>
           <div style="color:#e0e0e0;font-size:14px;margin-bottom:24px;">
             Here is your code to unlock <strong style="color:#fff;">${itemTitle}</strong>
