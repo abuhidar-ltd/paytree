@@ -70,7 +70,7 @@ export function DropCard({ drop }: { drop: Drop }) {
       )}
 
       {!isLive ? (
-        <div className="grid grid-cols-4 gap-2 mt-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mt-4">
           {[
             { label: "Days", value: days },
             { label: "Hours", value: hours },
@@ -79,18 +79,18 @@ export function DropCard({ drop }: { drop: Drop }) {
           ].map((unit) => (
             <div
               key={unit.label}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-3 text-center"
+              className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-2 sm:py-3 px-1 text-center min-w-0"
             >
               <motion.div
                 key={unit.value}
-                className="text-2xl font-mono font-semibold text-white tabular-nums"
+                className="text-lg sm:text-2xl font-mono font-semibold text-white tabular-nums"
                 initial={{ scale: 1.08, opacity: 0.7 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 {unit.value.toString().padStart(2, "0")}
               </motion.div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
+              <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
                 {unit.label}
               </div>
             </div>

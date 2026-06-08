@@ -438,12 +438,7 @@ export default function DashboardPage() {
   // ─── Render ───
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 bg-[#030303] flex items-center justify-center">
-        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}
-          className="text-[#00ff88] font-mono text-sm">Loading...</motion.div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (
@@ -560,17 +555,17 @@ export default function DashboardPage() {
           <button
             ref={addButtonRef}
             onClick={() => setShowAddPicker(true)}
-            className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-3 py-1.5 hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 py-1.5 hover:opacity-90 transition-opacity"
+            aria-label="Add card"
           >
-            <Plus size={14} /> Add card
+            <Plus size={14} /> <span className="hidden sm:inline">Add card</span>
           </button>
         </div>
       </div>
 
       {/* ─── Canvas (scrollable) ─── */}
       <div
-        className="fixed inset-0 overflow-y-auto lg:ml-[200px] lg:mr-[360px] bg-[#060606]"
-        style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 56, paddingBottom: 40 }}
+        className="fixed inset-0 overflow-y-auto lg:ml-[200px] lg:mr-[360px] bg-[#060606] px-3 sm:px-6 pt-14 pb-10"
       >
         {/* Upgrade Banner */}
         {userPlan === "free" && profile?.pageStatus !== "published" && (
@@ -1933,6 +1928,53 @@ function SizeOption({ active, full, onClick }: { active: boolean; full?: boolean
       </div>
       <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#888]"}`}>{full ? "Full width" : "Half width"}</span>
     </button>
+  )
+}
+
+// ─── Dashboard Skeleton ───────────────────────────────────────
+
+function DashboardSkeleton() {
+  return (
+    <div className="fixed inset-0 bg-[#030303]">
+      {/* Top bar shell */}
+      <div className="fixed top-0 left-0 right-0 h-12 z-50 flex items-center justify-between px-5 bg-[#080808] border-b border-white/[0.06]">
+        <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
+        <div className="w-20 h-7 rounded-lg bg-white/[0.04]" />
+      </div>
+      {/* Canvas with shimmer cards */}
+      <div className="fixed inset-0 overflow-y-auto bg-[#060606] px-3 sm:px-6 pt-14 pb-10 lg:ml-[200px] lg:mr-[360px]">
+        <div
+          className="max-w-[800px] mx-auto grid gap-3"
+          style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className={i % 3 === 0 ? "col-span-2" : "col-span-1"}
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "0.5px solid rgba(255,255,255,0.08)",
+                borderRadius: 16,
+                height: i % 3 === 0 ? 100 : 88,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)",
+                  backgroundSize: "200% 100%",
+                }}
+                animate={{ backgroundPosition: ["200% 0", "-200% 0"] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "linear", delay: i * 0.08 }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 

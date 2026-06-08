@@ -417,6 +417,15 @@ function CinematicHero({ user, socialBlocks, socialIconPosition, isLive }: {
 // ─── Cards Grid ───────────────────────────────────────────────
 // Universal CSS-grid layout. Full-width blocks span both columns,
 // half-width blocks take one. Each card scroll-animates in with a stagger.
+//
+// On mobile (<480px), certain card types are forced to full width because
+// their content (countdown numbers, video thumbnails, forms) can't render
+// legibly inside a half-width column.
+
+const FORCE_FULL_ON_MOBILE = new Set([
+  "drop", "youtube", "product", "vault",
+  "faq", "contact_form", "podcast",
+])
 
 function CardsGrid({ blocks, commonProps, onOpenCollection }: {
   blocks: Block[]
@@ -424,13 +433,19 @@ function CardsGrid({ blocks, commonProps, onOpenCollection }: {
   onOpenCollection?: (block: Block) => void
 }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div className="grid grid-cols-2 gap-2.5">
       {blocks.map((block, i) => {
-        const span = block.size === "half" ? 1 : 2
+        const isHalf = block.size === "half"
+        const forceFullOnMobile = FORCE_FULL_ON_MOBILE.has(block.type)
+        const colSpan = !isHalf
+          ? "col-span-2"
+          : forceFullOnMobile
+            ? "col-span-2 min-[480px]:col-span-1"
+            : "col-span-1"
         return (
           <motion.div
             key={block.id}
-            style={{ gridColumn: `span ${span}`, minWidth: 0 }}
+            className={`${colSpan} min-w-0`}
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}

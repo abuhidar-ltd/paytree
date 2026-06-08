@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
@@ -14,6 +15,39 @@ import { detectDevice, normalizeReferrer } from "@/lib/tracking"
 // and view tracking (headers, IP, geo) runs on every request instead of being
 // frozen into a static cache.
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}): Promise<Metadata> {
+  const { username } = await params
+  const user = await prisma.user.findUnique({
+    where: { username },
+    select: { name: true, username: true, bio: true, image: true },
+  })
+  if (!user) return { title: "Not found · Paytree" }
+  const displayName = user.name || user.username
+  const title = `${displayName} (@${user.username}) · Paytree`
+  const description = user.bio || `Check out ${displayName}'s page on Paytree.`
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      url: `/${user.username}`,
+      images: user.image ? [{ url: user.image }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: user.image ? [user.image] : undefined,
+    },
+  }
+}
 
 const PRIVATE_IP = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::ffff:127\.)/
 

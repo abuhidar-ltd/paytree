@@ -1,26 +1,43 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Playfair_Display, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
 
-// Load Inter for body text
-const inter = Inter({ 
+// Body text
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+  preload: true,
 });
 
-// Load Playfair Display for elegant headings
-const playfair = Playfair_Display({ 
+// Elegant display headings
+const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
   display: "swap",
+  preload: false,
 });
 
+// Mono labels, numbers, terminal accents
+const spaceMono = Space_Mono({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  preload: true,
+});
+
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to";
+const TITLE = "Paytree — The bio link for creators who monetize";
+const DESCRIPTION =
+  "0% platform fees. AI that sells for you. Analytics that show you the world. The only bio link built for creators who earn.";
+
 export const metadata: Metadata = {
-  title: "Paytree - Your Payment Links, Elegantly Organized",
-  description: "Create a stunning, professional page for all your payment links. Get paid beautifully with Paytree.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -28,14 +45,19 @@ export const metadata: Metadata = {
     title: "Paytree",
   },
   openGraph: {
-    title: "Paytree - Your Payment Links, Elegantly Organized",
-    description: "Create a stunning, professional page for all your payment links.",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Paytree",
     type: "website",
+    locale: "en_US",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Paytree - Your Payment Links, Elegantly Organized",
-    description: "Create a stunning, professional page for all your payment links.",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/og-image.png"],
   },
 };
 
@@ -55,7 +77,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+      <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
           {children}
           <Toaster />
