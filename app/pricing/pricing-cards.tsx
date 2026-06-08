@@ -23,10 +23,10 @@ const FREE_FEATURES = [
 
 const STARTER_FEATURES = [
   { text: "Everything in Free", included: true },
+  { text: "0% transaction fees", included: true },
   { text: "Publish your page", included: true },
   { text: "Analytics dashboard", included: true },
   { text: "Email audience export", included: true },
-  { text: "5% transaction fee on sales", included: true },
   { text: "No AI agent", included: false },
   { text: "No globe analytics", included: false },
 ]
@@ -250,7 +250,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-lg text-[#888888]">{ultraPer}</span>
           </div>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Maximize revenue</p>
-          <p className="text-xs text-[#444] mb-8">Everything in Starter, plus 0% fees and AI that sells for you.</p>
+          <p className="text-xs text-[#444] mb-8">Everything in Starter, plus AI that sells for you and globe analytics.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {ULTRA_FEATURES.map((f, i) => (
@@ -305,7 +305,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       <div className="max-w-3xl mx-auto text-center mt-10">
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
           <p className="text-sm text-[#e0e0e0] font-mono">
-            vs Linktree Premium ($35/mo) — Paytree Ultra is <span className="text-[#00ff88] font-bold">$16/mo cheaper</span> with more features and 0% fees
+            vs Linktree Premium ($35/mo) — Paytree Ultra is <span className="text-[#00ff88] font-bold">$16/mo cheaper</span> with more features. <span className="text-[#00ff88] font-bold">0% fees on every paid plan.</span>
           </p>
         </div>
       </div>

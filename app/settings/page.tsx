@@ -9,12 +9,6 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "sonner"
 
-function feeForPlan(plan: string | null | undefined): number {
-  if (plan === "ultra" || plan === "pro") return 0
-  if (plan === "starter") return 5
-  return 0
-}
-
 interface SubscriptionInfo {
   status: string
   endsAt?: string
@@ -205,7 +199,6 @@ export default function SettingsPage() {
   const isCanceling = profile?.subscriptionStatus === 'canceling'
   const isCanceled = profile?.subscriptionStatus === 'canceled'
   const stripeStatus = profile?.stripeAccountStatus ?? "not_connected"
-  const feePercent = feeForPlan(profile?.subscriptionPlan)
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
@@ -356,7 +349,7 @@ export default function SettingsPage() {
                   <span className="text-[#00ff88] text-sm font-mono font-semibold">Stripe Connected</span>
                 </div>
                 <p className="text-[#888] text-sm">
-                  Buyers pay directly to your Stripe account. Paytree takes {feePercent}% per transaction.
+                  Buyers pay directly to your Stripe account. <span className="text-[#00ff88]">0% platform fees</span> — you keep every dollar.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
@@ -408,7 +401,7 @@ export default function SettingsPage() {
                 </p>
                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
                   <p className="text-xs font-mono text-[#555]">
-                    Paytree takes {feePercent}% per transaction based on your plan · Starter: 5% · Ultra: 0%
+                    <span className="text-[#00ff88]">0% platform fees</span> on every paid plan · Stripe processing fees apply
                   </p>
                 </div>
                 <a

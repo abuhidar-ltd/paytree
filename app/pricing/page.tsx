@@ -97,7 +97,7 @@ export default async function PricingPage() {
               },
               {
                 q: "Do you take a cut of my payments?",
-                a: "Starter has a 5% platform fee on sales. Ultra has 0% fees — you keep everything. Stripe\u2019s standard processing fees still apply.",
+                a: "Every paid plan has 0% platform fees. You keep 100% of every sale. We make money from subscriptions, not your revenue. Stripe\u2019s standard processing fees still apply.",
               },
             ].map((faq, i) => (
               <div key={i} className="glass-brick !cursor-default">
@@ -111,7 +111,7 @@ export default async function PricingPage() {
         {/* Bottom CTA */}
         <div className="mt-16 sm:mt-24 text-center">
           <p className="text-xs sm:text-sm text-[#555555]">
-            0% platform fees on Ultra. Stripe processing fees apply on all plans.
+            0% platform fees on every paid plan. Stripe processing fees apply.
           </p>
         </div>
       </div>

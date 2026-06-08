@@ -84,7 +84,7 @@ const stagger = {
 
 const FEE_TABLE: { plan: PlanId; label: string; fee: string; monthly: string; canSell: boolean }[] = [
   { plan: "free",    label: "Free",    fee: "—",  monthly: "$0",     canSell: false },
-  { plan: "starter", label: "Starter", fee: "5%", monthly: "$7/mo",  canSell: true },
+  { plan: "starter", label: "Starter", fee: "0%", monthly: "$7/mo",  canSell: true },
   { plan: "ultra",   label: "Ultra",   fee: "0%", monthly: "$19/mo", canSell: true },
 ]
 
@@ -193,7 +193,6 @@ export default function PaymentsPage() {
     subscriptionEndsAt: profile.subscriptionEndsAt ? new Date(profile.subscriptionEndsAt) : null,
   }) : "free"
 
-  const feePercent = userPlan === "ultra" ? 0 : userPlan === "starter" ? 5 : 0
   const stripeStatus: StripeStatus = (profile?.stripeAccountStatus as StripeStatus) ?? "not_connected"
 
   const totalRevenue = products.reduce((s, p) => s + (p.totalRevenue || 0), 0)
@@ -231,7 +230,6 @@ export default function PaymentsPage() {
           <motion.div variants={cardVariants}>
             <ConnectionCard
               status={stripeStatus}
-              feePercent={feePercent}
               onDisconnect={() => setConfirmDisconnect(true)}
               disconnecting={disconnecting}
               userPlan={userPlan}
@@ -247,7 +245,7 @@ export default function PaymentsPage() {
 
           {/* How it works */}
           <motion.div variants={cardVariants}>
-            <HowItWorks feePercent={feePercent} />
+            <HowItWorks />
           </motion.div>
 
           {/* Platform fees */}
@@ -274,10 +272,9 @@ export default function PaymentsPage() {
 // ─── Connection status card ──────────────────────────────────────────────────
 
 function ConnectionCard({
-  status, feePercent, onDisconnect, disconnecting, userPlan,
+  status, onDisconnect, disconnecting, userPlan,
 }: {
   status: StripeStatus
-  feePercent: number
   onDisconnect: () => void
   disconnecting: boolean
   userPlan: PlanId
@@ -301,7 +298,7 @@ function ConnectionCard({
               </span>
             </div>
             <p className="text-xs text-[#666] mt-0.5">
-              Buyers pay directly to your Stripe account. Paytree takes {feePercent}% per transaction.
+              Buyers pay directly to your Stripe account. <span className="text-[#00ff88]">0% platform fees</span> — you keep every dollar.
             </p>
           </div>
         </div>
@@ -377,7 +374,7 @@ function ConnectionCard({
         <StripeBadge size={56} />
         <h2 className="text-lg font-bold text-white mt-5">Connect your Stripe account</h2>
         <p className="text-sm text-[#666] mt-2 max-w-[440px]">
-          Buyers pay you directly. Paytree takes <span className="text-[#00ff88] font-mono">{feePercent}%</span> based on your plan.
+          Buyers pay you directly. <span className="text-[#00ff88] font-mono">0% platform fees</span> — we make money from subscriptions, not your sales.
         </p>
 
         {/* Compact fee table */}
@@ -393,8 +390,8 @@ function ConnectionCard({
                 <span className={`${row.canSell ? (isCurrent ? "text-[#00ff88]" : "text-[#e0e0e0]") : "text-[#444]"}`}>
                   {row.label} {isCurrent && <span className="text-[9px] uppercase tracking-widest ml-1.5 opacity-70">current</span>}
                 </span>
-                <span className={`tabular-nums ${row.fee === "0%" ? "text-[#00ff88] font-bold" : row.canSell ? "text-[#888]" : "text-[#444]"}`}>
-                  {row.canSell ? `${row.fee} fee` : `${row.fee} · can't sell`}
+                <span className={`tabular-nums ${row.canSell ? "text-[#00ff88] font-bold" : "text-[#444]"}`}>
+                  {row.canSell ? "0% fees" : "Can't sell"}
                 </span>
               </div>
             )
@@ -457,7 +454,7 @@ function RevenueSummary({ revenueCents, sales }: { revenueCents: number; sales: 
 
 // ─── How it works ────────────────────────────────────────────────────────────
 
-function HowItWorks({ feePercent }: { feePercent: number }) {
+function HowItWorks() {
   const steps: { title: string; desc: string; icon: typeof Link2; tint: string }[] = [
     {
       title: "Connect Stripe",
@@ -473,7 +470,7 @@ function HowItWorks({ feePercent }: { feePercent: number }) {
     },
     {
       title: "Get paid",
-      desc: `Payments go directly to your Stripe account. Paytree takes ${feePercent}% based on your plan.`,
+      desc: "Payments go directly to your Stripe account. 0% platform fees — you keep 100% of every sale.",
       icon: Wallet,
       tint: "#00ff88",
     },
@@ -517,7 +514,7 @@ function PlatformFees({ userPlan }: { userPlan: PlanId }) {
   return (
     <GlassCard>
       <SectionLabel right={
-        userPlan !== "ultra" ? (
+        userPlan === "free" ? (
           <Link
             href="/pricing"
             className="text-[11px] font-mono text-[#00ff88] hover:opacity-80 transition-opacity inline-flex items-center gap-1"
@@ -529,7 +526,7 @@ function PlatformFees({ userPlan }: { userPlan: PlanId }) {
         Platform fees
       </SectionLabel>
       <p className="text-xs text-[#666] mb-4 leading-relaxed">
-        Paytree charges a small platform fee on each sale. Upgrade your plan to reduce or eliminate fees.
+        <span className="text-[#00ff88]">0% platform fees on every paid plan.</span> We make money from subscriptions, not your sales. Stripe processing fees still apply.
       </p>
 
       <div className="rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.05)" }}>

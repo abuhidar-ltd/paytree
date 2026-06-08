@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
-import { resolveUserPlan } from "@/lib/plans"
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -28,11 +27,10 @@ export async function GET() {
   const account = await res.json()
 
   if (account.charges_enabled) {
-    const plan = resolveUserPlan(dbUser)
-    const platformFeePercent = plan === "ultra" ? 0 : plan === "starter" ? 5 : 0
+    // All plans have 0% platform fees. Paytree monetizes via subscriptions only.
     await prisma.user.update({
       where: { id: user.id },
-      data: { stripeAccountStatus: "active", platformFeePercent },
+      data: { stripeAccountStatus: "active", platformFeePercent: 0 },
     })
     return NextResponse.json({ status: "active", charges_enabled: true })
   }

@@ -12,7 +12,7 @@ const LINKTREE_ITEMS = [
 ]
 
 const PAYTREE_ITEMS = [
-  "0% fees on Ultra — keep every dollar",
+  "0% fees on every paid plan — keep every dollar",
   "AI sales agent — answers questions, closes sales",
   "Drop countdown cards built in",
   "Vault: gate any card behind an email or payment",

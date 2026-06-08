@@ -73,7 +73,7 @@ export default async function HomePage() {
           <div className="border-t border-white/[0.05] mt-6 pt-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#444] font-mono">
               <div>&copy; {new Date().getFullYear()} Paytree. All rights reserved.</div>
-              <div>0% platform fees on Ultra. Stripe processing fees apply.</div>
+              <div>0% platform fees on every paid plan. Stripe processing fees apply.</div>
             </div>
           </div>
         </div>

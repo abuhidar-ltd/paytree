@@ -114,7 +114,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, type: "spring", stiffness: 120, damping: 20 }}
             >
-              The only bio link with 0% fees, an AI that sells for you, and analytics that show you the world.
+              0% platform fees on every paid plan. An AI that sells for you. Analytics that show you the world.
             </motion.p>
 
             {/* CTAs */}

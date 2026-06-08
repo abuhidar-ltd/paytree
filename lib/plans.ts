@@ -85,7 +85,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "Publish your page",
       "Analytics dashboard",
       "Email audience export",
-      "5% transaction fee on sales",
+      "0% transaction fees",
     ],
     limits: {
       links: -1,
@@ -95,7 +95,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       folders: -1,
     },
     canPublish: true,
-    platformFeePercent: 5,
+    platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: false,
     hasAiFeatures: false,

@@ -20,7 +20,6 @@ export async function POST(
             name: true,
             stripeCustomerId: true,
             stripeAccountId: true,
-            platformFeePercent: true,
           },
         },
       },
@@ -51,9 +50,9 @@ export async function POST(
     })
 
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    const feePercent = product.user.platformFeePercent ?? 8
-    const applicationFeeAmount = Math.round(product.price * feePercent / 100)
 
+    // No application_fee_amount — Paytree charges 0% platform fees on every plan.
+    // Revenue comes from subscriptions, not from skimming creator sales.
     const session = await stripe.checkout.sessions.create(
       {
         mode: "payment",
@@ -72,9 +71,6 @@ export async function POST(
             quantity: 1,
           },
         ],
-        payment_intent_data: {
-          application_fee_amount: applicationFeeAmount,
-        },
         metadata: {
           type: "product_purchase",
           purchaseId: purchase.id,
