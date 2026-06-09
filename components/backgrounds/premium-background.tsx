@@ -1,148 +1,156 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
+
+export type BackgroundVariant = "mesh" | "particles" | "gradient" | "minimal" | "nebula"
 
 interface PremiumBackgroundProps {
-  variant?: "nebula" | "minimal" | "particles"
+  variant?: BackgroundVariant
 }
 
-export function PremiumBackground({ variant = "nebula" }: PremiumBackgroundProps) {
-  const [mounted, setMounted] = useState(false)
-  
+// Single source of truth for every background. Fixed full-screen, behind everything,
+// never intercepts clicks. Body bg is #030303 so the layer always sits on solid black.
+export function PremiumBackground({ variant = "mesh" }: PremiumBackgroundProps) {
+  const v: BackgroundVariant = variant === "nebula" ? "mesh" : variant
+
+  if (v === "particles") return <ParticlesLayer />
+  if (v === "gradient") return <GradientLayer />
+  if (v === "minimal") return <MinimalLayer />
+  return <MeshLayer />
+}
+
+// ── MESH ───────────────────────────────────────────────────────
+// Three overlapping radial gradients shifted via background-position.
+function MeshLayer() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+        background: [
+          "radial-gradient(ellipse at 20% 50%, rgba(0,255,136,0.07) 0%, transparent 60%)",
+          "radial-gradient(ellipse at 80% 20%, rgba(0,100,255,0.05) 0%, transparent 60%)",
+          "radial-gradient(ellipse at 50% 80%, rgba(150,0,255,0.05) 0%, transparent 60%)",
+        ].join(", "),
+        backgroundSize: "200% 200%",
+        animation: "meshMove 10s ease infinite",
+      }}
+    />
+  )
+}
+
+// ── GRADIENT ───────────────────────────────────────────────────
+function GradientLayer() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+        background: "linear-gradient(135deg, #030303 0%, rgba(0,20,10,1) 50%, #030303 100%)",
+        backgroundSize: "400% 400%",
+        animation: "gradientBg 15s ease infinite",
+      }}
+    />
+  )
+}
+
+// ── MINIMAL ────────────────────────────────────────────────────
+function MinimalLayer() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+        background: "#030303",
+      }}
+    />
+  )
+}
+
+// ── PARTICLES ──────────────────────────────────────────────────
+// 30 small white dots rising slowly, recycled at top once they exit.
+function ParticlesLayer() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
   useEffect(() => {
-    setMounted(true)
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const dpr = window.devicePixelRatio || 1
+
+    function resize() {
+      if (!canvas || !ctx) return
+      canvas.width = window.innerWidth * dpr
+      canvas.height = window.innerHeight * dpr
+      canvas.style.width = `${window.innerWidth}px`
+      canvas.style.height = `${window.innerHeight}px`
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    resize()
+
+    type Dot = { x: number; y: number; r: number; speed: number }
+    const W = () => canvas.width / dpr
+    const H = () => canvas.height / dpr
+
+    const dots: Dot[] = Array.from({ length: 30 }, () => ({
+      x: Math.random() * W(),
+      y: Math.random() * H(),
+      r: Math.random() * 1 + 1,         // 1–2px
+      speed: Math.random() * 0.3 + 0.15, // slow upward drift
+    }))
+
+    let raf = 0
+    function frame() {
+      if (!canvas || !ctx) return
+      ctx.clearRect(0, 0, W(), H())
+      ctx.fillStyle = "rgba(255,255,255,0.3)"
+      for (const d of dots) {
+        d.y -= d.speed
+        if (d.y < -2) {
+          d.y = H() + 2
+          d.x = Math.random() * W()
+        }
+        ctx.beginPath()
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+
+    window.addEventListener("resize", resize)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener("resize", resize)
+    }
   }, [])
-  
+
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Deep black base */}
-      <div className="absolute inset-0 bg-[#030303]" />
-      
-      {/* Nebula gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0a0a0a_0%,#050505_100%)]" />
-      
-      {variant === "nebula" && mounted && (
-        <>
-          {/* Animated nebula orbs */}
-          <div 
-            className="absolute w-[500px] h-[500px] rounded-full opacity-30"
-            style={{
-              background: "radial-gradient(circle, rgba(0,255,136,0.15) 0%, transparent 70%)",
-              filter: "blur(80px)",
-              top: "-10%",
-              left: "-10%",
-              animation: "float 20s ease-in-out infinite"
-            }}
-          />
-          
-          <div 
-            className="absolute w-[400px] h-[400px] rounded-full opacity-20"
-            style={{
-              background: "radial-gradient(circle, rgba(0,255,136,0.3) 0%, transparent 70%)",
-              filter: "blur(80px)",
-              top: "40%",
-              right: "-10%",
-              animation: "float 25s ease-in-out infinite",
-              animationDelay: "-5s"
-            }}
-          />
-          
-          <div 
-            className="absolute w-[350px] h-[350px] rounded-full opacity-25"
-            style={{
-              background: "radial-gradient(circle, rgba(0,0,0,0.5) 0%, transparent 70%)",
-              filter: "blur(70px)",
-              bottom: "-5%",
-              left: "25%",
-              animation: "float 22s ease-in-out infinite",
-              animationDelay: "-10s"
-            }}
-          />
-          
-          {/* Accent glow */}
-          <div 
-            className="absolute w-[200px] h-[200px] rounded-full opacity-15"
-            style={{
-              background: "radial-gradient(circle, rgba(0,255,136,0.5) 0%, transparent 70%)",
-              filter: "blur(60px)",
-              top: "20%",
-              left: "60%",
-              animation: "float 18s ease-in-out infinite",
-              animationDelay: "-8s"
-            }}
-          />
-        </>
-      )}
-      
-      {variant === "particles" && mounted && (
-        <div className="absolute inset-0">
-          {/* Star field effect */}
-          {Array.from({ length: 50 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-white"
-              style={{
-                opacity: Math.random() * 0.5 + 0.1,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animation: `twinkle ${2 + Math.random() * 3}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
-      )}
-      
-      {/* Subtle grid overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: "100px 100px",
-          maskImage: "radial-gradient(ellipse 70% 50% at 50% 50%, black, transparent)"
-        }}
-      />
-      
-      {/* Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(3,3,3,0.6)_100%)]" />
-      
-      {/* Noise texture for premium feel */}
-      <div 
-        className="absolute inset-0 opacity-[0.02] mix-blend-overlay" 
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`
-        }} 
-      />
-      
-      {/* Top fade for header clarity */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#030303]/80 to-transparent" />
-      
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#030303]/80 to-transparent" />
-      
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-30px) rotate(5deg); }
-        }
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.1; }
-          50% { opacity: 0.6; }
-        }
-      `}</style>
-    </div>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+      }}
+    />
   )
 }
 
-// Export simple version for performance-critical pages
+// Back-compat export
 export function MinimalBackground() {
-  return (
-    <div className="fixed inset-0 -z-10 bg-[#030303]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0a0a0a_0%,#050505_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(3,3,3,0.6)_100%)]" />
-    </div>
-  )
+  return <MinimalLayer />
 }

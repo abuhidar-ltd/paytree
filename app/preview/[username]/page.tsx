@@ -47,11 +47,14 @@ export default async function PreviewPage({
 
   const bgVariant =
     user.backgroundStyle === "particles" ? "particles"
+    : user.backgroundStyle === "gradient" ? "gradient"
     : user.backgroundStyle === "none" ? "minimal"
-    : "nebula"
+    : "mesh"
 
   return (
     <div className="min-h-screen text-white relative overflow-x-hidden">
+      {/* React 19 hoists this <base> to <head> — keeps clicks from breaking out of the studio iframe */}
+      <base target="_blank" />
       <PremiumBackground variant={bgVariant} />
 
       {user.heroStyle === 'cinematic' && (user.heroImage || user.image) && (

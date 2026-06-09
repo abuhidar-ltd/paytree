@@ -164,8 +164,9 @@ export default async function ProfilePage({
 
   const bgVariant =
     user.backgroundStyle === "particles" ? "particles"
+    : user.backgroundStyle === "gradient" ? "gradient"
     : user.backgroundStyle === "none" ? "minimal"
-    : "nebula"
+    : "mesh"
 
   return (
     <div className="min-h-screen text-white relative overflow-x-hidden">

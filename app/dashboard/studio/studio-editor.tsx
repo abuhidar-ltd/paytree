@@ -9,6 +9,7 @@ import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
 import { Check, ChevronDown, Upload, Sparkles } from "lucide-react"
 import { AiBioWriter } from "@/components/ui/ai-bio-writer"
+import { getButtonCardStyles } from "@/components/ui/block-renderer"
 
 interface Profile {
   id: string
@@ -59,44 +60,29 @@ interface StudioEditorProps {
 }
 
 // ── Button style mini-preview ──────────────────────────────────────────────────
+// Uses the exact same styles applied to live cards so what creators see here
+// matches the public profile pixel-for-pixel.
 
 function ButtonStylePreview({ style, accent }: { style: string; accent: string }) {
-  const base = "px-3 py-1 text-[10px] font-mono rounded-lg whitespace-nowrap"
-  switch (style) {
-    case "glass":
-      return <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}>Button</div>
-    case "3d":
-      return (
-        <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}
-          style={{ boxShadow: "0 3px 0 rgba(0,0,0,0.6)" }}>
-          Button
-        </div>
-      )
-    case "gradient":
-      return (
-        <div className={`${base} text-white/80 border`}
-          style={{ background: `linear-gradient(135deg, ${accent}55, ${accent}22)`, borderColor: `${accent}40` }}>
-          Button
-        </div>
-      )
-    case "glow":
-      return (
-        <div className={`${base} bg-white/[0.04] border text-white/60`}
-          style={{ borderColor: `${accent}55`, boxShadow: `0 0 10px ${accent}28` }}>
-          Button
-        </div>
-      )
-    case "neon":
-      return (
-        <div className={`${base} bg-transparent border`} style={{ borderColor: accent, color: accent }}>
-          Button
-        </div>
-      )
-    case "outline":
-      return <div className={`${base} bg-transparent border border-white/30 text-white/50`}>Button</div>
-    default:
-      return <div className={`${base} bg-white/[0.08] border border-white/20 text-white/60`}>Button</div>
-  }
+  const { base } = getButtonCardStyles(style, accent)
+  return (
+    <div
+      style={{
+        ...base,
+        width: "100%",
+        height: 40,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 11,
+        fontFamily: "monospace",
+        fontWeight: 500,
+        borderRadius: 10,
+      }}
+    >
+      Link card
+    </div>
+  )
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -254,11 +240,9 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
   const BUTTON_STYLES = [
     { value: "glass", label: "Glass" },
-    { value: "3d", label: "3D" },
     { value: "gradient", label: "Gradient" },
     { value: "glow", label: "Glow" },
     { value: "neon", label: "Neon" },
-    { value: "outline", label: "Outline" },
   ]
 
   const RADIUS_OPTIONS = [
@@ -280,6 +264,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
     { value: "none", label: "None" },
     { value: "mesh", label: "Mesh" },
     { value: "particles", label: "Particles" },
+    { value: "gradient", label: "Gradient" },
   ]
 
   // ── section label (simple, no sticky) ─────────────────────────────────────
@@ -565,21 +550,21 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
                 {/* Style */}
                 <div className="text-[11px] font-mono text-[#444] uppercase tracking-widest mb-2.5">Style</div>
-                <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="grid grid-cols-2 gap-2.5 mb-5">
                   {BUTTON_STYLES.map(({ value, label }) => {
-                    const active = (profile.buttonStyle ?? "3d") === value
+                    const active = (profile.buttonStyle ?? "glass") === value
                     return (
                       <button
                         key={value}
                         onClick={() => setProfile({ ...profile, buttonStyle: value })}
-                        className={`rounded-lg border p-2.5 flex flex-col items-center gap-2 transition-all ${
+                        className={`rounded-xl border p-3 flex flex-col gap-2.5 transition-all ${
                           active
                             ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.03]"
                             : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.14]"
                         }`}
                       >
                         <ButtonStylePreview style={value} accent={accent} />
-                        <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#555]"}`}>{label}</span>
+                        <span className={`text-[11px] font-mono text-left ${active ? "text-[#00ff88]" : "text-[#888]"}`}>{label}</span>
                       </button>
                     )
                   })}
@@ -703,7 +688,6 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     width={375}
                     height={812}
                     style={{
-                      pointerEvents: "none",
                       border: "none",
                       transform: "scale(0.629)",
                       transformOrigin: "top left",

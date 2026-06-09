@@ -1238,3 +1238,25 @@ body {
 .shadow-heavy {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
+
+/* ============================================
+   Button & Background animations
+   ============================================ */
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes meshMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes gradientBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

@@ -22,6 +22,7 @@ const profileSchema = z.object({
   socialIconPosition: z.string().nullable().optional(),
   heroStyle: z.string().nullable().optional(),
   heroImage: z.string().nullable().optional().or(z.literal("")),
+  cornerRadius: z.string().nullable().optional(),
   onboarded: z.boolean().optional(),
   aiAgentEnabled: z.boolean().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
@@ -109,7 +110,7 @@ export async function PATCH(req: Request) {
     const {
       name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
       backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
-      heroImage,
+      heroImage, cornerRadius,
       onboarded, aiAgentEnabled,
     } = profileSchema.parse(body)
 
@@ -148,6 +149,7 @@ export async function PATCH(req: Request) {
         socialIconPosition,
         heroStyle,
         heroImage: heroImage || null,
+        cornerRadius,
         ...(onboarded !== undefined && { onboarded }),
         ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
         ...(referralCode !== undefined && { referralCode }),
@@ -171,6 +173,7 @@ export async function PATCH(req: Request) {
         socialIconPosition: true,
         heroStyle: true,
         heroImage: true,
+        cornerRadius: true,
         subscriptionStatus: true,
       }
     })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, type ReactNode } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion"
 import { toast } from "sonner"
 import { CryptoVaultPortal } from "./crypto-vault"
 import { LiveStatusPill } from "./live-status-pill"
@@ -358,34 +358,89 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
 
 // ─── ProfileLinkCard ─────────────────────────────────────────
 
-function getButtonCardStyle(buttonStyle: string, accentColor: string): React.CSSProperties {
+// Hex (#rrggbb) → "r,g,b" for use in rgba()
+function hexToRgbTuple(hex: string): string {
+  const c = hex.replace("#", "")
+  const r = parseInt(c.slice(0, 2), 16) || 0
+  const g = parseInt(c.slice(2, 4), 16) || 0
+  const b = parseInt(c.slice(4, 6), 16) || 0
+  return `${r},${g},${b}`
+}
+
+export function getButtonCardStyles(
+  buttonStyle: string,
+  accentColor: string
+): { base: React.CSSProperties; hover: TargetAndTransition } {
+  const radius = "var(--block-radius, 16px)"
+  const rgb = hexToRgbTuple(accentColor)
+
   switch (buttonStyle) {
-    case "solid":
-      return {
-        background: "rgba(255,255,255,0.05)",
-        border: "0.5px solid rgba(255,255,255,0.1)",
-        borderRadius: "var(--block-radius, 16px)",
-      }
     case "gradient":
       return {
-        background: `linear-gradient(135deg, ${accentColor}33, ${accentColor}11)`,
-        border: `0.5px solid ${accentColor}40`,
-        borderRadius: "var(--block-radius, 16px)",
+        base: {
+          background:
+            "linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,100,255,0.1) 50%, rgba(150,0,255,0.1) 100%)",
+          border: "0.5px solid rgba(255,255,255,0.12)",
+          borderRadius: radius,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)",
+          color: "#f0f0f0",
+          backgroundSize: "200% 200%",
+          animation: "gradientShift 4s ease infinite",
+        },
+        hover: {
+          y: -1,
+          backgroundPosition: "right center",
+          borderColor: "rgba(255,255,255,0.2)",
+        },
       }
     case "glow":
       return {
-        ...glass.card,
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 0 20px ${accentColor}22`,
+        base: {
+          background: `rgba(${rgb},0.06)`,
+          border: `0.5px solid rgba(${rgb},0.3)`,
+          borderRadius: radius,
+          boxShadow: `0 0 20px rgba(${rgb},0.15), inset 0 1px 0 rgba(${rgb},0.1)`,
+          color: accentColor,
+        },
+        hover: {
+          y: -1,
+          background: `rgba(${rgb},0.1)`,
+          boxShadow: `0 0 32px rgba(${rgb},0.25), inset 0 1px 0 rgba(${rgb},0.1)`,
+        },
       }
     case "neon":
       return {
-        background: "transparent",
-        border: `1px solid ${accentColor}66`,
-        borderRadius: "var(--block-radius, 16px)",
+        base: {
+          background: "transparent",
+          border: `1.5px solid rgba(${rgb},0.6)`,
+          borderRadius: radius,
+          boxShadow: `0 0 12px rgba(${rgb},0.4), inset 0 0 12px rgba(${rgb},0.05)`,
+          color: accentColor,
+          textShadow: `0 0 8px rgba(${rgb},0.6)`,
+        },
+        hover: {
+          y: -1,
+          boxShadow: `0 0 24px rgba(${rgb},0.6), inset 0 0 24px rgba(${rgb},0.1)`,
+        },
       }
     case "glass":
     default:
-      return glass.card
+      return {
+        base: {
+          background: "rgba(255,255,255,0.04)",
+          border: "0.5px solid rgba(255,255,255,0.12)",
+          borderRadius: radius,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+          color: "#f0f0f0",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        },
+        hover: {
+          y: -1,
+          background: "rgba(255,255,255,0.08)",
+          borderColor: "rgba(255,255,255,0.2)",
+        },
+      }
   }
 }
 
@@ -430,11 +485,14 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
     )
   }
 
+  const { base, hover } = getButtonCardStyles(buttonStyle, accentColor)
+  const titleColor = (base.color as string) || "#fff"
+
   return (
     <motion.div
       className="flex items-center gap-3 px-4 cursor-pointer group"
-      style={{ ...getButtonCardStyle(buttonStyle, accentColor), height: 60 }}
-      whileHover={{ scale: 1.0 }}
+      style={{ ...base, height: 60 }}
+      whileHover={hover}
       whileTap={{ scale: 0.98 }}
       transition={spring}
       onClick={handleClick}
@@ -446,10 +504,10 @@ function ProfileLinkCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
         {meta.icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{block.title}</p>
-        <p className="text-[11px] text-[#555] font-mono truncate">{meta.label}</p>
+        <p className="text-sm font-medium truncate" style={{ color: titleColor }}>{block.title}</p>
+        <p className="text-[11px] font-mono truncate" style={{ color: titleColor, opacity: 0.5 }}>{meta.label}</p>
       </div>
-      <ArrowUpRight size={14} className="text-[#444] group-hover:text-white/60 transition-colors flex-shrink-0" />
+      <ArrowUpRight size={14} className="opacity-50 group-hover:opacity-80 transition-opacity flex-shrink-0" style={{ color: titleColor }} />
     </motion.div>
   )
 }
