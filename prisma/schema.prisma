@@ -147,7 +147,6 @@ model Link {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   clicks       Click[]
   vaultUnlocks Audience[] // Emails that unlocked this vault item
-  unlockTokens LinkUnlockToken[] // Email verification tokens for locked links
 
   @@index([userId])
   @@index([userId, order])
@@ -327,7 +326,11 @@ model Purchase {
   @@index([status])
 }
 
-// ===== LOCKED LINK UNLOCK TOKENS =====
+// ===== UNLOCK TOKENS (vault email verification) =====
+// linkId is intentionally a free-form id — it points to either a Link.id
+// or a Block.id depending on which kind of vault is being unlocked. No FK
+// constraint, because PostgreSQL FKs can only reference one parent table.
+// Lifecycle is short (10-min expiry), so orphan tokens age out naturally.
 model LinkUnlockToken {
   id        String   @id @default(cuid())
   linkId    String
@@ -336,8 +339,6 @@ model LinkUnlockToken {
   verified  Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
 
   @@unique([linkId, email])
   @@index([token])
