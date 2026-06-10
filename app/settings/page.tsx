@@ -5,6 +5,7 @@ import { useUser, SignOutButton } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "sonner"
@@ -236,7 +237,16 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
-        <h1 className="text-2xl font-semibold text-[#f0f0f0] tracking-tight mb-6">Account Settings</h1>
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft size={14} />
+          </button>
+          <h1 className="text-2xl font-semibold text-[#f0f0f0] tracking-tight">Account Settings</h1>
+        </div>
 
         <div className="space-y-4">
           {/* Account Information */}

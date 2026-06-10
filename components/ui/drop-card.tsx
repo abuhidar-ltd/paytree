@@ -26,10 +26,24 @@ export function DropCard({ drop }: { drop: Drop }) {
 
   const remaining = Math.max(0, target - now)
   const isLive = remaining === 0
-  const days = Math.floor(remaining / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24)
-  const minutes = Math.floor((remaining / (1000 * 60)) % 60)
-  const seconds = Math.floor((remaining / 1000) % 60)
+  const timeLeft = Math.floor(remaining / 1000)
+  const days = Math.floor(timeLeft / 86400)
+  const hours = Math.floor((timeLeft % 86400) / 3600)
+  const mins = Math.floor((timeLeft % 3600) / 60)
+  const secs = timeLeft % 60
+
+  const countdownUnits = days > 0
+    ? [
+        { label: "DAYS", value: days },
+        { label: "HRS",  value: hours },
+        { label: "MIN",  value: mins },
+        { label: "SEC",  value: secs },
+      ]
+    : [
+        { label: "HRS", value: hours },
+        { label: "MIN", value: mins },
+        { label: "SEC", value: secs },
+      ]
 
   const statusLabel = isLive
     ? drop.revealUrl || drop.revealText
@@ -37,7 +51,8 @@ export function DropCard({ drop }: { drop: Drop }) {
       : "ENDED"
     : "SCHEDULED"
 
-  const soldOut = drop.spotsLeft !== undefined && drop.spotsLeft <= 0
+  const displaySpots = drop.spotsLeft ?? drop.limitedSpots
+  const soldOut = drop.limitedSpots !== undefined && displaySpots !== undefined && displaySpots <= 0
 
   return (
     <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "var(--accent-faint, #00ff8808)", border: "1px solid var(--accent-border, #00ff8840)" }}>
@@ -51,7 +66,7 @@ export function DropCard({ drop }: { drop: Drop }) {
         <div className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--accent, #00ff88)", opacity: 0.6 }}>
           DROP · {statusLabel}
         </div>
-        {drop.limitedSpots !== undefined && drop.spotsLeft !== undefined && (
+        {drop.limitedSpots !== undefined && (
           <div
             className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
               soldOut
@@ -59,7 +74,7 @@ export function DropCard({ drop }: { drop: Drop }) {
                 : "bg-amber-500/10 border-amber-500/30 text-amber-400"
             }`}
           >
-            {soldOut ? "Sold out" : `${drop.spotsLeft} spots left`}
+            {soldOut ? "Sold out" : `${displaySpots} spots left`}
           </div>
         )}
       </div>
@@ -70,13 +85,8 @@ export function DropCard({ drop }: { drop: Drop }) {
       )}
 
       {!isLive ? (
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mt-4">
-          {[
-            { label: "Days", value: days },
-            { label: "Hours", value: hours },
-            { label: "Min", value: minutes },
-            { label: "Sec", value: seconds },
-          ].map((unit) => (
+        <div className={`grid gap-1.5 sm:gap-2 mt-4 ${days > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
+          {countdownUnits.map((unit) => (
             <div
               key={unit.label}
               className="bg-white/[0.03] border border-white/[0.07] rounded-xl py-2 sm:py-3 px-1 text-center min-w-0"
@@ -88,7 +98,7 @@ export function DropCard({ drop }: { drop: Drop }) {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {unit.value.toString().padStart(2, "0")}
+                {String(unit.value).padStart(2, "0")}
               </motion.div>
               <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
                 {unit.label}

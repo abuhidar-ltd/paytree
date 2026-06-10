@@ -7,7 +7,7 @@ import { resolveUserPlan } from "@/lib/plans"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
-import { Check, ChevronDown, Upload, Sparkles } from "lucide-react"
+import { Check, ChevronDown, Upload, Sparkles, ArrowLeft } from "lucide-react"
 import { AiBioWriter } from "@/components/ui/ai-bio-writer"
 import { getButtonCardStyles } from "@/components/ui/block-renderer"
 
@@ -57,6 +57,7 @@ interface StudioEditorProps {
   initialLinks: LinkType[]
   initialSocialLinks: SocialLink[]
   checkoutSuccess?: boolean
+  checkoutSessionId?: string | null
 }
 
 // ── Button style mini-preview ──────────────────────────────────────────────────
@@ -87,7 +88,7 @@ function ButtonStylePreview({ style, accent }: { style: string; accent: string }
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks, checkoutSuccess }: StudioEditorProps) {
+export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks, checkoutSuccess, checkoutSessionId }: StudioEditorProps) {
   const router = useRouter()
 
   // ── state (unchanged) ──────────────────────────────────────────────────────
@@ -122,40 +123,59 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
     fetchFreshData()
   }, [])
 
-  // ── payment polling (unchanged) ────────────────────────────────────────────
+  // ── payment activation after checkout ─────────────────────────────────────
+  // First tries to verify the session directly (works without Stripe CLI in dev).
+  // Falls back to polling the profile API in case the webhook fired first.
   useEffect(() => {
     if (!checkoutSuccess) return
-    let pollCount = 0
-    const maxPolls = 20
-    const pollSubscription = async () => {
-      try {
-        const res = await fetch("/api/profile")
-        const data = await res.json()
-        if (data.subscriptionStatus === "active" || data.subscriptionStatus === "trial" || data.subscriptionStatus === "canceling") {
-          if (data.pageStatus === "published") {
-            setProfile(data); setProcessingPayment(false)
+
+    const activate = async () => {
+      // Step 1: direct session verification (no webhook required)
+      if (checkoutSessionId) {
+        try {
+          const res = await fetch("/api/verify-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: checkoutSessionId }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.user) {
+              setProfile(prev => ({ ...prev, ...data.user }))
+              setProcessingPayment(false)
+              toast.success("🎉 Your page is now live!")
+              setPublishedLink(`${window.location.origin}/${data.user.username}`)
+              router.replace("/dashboard/studio")
+              return
+            }
+          }
+        } catch { /* fall through to polling */ }
+      }
+
+      // Step 2: poll profile API (webhook may have already updated the DB)
+      let pollCount = 0
+      const maxPolls = 20
+      const poll = async (): Promise<boolean> => {
+        try {
+          const res = await fetch("/api/profile")
+          const data = await res.json()
+          if (data.subscriptionStatus === "active" || data.subscriptionStatus === "trial" || data.subscriptionStatus === "canceling") {
+            setProfile(prev => ({ ...prev, ...data }))
+            setProcessingPayment(false)
             toast.success("🎉 Your page is now live!")
             setPublishedLink(`${window.location.origin}/${data.username}`)
             router.replace("/dashboard/studio")
-          } else {
-            const publishRes = await fetch("/api/publish", { method: "POST" })
-            if (publishRes.ok) {
-              setProfile({ ...data, pageStatus: "published" }); setProcessingPayment(false)
-              toast.success("🎉 Your page is now live!")
-              setPublishedLink(`${window.location.origin}/${data.username}`)
-              router.replace("/dashboard/studio")
-            }
+            return true
           }
-          return true
-        }
-        return false
-      } catch { return false }
-    }
-    pollSubscription().then(done => {
+          return false
+        } catch { return false }
+      }
+
+      const done = await poll()
       if (!done) {
         const interval = setInterval(async () => {
           pollCount++
-          const done = await pollSubscription()
+          const done = await poll()
           if (done || pollCount >= maxPolls) {
             clearInterval(interval)
             if (pollCount >= maxPolls) {
@@ -163,11 +183,13 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
               toast.error("Payment processing taking longer than expected. Please refresh.")
             }
           }
-        }, 1000)
+        }, 1500)
         return () => clearInterval(interval)
       }
-    })
-  }, [checkoutSuccess, router])
+    }
+
+    activate()
+  }, [checkoutSuccess, checkoutSessionId, router])
 
   // ── autosave debounce (unchanged) ──────────────────────────────────────────
   useEffect(() => {
@@ -260,13 +282,6 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
     { value: "cal-sans", label: "Cal Sans" },
   ]
 
-  const BACKGROUNDS = [
-    { value: "none", label: "None" },
-    { value: "mesh", label: "Mesh" },
-    { value: "particles", label: "Particles" },
-    { value: "gradient", label: "Gradient" },
-  ]
-
   // ── section label (simple, no sticky) ─────────────────────────────────────
   const SL = ({ children }: { children: string }) => (
     <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">{children}</h2>
@@ -282,19 +297,20 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="h-14 flex-shrink-0 flex items-center justify-between px-3 sm:px-5 border-b border-white/[0.07] bg-[#080808]/90 backdrop-blur-xl z-50">
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft size={14} />
+          </button>
           <span className="text-sm font-mono text-[#e0e0e0]">Design</span>
           {saving && <span className="text-[#00ff88]/50 text-xs font-mono animate-pulse">● Saving...</span>}
           {lastSaved && !saving && <span className="text-[#00ff88]/40 text-xs font-mono">✓ Saved</span>}
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <button
-            onClick={() => window.open(`/preview/${profile.username}`, "_blank")}
-            className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
-          >
-            Preview
-          </button>
-          <button
-            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/preview/${profile.username}`); toast.success("Preview link copied!") }}
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${profile.username}`); toast.success("Link copied!") }}
             className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
           >
             Copy link
@@ -454,23 +470,6 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   </button>
                 </div>
 
-                {/* Hero image URL — only when cinematic is selected */}
-                {profile.heroStyle === "cinematic" && (
-                  <div className="mt-4">
-                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">
-                      Hero image or video URL
-                    </label>
-                    <input
-                      value={profile.heroImage || ""}
-                      onChange={(e) => setProfile({ ...profile, heroImage: e.target.value || null })}
-                      placeholder="https://... (image or video URL)"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none"
-                    />
-                    <p className="text-[10px] text-[#444] font-mono mt-1.5 leading-relaxed">
-                      Use a landscape image (16:9) for best results. Supports: jpg, png, gif, webp, mp4
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* ── Section 3: Accent color ──────────────────────────────────── */}
@@ -502,45 +501,6 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     className="w-24 bg-transparent text-[#e0e0e0] text-sm font-mono outline-none"
                     placeholder="#00ff88"
                   />
-                </div>
-              </div>
-
-              {/* ── Section 4: Background ────────────────────────────────────── */}
-              <div className={sectionCls}>
-                <SL>Background</SL>
-                <div className="grid grid-cols-3 gap-3">
-                  {BACKGROUNDS.map(({ value, label }) => {
-                    const active = (profile.backgroundStyle ?? "none") === value
-                    return (
-                      <button
-                        key={value}
-                        onClick={() => setProfile({ ...profile, backgroundStyle: value })}
-                        className={`rounded-xl border overflow-hidden transition-all ${
-                          active ? "border-[#00ff88]/[0.3]" : "border-white/[0.07] hover:border-white/[0.14]"
-                        }`}
-                      >
-                        <div className="h-16 relative overflow-hidden bg-[#030303]">
-                          {value === "mesh" && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-transparent to-emerald-900/30" />
-                          )}
-                          {value === "particles" && (
-                            <div className="absolute inset-0" style={{
-                              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
-                              backgroundSize: "10px 10px",
-                            }} />
-                          )}
-                          {active && (
-                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accent }}>
-                              <Check size={9} className="text-black" />
-                            </div>
-                          )}
-                        </div>
-                        <div className={`text-[11px] font-mono py-2 bg-white/[0.02] ${active ? "text-[#00ff88]" : "text-[#666]"}`}>
-                          {label}
-                        </div>
-                      </button>
-                    )
-                  })}
                 </div>
               </div>
 

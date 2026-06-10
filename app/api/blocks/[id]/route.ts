@@ -22,6 +22,7 @@ const updateSchema = z
     lockType:  z.string().optional(),
     lockValue: z.string().optional().nullable(),
     parentId:  z.string().optional().nullable(),
+    revealBlockId: z.string().optional().nullable(),
   })
   .strict()
 
@@ -101,8 +102,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
+    // Cascade: children, then this block's revealBlock (and its children), then this block.
+    // Any parent's revealBlockId pointing at this row is nulled by FK SetNull.
+    const revealId = block.revealBlockId
     await prisma.$transaction([
       prisma.block.deleteMany({ where: { parentId: id } }),
+      ...(revealId
+        ? [
+            prisma.block.deleteMany({ where: { parentId: revealId } }),
+            prisma.block.delete({ where: { id: revealId } }),
+          ]
+        : []),
       prisma.block.delete({ where: { id } }),
     ])
 

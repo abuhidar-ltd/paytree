@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ProfileClient } from "@/app/[username]/profile-client"
 
 export const metadata = {
@@ -31,6 +30,7 @@ export default async function PreviewPage({
       userId: user.id,
       enabled: true,
       parentId: null,
+      revealedBy: { none: {} },
       AND: [
         { OR: [{ scheduleStart: null }, { scheduleStart: { lte: now } }] },
         { OR: [{ scheduleEnd: null }, { scheduleEnd: { gte: now } }] },
@@ -42,20 +42,14 @@ export default async function PreviewPage({
         where: { enabled: true },
         orderBy: { position: "asc" },
       },
+      revealBlock: true,
     },
   })
-
-  const bgVariant =
-    user.backgroundStyle === "particles" ? "particles"
-    : user.backgroundStyle === "gradient" ? "gradient"
-    : user.backgroundStyle === "none" ? "minimal"
-    : "mesh"
 
   return (
     <div className="min-h-screen text-white relative overflow-x-hidden">
       {/* React 19 hoists this <base> to <head> — keeps clicks from breaking out of the studio iframe */}
       <base target="_blank" />
-      <PremiumBackground variant={bgVariant} />
 
       {user.heroStyle === 'cinematic' && (user.heroImage || user.image) && (
         <div
@@ -135,6 +129,22 @@ export default async function PreviewPage({
                 lockValue: c.lockValue,
                 config: c.config as Record<string, unknown>,
               })),
+              revealBlock: b.revealBlock
+                ? {
+                    id: b.revealBlock.id,
+                    type: b.revealBlock.type,
+                    title: b.revealBlock.title,
+                    url: b.revealBlock.url,
+                    description: b.revealBlock.description,
+                    thumbnail: b.revealBlock.thumbnail,
+                    style: b.revealBlock.style,
+                    size: b.revealBlock.size,
+                    layout: b.revealBlock.layout,
+                    lockType: b.revealBlock.lockType,
+                    lockValue: b.revealBlock.lockValue,
+                    config: b.revealBlock.config as Record<string, unknown>,
+                  }
+                : null,
             }))}
             socialIconPosition={socialIconPosition}
             isPublished={false}

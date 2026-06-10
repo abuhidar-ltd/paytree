@@ -161,6 +161,135 @@ export async function POST(req: Request) {
 }
 
 /**
+ * Handle block product purchase (type: "block_product_purchase")
+ * Increments salesCount on the Block, emails buyer + seller.
+ */
+async function handleBlockProductPurchase(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {}
+  const blockId = metadata.blockId
+  const sellerId = metadata.sellerId
+
+  console.log("[STRIPE WEBHOOK] 🛒 Block product purchase:")
+  console.log("  - Block ID:", blockId)
+  console.log("  - Seller ID:", sellerId)
+  console.log("  - Buyer email:", session.customer_details?.email)
+
+  if (!blockId) {
+    console.error("[STRIPE WEBHOOK] ❌ No blockId in block_product_purchase metadata!")
+    return
+  }
+
+  try {
+    const block = await prisma.block.update({
+      where: { id: blockId },
+      data: { salesCount: { increment: 1 } },
+      include: {
+        user: {
+          select: { id: true, username: true, email: true, name: true },
+        },
+      },
+    })
+
+    const cfg = (block.config as Record<string, unknown>) || {}
+
+    // For drop blocks with limited spots: decrement spotsLeft, delete when 0
+    if (block.type === "drop") {
+      const limitedSpots = typeof cfg.limitedSpots === "number" ? cfg.limitedSpots : null
+      if (limitedSpots !== null) {
+        const currentSpotsLeft = typeof cfg.spotsLeft === "number" ? cfg.spotsLeft : limitedSpots
+        const newSpotsLeft = Math.max(0, currentSpotsLeft - 1)
+        if (newSpotsLeft <= 0) {
+          await prisma.block.delete({ where: { id: blockId } }).catch(() => {})
+          console.log(`[STRIPE WEBHOOK] 🗑️ Drop block "${block.title}" deleted — all spots claimed`)
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await prisma.block.update({ where: { id: blockId }, data: { config: { ...cfg, spotsLeft: newSpotsLeft } as any } }).catch(() => {})
+          console.log(`[STRIPE WEBHOOK] 🎯 Drop spots remaining: ${newSpotsLeft}`)
+        }
+      }
+    }
+    const price = typeof cfg.price === "number" ? cfg.price : 0
+    const downloadUrl = cfg.downloadUrl as string | undefined
+    const downloadName = cfg.downloadName as string | undefined
+    const buyerEmail = session.customer_details?.email || ""
+    const saleAmount = price ? `$${(price / 100).toFixed(2)}` : "—"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"
+
+    console.log(`[STRIPE WEBHOOK] ✅ salesCount incremented for block "${block.title}" → ${block.salesCount}`)
+
+    // Social proof event
+    prisma.socialProof.create({
+      data: {
+        userId: block.user.id,
+        type: "purchase",
+        message: `Someone just purchased ${block.title}`,
+      },
+    }).catch(() => {})
+
+    if (!buyerEmail) return
+
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
+    // Email buyer
+    const downloadSection = downloadUrl
+      ? `<a href="${downloadUrl}" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:4px;margin-top:20px;">&#8595; ${downloadName || "Download your file"}</a>`
+      : `<p style="color:#888;font-family:monospace;font-size:13px;margin-top:20px;">Visit the creator's page to access your order.</p>`
+
+    resend.emails.send({
+      from: "Paytree <noreply@paytree.to>",
+      to: buyerEmail,
+      subject: `Your purchase: ${block.title}`,
+      html: `
+        <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;font-family:monospace;">
+          <div style="color:#00ff88;font-size:20px;font-weight:bold;margin-bottom:8px;">Purchase confirmed</div>
+          <div style="color:#ffffff;font-size:16px;margin-bottom:24px;">${block.title}</div>
+          ${downloadSection}
+          <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
+          <div style="color:#555;font-size:12px;">Sold by @${block.user.username} via Paytree</div>
+        </div>
+      `,
+    }).catch(() => {})
+
+    // Email seller
+    resend.emails.send({
+      from: "Paytree <noreply@paytree.to>",
+      to: block.user.email,
+      subject: "You just made a sale 🎉",
+      html: `
+        <div style="background:#080808;padding:40px 32px;max-width:520px;margin:0 auto;font-family:monospace;">
+          <div style="color:#00ff88;font-size:20px;font-weight:bold;margin-bottom:24px;">You just made a sale</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;border-bottom:1px solid #1a1a1a;">Product</td>
+              <td style="color:#e0e0e0;font-size:13px;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${block.title}</td>
+            </tr>
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;border-bottom:1px solid #1a1a1a;">Amount</td>
+              <td style="color:#00ff88;font-size:16px;font-weight:bold;padding:10px 0;border-bottom:1px solid #1a1a1a;text-align:right;">${saleAmount}</td>
+            </tr>
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;">Buyer</td>
+              <td style="color:#e0e0e0;font-size:13px;padding:10px 0;text-align:right;">${buyerEmail}</td>
+            </tr>
+            <tr>
+              <td style="color:#555;font-size:12px;padding:10px 0;">Total sold</td>
+              <td style="color:#00ff88;font-size:13px;font-weight:bold;padding:10px 0;text-align:right;">${block.salesCount} × ${block.title}</td>
+            </tr>
+          </table>
+          <a href="${appUrl}/dashboard/analytics" style="display:inline-block;padding:14px 28px;background:#00ff88;color:#080808;font-family:monospace;font-weight:bold;font-size:14px;text-decoration:none;border-radius:6px;margin-top:32px;">View your sales →</a>
+          <hr style="border:none;border-top:1px solid #1a1a1a;margin:40px 0;" />
+          <div style="color:#444;font-size:11px;">@${block.user.username} on Paytree</div>
+        </div>
+      `,
+    }).catch(() => {})
+
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "unknown"
+    console.error("[STRIPE WEBHOOK] ❌ Error handling block product purchase:", msg)
+  }
+}
+
+/**
  * Handle GET requests - return 405 Method Not Allowed
  * This confirms the endpoint exists but only accepts POST
  */
@@ -200,12 +329,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log("  - Payment Status:", session.payment_status)
   console.log("  - Metadata:", JSON.stringify(metadata))
   
-  // Handle product purchase
+  // Handle block product purchase
+  if (checkoutType === "block_product_purchase") {
+    await handleBlockProductPurchase(session)
+    return
+  }
+
+  // Handle product purchase (legacy Product model)
   if (checkoutType === "product_purchase") {
     await handleProductPurchase(session)
     return
   }
-  
+
   // Handle tip
   if (checkoutType === "tip") {
     await handleTipPayment(session)
@@ -214,17 +349,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   
   // Otherwise, handle subscription
   const userId = session.client_reference_id || metadata.userId
-  
-  if (!userId) {
-    console.error("[STRIPE WEBHOOK] ❌ No userId found in checkout session!")
-    console.error("  - client_reference_id:", session.client_reference_id)
-    console.error("  - metadata:", metadata)
-    return
-  }
 
-  // Get subscription details
+  // Get subscription details first (needed for plan resolution)
   const subscriptionId = session.subscription as string
-  
+
   if (!subscriptionId) {
     console.error("[STRIPE WEBHOOK] ❌ No subscription ID in checkout session!")
     return
@@ -232,12 +360,54 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log("[STRIPE WEBHOOK] 🔍 Fetching subscription details from Stripe...")
   const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
-  
+
+  // Resolve user — try userId first, then stripeCustomerId, then email
+  let resolvedUser: { id: string } | null = null
+
+  if (userId) {
+    resolvedUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    })
+    if (!resolvedUser) {
+      console.warn("[STRIPE WEBHOOK] ⚠️  userId from metadata not found:", userId)
+    }
+  }
+
+  if (!resolvedUser && session.customer) {
+    const customerId = session.customer as string
+    console.log("[STRIPE WEBHOOK] 🔍 Falling back to stripeCustomerId lookup:", customerId)
+    resolvedUser = await prisma.user.findFirst({
+      where: { stripeCustomerId: customerId },
+      select: { id: true },
+    })
+  }
+
+  if (!resolvedUser && session.customer_details?.email) {
+    const email = session.customer_details.email
+    console.log("[STRIPE WEBHOOK] 🔍 Falling back to email lookup:", email)
+    resolvedUser = await prisma.user.findFirst({
+      where: { email },
+      select: { id: true },
+    })
+  }
+
+  if (!resolvedUser) {
+    console.error("[STRIPE WEBHOOK] ❌ Cannot find user for checkout session!")
+    console.error("  - client_reference_id:", session.client_reference_id)
+    console.error("  - metadata.userId:", metadata.userId)
+    console.error("  - customer:", session.customer)
+    console.error("  - email:", session.customer_details?.email)
+    return
+  }
+
+  const resolvedId = resolvedUser.id
+
   // Determine status based on subscription
   let status: string
   let trialEndsAt: Date | null = null
   let subscriptionEndsAt: Date | null = null
-  
+
   console.log("[STRIPE WEBHOOK] 📊 Subscription status:", subscription.status)
   console.log("[STRIPE WEBHOOK] 📊 Trial end:", subscription.trial_end)
   console.log("[STRIPE WEBHOOK] 📊 Current period end:", subscription.current_period_end)
@@ -257,26 +427,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log("  - Trial ends:", trialEndsAt)
   console.log("  - Subscription ends:", subscriptionEndsAt)
 
-  // Extract plan + interval from subscription metadata
-  const subMeta = subscription.metadata || session.metadata || {}
+  // Extract plan + interval — subscription metadata is authoritative; fall back to session metadata
+  const subMeta = (subscription.metadata && Object.keys(subscription.metadata).length > 0)
+    ? subscription.metadata
+    : (session.metadata || {})
   const plan = subMeta.plan || 'starter'
   const interval = subMeta.interval || 'monthly'
 
+  // Persist customer ID (covers race where create-checkout-session DB write didn't complete)
+  const stripeCustomerId = session.customer ? (session.customer as string) : undefined
+
   // Update user subscription status AND publish page
   const user = await prisma.user.update({
-    where: { id: userId },
+    where: { id: resolvedId },
     data: {
       subscriptionStatus: status,
       subscriptionPlan: plan,
       subscriptionInterval: interval,
       stripeSubscriptionId: subscriptionId,
+      ...(stripeCustomerId ? { stripeCustomerId } : {}),
       trialEndsAt,
       subscriptionEndsAt,
-      // 🚀 AUTO-PUBLISH PAGE AFTER SUCCESSFUL PAYMENT
+      // AUTO-PUBLISH PAGE AFTER SUCCESSFUL PAYMENT
       pageStatus: 'published',
       publishedAt: new Date(),
     },
-    select: { 
+    select: {
       username: true,
       email: true,
       pageStatus: true,

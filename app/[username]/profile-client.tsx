@@ -262,10 +262,10 @@ function ClassicHero({ user, socialBlocks, socialIconPosition, isPublished, isLi
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
-          className="mx-auto mb-4 w-[88px] h-[88px] rounded-full overflow-hidden"
+          className="mx-auto mb-4 w-[108px] h-[108px] rounded-full overflow-hidden"
           style={{
-            border: `2px solid ${accentColor}33`,
-            boxShadow: `0 0 0 4px ${accentColor}10, inset 0 1px 0 rgba(255,255,255,0.1)`,
+            border: `2px solid ${accentColor}66`,
+            boxShadow: `0 0 0 4px ${accentColor}18, 0 0 20px ${accentColor}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
           }}
         >
           {user.image ? (
@@ -364,45 +364,45 @@ function CinematicHero({ user, socialBlocks, socialIconPosition, isLive }: {
 }) {
   return (
     <div className="px-5 pb-6">
-      <div className="max-w-[480px] mx-auto">
+      <div className="max-w-[480px] mx-auto text-center">
         <motion.h1
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
-          className="text-3xl font-bold text-white drop-shadow-lg"
+          className="text-4xl font-bold text-white drop-shadow-lg"
         >
           {user.name || user.username}
         </motion.h1>
 
         {user.name && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-            className="text-sm font-mono mt-1 drop-shadow"
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+            className="text-sm font-mono mt-1.5 drop-shadow"
             style={{ color: "var(--accent, #00ff88)" }}>
             @{user.username}
           </motion.p>
         )}
 
         {user.bio && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-            className="text-sm text-white/70 mt-2 max-w-sm leading-relaxed drop-shadow">
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+            className="text-sm text-white/70 mt-3 max-w-sm mx-auto leading-relaxed drop-shadow">
             {user.bio}
           </motion.p>
         )}
 
         {user.liveStatus && user.liveMessage && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-            className="mt-3">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
+            className="mt-3 flex justify-center">
             <LiveStatusPill message={user.liveMessage} size="md" />
           </motion.div>
         )}
 
         {socialIconPosition === "top" && socialBlocks.length > 0 && (
-          <div className="flex gap-3 mt-4">
+          <div className="flex justify-center gap-3 mt-4">
             {socialBlocks.map((b, i) => {
               const bCfg = (b.config || {}) as Record<string, string>
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
+                  transition={{ delay: 0.7 + i * 0.05, type: "spring", stiffness: 260, damping: 20 }}>
                   <SocialIcon platform={bCfg.platform || b.title} url={b.url || ""} size={36} />
                 </motion.div>
               )
@@ -427,6 +427,11 @@ const FORCE_FULL_ON_MOBILE = new Set([
   "faq", "contact_form", "podcast",
 ])
 
+// Cards whose content can't render legibly in a half-width column at any viewport
+const FORCE_FULL_ALWAYS = new Set([
+  "drop", "faq", "contact_form", "podcast", "twitch", "collection",
+])
+
 function CardsGrid({ blocks, commonProps, onOpenCollection }: {
   blocks: Block[]
   commonProps: { userId: string; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean }
@@ -436,8 +441,9 @@ function CardsGrid({ blocks, commonProps, onOpenCollection }: {
     <div className="grid grid-cols-2 gap-2.5">
       {blocks.map((block, i) => {
         const isHalf = block.size === "half"
+        const forceAlways = FORCE_FULL_ALWAYS.has(block.type)
         const forceFullOnMobile = FORCE_FULL_ON_MOBILE.has(block.type)
-        const colSpan = !isHalf
+        const colSpan = !isHalf || forceAlways
           ? "col-span-2"
           : forceFullOnMobile
             ? "col-span-2 min-[480px]:col-span-1"

@@ -202,25 +202,26 @@ export default function PaymentsPage() {
     <div className="min-h-screen bg-[#030303] text-white">
       <div className="max-w-[800px] mx-auto px-6 py-8">
 
-        {/* ── Back link ── */}
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-mono text-[#555] hover:text-[#888] transition-colors mb-5"
-        >
-          <ArrowLeft size={12} /> Back to dashboard
-        </Link>
-
         {/* ── Header ── */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-7"
+          className="flex items-center gap-3 mb-7"
         >
-          <h1 className="text-2xl font-bold text-white">Payments</h1>
-          <p className="text-sm text-[#555] mt-1.5">
-            Connect Stripe to start selling and receiving payments directly.
-          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft size={14} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Payments</h1>
+            <p className="text-sm text-[#555] mt-1.5">
+              Connect Stripe to start selling and receiving payments directly.
+            </p>
+          </div>
         </motion.div>
 
         {/* ── Connection status + how-it-works + fees ── */}
@@ -398,20 +399,36 @@ function ConnectionCard({
           })}
         </div>
 
-        <a
-          href="/api/stripe/connect"
-          className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
-        >
-          Connect Stripe <ArrowUpRight size={14} />
-        </a>
-
-        <p className="text-[11px] font-mono text-[#444] mt-4 max-w-[360px]">
-          Stripe handles all verification and compliance. Your data is secure.
-        </p>
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <Lock size={9} className="text-[#444]" />
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Powered by Stripe</span>
-        </div>
+        {userPlan === "free" ? (
+          <>
+            <div className="mt-6 w-full max-w-[280px] rounded-xl px-4 py-3.5 text-center"
+              style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)" }}>
+              <p className="text-xs text-amber-400 font-mono">Upgrade to Starter or Ultra to accept payments</p>
+            </div>
+            <a
+              href="/pricing"
+              className="mt-3 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
+            >
+              Upgrade now <ArrowUpRight size={14} />
+            </a>
+          </>
+        ) : (
+          <>
+            <a
+              href="/api/stripe/connect"
+              className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
+            >
+              Connect Stripe <ArrowUpRight size={14} />
+            </a>
+            <p className="text-[11px] font-mono text-[#444] mt-4 max-w-[360px]">
+              Stripe handles all verification and compliance. Your data is secure.
+            </p>
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <Lock size={9} className="text-[#444]" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Powered by Stripe</span>
+            </div>
+          </>
+        )}
       </div>
     </GlassCard>
   )

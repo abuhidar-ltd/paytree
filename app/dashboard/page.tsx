@@ -24,7 +24,7 @@ import {
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
   Tv, Hash, Copy, Pencil, CopyPlus,
-  LayoutGrid, Paintbrush, Settings, Menu, CreditCard,
+  LayoutGrid, Paintbrush, Settings, Menu, CreditCard, Sparkles,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────
@@ -51,7 +51,20 @@ interface Block {
   children: Block[]
   clickCount: number
   createdAt?: string
+  // Modular reveal — payload that appears after the parent's trigger fires
+  revealBlockId?: string | null
+  revealBlock?: Block | null
 }
+
+// Reveal payload picker — the card types a user can attach as a reveal
+const REVEAL_PICKER_TYPES = [
+  { id: "product",    name: "Product",    icon: "ShoppingBag" as const, desc: "Sell a digital product" },
+  { id: "vault",      name: "Vault",      icon: "Lock"        as const, desc: "Gated content card" },
+  { id: "link",       name: "Link",       icon: "LinkIcon"    as const, desc: "Open a URL" },
+  { id: "collection", name: "Collection", icon: "Folder"      as const, desc: "Group of links" },
+  { id: "text",       name: "Text",       icon: "AlignLeft"   as const, desc: "Message or heading" },
+  { id: "image",      name: "Image",      icon: "Image"       as const, desc: "Photo or graphic" },
+]
 
 interface Profile {
   id: string
@@ -61,9 +74,14 @@ interface Profile {
   pageStatus: string | null
   subscriptionStatus: string | null
   subscriptionPlan: string | null
+  trialEndsAt: string | null
+  subscriptionEndsAt: string | null
   stripeAccountId: string | null
   stripeAccountStatus: string | null
   accentColor: string | null
+  aiAgentEnabled: boolean | null
+  aiChatSessions: number | null
+  aiChatMessages: number | null
 }
 
 // ─── Spring configs ───────────────────────────────────────────
@@ -138,7 +156,6 @@ const BLOCK_CATEGORIES = [
     label: "Commerce",
     items: [
       { id: "product", name: "Product", icon: ShoppingBag, desc: "Digital product" },
-      { id: "vault", name: "Vault", icon: Lock, desc: "Paid or gated content" },
       { id: "discount_code", name: "Discount Code", icon: Tag, desc: "Promo code" },
     ],
   },
@@ -162,7 +179,6 @@ const BLOCK_CATEGORIES = [
     items: [
       { id: "stats", name: "Stats", icon: BarChart2, desc: "Number counter" },
       { id: "live_status", name: "Live Status", icon: Radio, desc: "Broadcast status" },
-      { id: "drop", name: "Countdown", icon: Timer, desc: "Timed reveal" },
     ],
   },
 ]
@@ -195,12 +211,14 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
+  // When set, the edit panel is editing the reveal payload of this parent block,
+  // not the parent itself. Lets the user drill into a reveal card and back out.
+  const [revealEditParentId, setRevealEditParentId] = useState<string | null>(null)
   const [showAddPicker, setShowAddPicker] = useState(false)
   const [collectionViewId, setCollectionViewId] = useState<string | null>(null)
   const [stripeBannerDismissed, setStripeBannerDismissed] = useState(true)
   const [editTab, setEditTab] = useState<"content" | "style" | "settings">("content")
   const [previewKey, setPreviewKey] = useState(0)
-  const [previewUrl, setPreviewUrl] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -225,9 +243,20 @@ export default function DashboardPage() {
         if (profileRes.ok) {
           const data = await profileRes.json()
           setProfile(data)
-          setPreviewUrl(`/preview/${data.username}`)
+        } else {
+          console.error("[dashboard] Profile API error:", profileRes.status)
         }
-        if (blocksRes.ok) setBlocks(await blocksRes.json())
+        if (blocksRes.ok) {
+          const data = await blocksRes.json() as Block[]
+          // Normalize: reveal block from API has no children/revealBlock fields populated
+          setBlocks(data.map(b => ({
+            ...b,
+            children: b.children || [],
+            revealBlock: b.revealBlock
+              ? { ...b.revealBlock, children: [], revealBlock: null }
+              : null,
+          })))
+        }
       } catch {
         toast.error("Failed to load data")
       } finally {
@@ -257,7 +286,27 @@ export default function DashboardPage() {
     setStripeBannerDismissed(true)
   }
 
-  const userPlan = profile ? resolveUserPlan(profile as never) : "free"
+  const toggleAiAgent = async () => {
+    if (!profile) return
+    const next = !profile.aiAgentEnabled
+    setProfile({ ...profile, aiAgentEnabled: next })
+    try {
+      await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiAgentEnabled: next }),
+      })
+    } catch {
+      setProfile({ ...profile, aiAgentEnabled: !next })
+    }
+  }
+
+  const userPlan = profile ? resolveUserPlan({
+    subscriptionStatus: profile.subscriptionStatus,
+    subscriptionPlan: profile.subscriptionPlan,
+    trialEndsAt: profile.trialEndsAt ? new Date(profile.trialEndsAt) : null,
+    subscriptionEndsAt: profile.subscriptionEndsAt ? new Date(profile.subscriptionEndsAt) : null,
+  }) : "free"
 
   // ─── Derived state ───
 
@@ -269,12 +318,18 @@ export default function DashboardPage() {
       if (aStar !== bStar) return bStar - aStar
       return a.position - b.position
     })
-  const selectedBlock = blocks.find(b => b.id === selectedBlockId) || null
+  // When drilled into a reveal card, the panel edits the parent's revealBlock.
+  // Otherwise, find the selected block among top-level + collection children + reveal blocks.
+  const revealParentBlock = revealEditParentId ? blocks.find(b => b.id === revealEditParentId) : null
+  const selectedBlock: Block | null = revealParentBlock?.revealBlock
+    ? revealParentBlock.revealBlock
+    : (blocks.find(b => b.id === selectedBlockId) || null)
   const collectionBlock = collectionViewId ? blocks.find(b => b.id === collectionViewId) : null
   const displayBlocks = collectionViewId
     ? (collectionBlock?.children || []).sort((a, b) => a.position - b.position)
     : topBlocks
 
+  const previewUrl = profile?.username ? `/preview/${profile.username}` : ""
   const refreshPreview = useCallback(() => setPreviewKey(k => k + 1), [])
 
   // ─── Block operations ───
@@ -388,7 +443,12 @@ export default function DashboardPage() {
   }
 
   const handleUpdateBlock = async (id: string, data: Partial<Block>) => {
-    setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...data } : b))
+    setBlocks(prev => prev.map(b => {
+      if (b.id === id) return { ...b, ...data }
+      // Also patch reveal blocks held inline on a parent
+      if (b.revealBlock?.id === id) return { ...b, revealBlock: { ...b.revealBlock, ...data } }
+      return b
+    }))
     try {
       const res = await fetch(`/api/blocks/${id}`, {
         method: "PATCH",
@@ -400,6 +460,76 @@ export default function DashboardPage() {
     } catch {
       toast.error("Failed to save")
     }
+  }
+
+  // ─── Reveal handlers ───
+  // Add a reveal payload to a parent block. Creates a hidden child block, then
+  // patches the parent's revealBlockId. The new block does NOT appear in the
+  // grid because it's filtered server-side by revealedBy.none.
+  const handleAddReveal = async (parentId: string, type: string) => {
+    try {
+      const createRes = await fetch("/api/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, title: "Untitled" }),
+      })
+      if (!createRes.ok) { toast.error("Failed to add reveal"); return }
+      const revealBlock = await createRes.json() as Block
+      const linkRes = await fetch(`/api/blocks/${parentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revealBlockId: revealBlock.id }),
+      })
+      if (!linkRes.ok) {
+        await fetch(`/api/blocks/${revealBlock.id}`, { method: "DELETE" })
+        toast.error("Failed to add reveal")
+        return
+      }
+      setBlocks(prev => prev.map(b => b.id === parentId
+        ? { ...b, revealBlockId: revealBlock.id, revealBlock: { ...revealBlock, children: [], revealBlock: null } }
+        : b
+      ))
+      refreshPreview()
+      toast.success("Reveal added")
+    } catch {
+      toast.error("Failed to add reveal")
+    }
+  }
+
+  // Remove a reveal payload from a parent. Deletes the reveal block; the
+  // parent's revealBlockId is nulled by the FK SetNull at the database layer.
+  const handleRemoveReveal = async (parentId: string) => {
+    const parent = blocks.find(b => b.id === parentId)
+    const revealId = parent?.revealBlock?.id
+    if (!revealId) return
+    setBlocks(prev => prev.map(b => b.id === parentId
+      ? { ...b, revealBlockId: null, revealBlock: null }
+      : b
+    ))
+    if (revealEditParentId === parentId) {
+      setRevealEditParentId(null)
+      setSelectedBlockId(parentId)
+    }
+    try {
+      await fetch(`/api/blocks/${revealId}`, { method: "DELETE" })
+      refreshPreview()
+      toast.success("Reveal removed")
+    } catch {
+      toast.error("Failed to remove reveal")
+    }
+  }
+
+  // Drill into editing the reveal block of a parent.
+  const handleEditReveal = (parentId: string) => {
+    setRevealEditParentId(parentId)
+    setEditTab("content")
+  }
+
+  // Back out of reveal editing — return to editing the parent.
+  const handleExitRevealEdit = () => {
+    const parentId = revealEditParentId
+    setRevealEditParentId(null)
+    if (parentId) setSelectedBlockId(parentId)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -612,6 +742,56 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ─── AI Agent widget — Ultra only ─── */}
+        {userPlan === "ultra" && profile && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 28 }}
+            className="mb-4 px-4 py-3 rounded-xl flex items-center justify-between gap-3"
+            style={{
+              background: "linear-gradient(to right, rgba(0,255,136,0.05), transparent)",
+              border: "0.5px solid rgba(0,255,136,0.14)",
+              boxShadow: "inset 0 1px 0 rgba(0,255,136,0.05)",
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.2)" }}
+              >
+                <Sparkles size={13} className="text-[#00ff88]" />
+              </div>
+              <div>
+                <p className="text-xs font-mono text-[#00ff88] font-medium">AI Sales Agent</p>
+                <p className="text-[10px] font-mono text-[#444]">
+                  {(profile.aiChatSessions ?? 0) > 0
+                    ? `${profile.aiChatSessions} conversation${profile.aiChatSessions === 1 ? "" : "s"} · ${profile.aiChatMessages ?? 0} messages`
+                    : "No conversations yet"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-mono text-[#444]">
+                {profile.aiAgentEnabled ? "Active" : "Off"}
+              </span>
+              <motion.button
+                onClick={toggleAiAgent}
+                className="relative w-9 h-5 rounded-full flex-shrink-0 transition-colors"
+                style={{ background: profile.aiAgentEnabled ? "#00ff88" : "rgba(255,255,255,0.08)" }}
+                aria-label="Toggle AI agent"
+              >
+                <motion.div
+                  animate={{ x: profile.aiAgentEnabled ? 17 : 2 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm"
+                />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Collection breadcrumb */}
         <AnimatePresence>
           {collectionViewId && collectionBlock && (
@@ -720,7 +900,12 @@ export default function DashboardPage() {
                 setEditTab={setEditTab}
                 onUpdate={handleUpdateBlock}
                 onDelete={handleDeleteBlock}
-                onClose={() => setSelectedBlockId(null)}
+                onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
+                onAddReveal={handleAddReveal}
+                onRemoveReveal={handleRemoveReveal}
+                onEditReveal={handleEditReveal}
+                revealEditParent={revealParentBlock || null}
+                onExitRevealEdit={handleExitRevealEdit}
               />
             </motion.div>
 
@@ -737,7 +922,12 @@ export default function DashboardPage() {
                 setEditTab={setEditTab}
                 onUpdate={handleUpdateBlock}
                 onDelete={handleDeleteBlock}
-                onClose={() => setSelectedBlockId(null)}
+                onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
+                onAddReveal={handleAddReveal}
+                onRemoveReveal={handleRemoveReveal}
+                onEditReveal={handleEditReveal}
+                revealEditParent={revealParentBlock || null}
+                onExitRevealEdit={handleExitRevealEdit}
               />
             </motion.div>
           </>
@@ -1029,32 +1219,41 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
     case "drop": {
       const dropAt = (cfg.dropAt as string) || ""
       const diff = dropAt ? new Date(dropAt).getTime() - Date.now() : 0
-      const status = diff <= -86400000 ? "ENDED" : diff <= 0 ? "LIVE" : "SCHEDULED"
+      const isLive = diff <= 0
+      const status = isLive ? "LIVE" : "SCHEDULED"
       const showCountdown = dropAt && diff > 0
-      const cd = showCountdown ? {
-        h: Math.floor(diff / 3600000),
-        m: Math.floor((diff % 3600000) / 60000),
-        s: Math.floor((diff % 60000) / 1000),
-      } : null
+      const tl = showCountdown ? Math.floor(diff / 1000) : 0
+      const cdDays = Math.floor(tl / 86400)
+      const cdHrs  = Math.floor((tl % 86400) / 3600)
+      const cdMins = Math.floor((tl % 3600) / 60)
+      const cdSecs = tl % 60
+      const cdUnits = showCountdown
+        ? cdDays > 0
+          ? [{ v: cdDays, l: "D" }, { v: cdHrs, l: "H" }, { v: cdMins, l: "M" }, { v: cdSecs, l: "S" }]
+          : [{ v: cdHrs, l: "H" }, { v: cdMins, l: "M" }, { v: cdSecs, l: "S" }]
+        : []
+      const limitedSpots = typeof cfg.limitedSpots === "number" ? cfg.limitedSpots : null
+      const spotsLeft = typeof cfg.spotsLeft === "number" ? cfg.spotsLeft : limitedSpots
       return (
         <div className="px-4 py-3" style={{ backgroundColor: "rgba(0,255,136,0.06)", minHeight: 88 }}>
-          <div className="flex items-center gap-2 mb-1">
-            {status === "LIVE" && (
-              <motion.div className="w-2 h-2 rounded-full bg-[#00ff88]"
-                animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              {isLive && (
+                <motion.div className="w-2 h-2 rounded-full bg-[#00ff88]"
+                  animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+              )}
+              <span className="text-[9px] font-mono font-bold tracking-wider text-[#00ff88]">
+                DROP · {status}
+              </span>
+            </div>
+            {limitedSpots !== null && (
+              <span className="text-[9px] font-mono text-[#555]">{spotsLeft} spots</span>
             )}
-            <span className="text-[9px] font-mono font-bold tracking-wider" style={{ color: status === "ENDED" ? "#555" : "#00ff88" }}>
-              DROP · {status}
-            </span>
           </div>
           <p className="text-sm font-semibold text-white truncate">{block.title}</p>
-          {cd ? (
+          {cdUnits.length > 0 ? (
             <div className="flex items-center gap-1.5 mt-2">
-              {([
-                { v: cd.h, l: "H" },
-                { v: cd.m, l: "M" },
-                { v: cd.s, l: "S" },
-              ] as const).map((u, i) => (
+              {cdUnits.map((u, i) => (
                 <div key={i} className="flex items-baseline gap-0.5">
                   <span className="text-base font-mono font-bold text-[#00ff88] tabular-nums">{String(u.v).padStart(2, "0")}</span>
                   <span className="text-[9px] font-mono text-[#555]">{u.l}</span>
@@ -1281,19 +1480,36 @@ function PickerItem({ item, onSelect }: { item: { id: string; name: string; icon
 
 // ─── Edit Panel Content ───────────────────────────────────────
 
-function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onClose }: {
+function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onClose, onAddReveal, onRemoveReveal, onEditReveal, revealEditParent, onExitRevealEdit }: {
   block: Block
   editTab: "content" | "style" | "settings"
   setEditTab: (tab: "content" | "style" | "settings") => void
   onUpdate: (id: string, data: Partial<Block>) => void
   onDelete: (id: string) => void
   onClose: () => void
+  onAddReveal: (parentId: string, type: string) => void
+  onRemoveReveal: (parentId: string) => void
+  onEditReveal: (parentId: string) => void
+  revealEditParent: Block | null
+  onExitRevealEdit: () => void
 }) {
   const Icon = TYPE_ICONS[block.type] || LinkIcon
   const color = TYPE_COLORS[block.type] || "#e0e0e0"
 
   return (
     <>
+      {/* Reveal breadcrumb — visible only when drilled into a reveal payload */}
+      {revealEditParent && (
+        <button
+          onClick={onExitRevealEdit}
+          className="px-4 h-9 border-b border-white/[0.06] flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#00ff88] hover:bg-white/[0.02] transition-colors flex-shrink-0"
+        >
+          <ChevronRight size={12} className="rotate-180" />
+          <span className="text-[#555]">Reveal of</span>
+          <span className="text-[#888] normal-case tracking-normal">{revealEditParent.title || "Untitled"}</span>
+        </button>
+      )}
+
       {/* Header */}
       <div className="px-4 h-12 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
@@ -1335,7 +1551,17 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {editTab === "content" && <ContentTab key={block.id} block={block} onUpdate={onUpdate} />}
+        {editTab === "content" && (
+          <ContentTab
+            key={block.id}
+            block={block}
+            onUpdate={onUpdate}
+            onAddReveal={onAddReveal}
+            onRemoveReveal={onRemoveReveal}
+            onEditReveal={onEditReveal}
+            isRevealEdit={!!revealEditParent}
+          />
+        )}
         {editTab === "style" && <StyleTab block={block} onUpdate={onUpdate} />}
         {editTab === "settings" && <SettingsTab block={block} onUpdate={onUpdate} onDelete={onDelete} />}
       </div>
@@ -1480,7 +1706,14 @@ function FaqItemsEditor({
   )
 }
 
-function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, data: Partial<Block>) => void }) {
+function ContentTab({ block, onUpdate, onAddReveal, onRemoveReveal, onEditReveal, isRevealEdit }: {
+  block: Block
+  onUpdate: (id: string, data: Partial<Block>) => void
+  onAddReveal: (parentId: string, type: string) => void
+  onRemoveReveal: (parentId: string) => void
+  onEditReveal: (parentId: string) => void
+  isRevealEdit: boolean
+}) {
   const cfg = block.config || {}
 
   const updateField = (field: string, value: unknown) => onUpdate(block.id, { [field]: value })
@@ -1488,6 +1721,11 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
 
   const delivery = (cfg.delivery as string) || "link"
   const lock = block.lockType || "none"
+
+  // REVEAL section is shown for: drop, vault, or any locked card.
+  // Never shown when we're already editing a reveal block (1-level nesting limit).
+  const showRevealSection =
+    !isRevealEdit && (block.type === "drop" || block.type === "vault" || (lock !== "none"))
 
   return (
     <>
@@ -1599,15 +1837,37 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
 
       {block.type === "product" && (
         <>
-          <FieldGroup label="Price">
-            <GlassInput type="number" defaultValue={(cfg.price as number) || ""} onBlur={(e) => updateConfig("price", e.target.value ? Number(e.target.value) : null)} placeholder="999 = $9.99" />
+          <FieldGroup label="Price ($)">
+            <GlassInput type="number" step="0.01" defaultValue={cfg.price ? String((cfg.price as number) / 100) : ""} onBlur={(e) => updateConfig("price", e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null)} placeholder="9.99" />
           </FieldGroup>
           <FieldGroup label="Description">
-            <GlassTextarea defaultValue={block.description || ""} onBlur={(e) => updateField("description", e.target.value || null)} rows={2} />
+            <GlassTextarea defaultValue={block.description || ""} onBlur={(e) => updateField("description", e.target.value || null)} rows={3} placeholder="What does the buyer get?" />
           </FieldGroup>
           <FieldGroup label="Product image URL">
             <GlassInput defaultValue={block.thumbnail || ""} onBlur={(e) => updateField("thumbnail", e.target.value || null)} placeholder="https://..." />
           </FieldGroup>
+          <div className="border-t border-white/[0.06] pt-4">
+            <FieldGroup label="After purchase, deliver">
+              <div className="flex gap-1.5 mb-3">
+                {([
+                  { id: "link",     label: "Open link" },
+                  { id: "text",     label: "Show text" },
+                  { id: "download", label: "Download" },
+                ] as const).map(opt => (
+                  <PillButton key={opt.id} active={delivery === opt.id} small onClick={() => updateConfig("delivery", opt.id)}>{opt.label}</PillButton>
+                ))}
+              </div>
+              {delivery === "link" && (
+                <GlassInput defaultValue={block.url || ""} onBlur={(e) => updateField("url", e.target.value || null)} placeholder="https://..." />
+              )}
+              {delivery === "text" && (
+                <GlassTextarea defaultValue={(cfg.content as string) || ""} onBlur={(e) => updateConfig("content", e.target.value)} rows={3} placeholder="Content shown after purchase" />
+              )}
+              {delivery === "download" && (
+                <GlassInput defaultValue={(cfg.downloadUrl as string) || ""} onBlur={(e) => updateConfig("downloadUrl", e.target.value)} placeholder="https://..." />
+              )}
+            </FieldGroup>
+          </div>
         </>
       )}
 
@@ -1666,41 +1926,43 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
         <FaqItemsEditor block={block} onUpdate={onUpdate} />
       )}
 
-      {/* ─── Lock section (universal) ─── */}
-      <div className="border-t border-white/[0.06] pt-4">
-        <FieldGroup label="Lock this card">
-          <div className="grid grid-cols-4 gap-1.5">
-            {([
-              { id: "none", label: "None" },
-              { id: "email", label: "Email" },
-              { id: "password", label: "Password" },
-              { id: "payment", label: "Purchase" },
-            ] as const).map(opt => (
-              <PillButton key={opt.id} active={lock === opt.id} small onClick={() => updateField("lockType", opt.id)}>{opt.label}</PillButton>
-            ))}
-          </div>
-        </FieldGroup>
-
-        {lock === "password" && (
-          <FieldGroup label="Set passcode">
-            <GlassInput defaultValue={block.lockValue || ""} onBlur={(e) => updateField("lockValue", e.target.value || null)} placeholder="Enter passcode" />
+      {/* ─── Lock section (not shown for product — always purchase-locked) ─── */}
+      {block.type !== "product" && (
+        <div className="border-t border-white/[0.06] pt-4">
+          <FieldGroup label="Lock this card">
+            <div className="grid grid-cols-4 gap-1.5">
+              {([
+                { id: "none", label: "None" },
+                { id: "email", label: "Email" },
+                { id: "password", label: "Password" },
+                { id: "payment", label: "Purchase" },
+              ] as const).map(opt => (
+                <PillButton key={opt.id} active={lock === opt.id} small onClick={() => updateField("lockType", opt.id)}>{opt.label}</PillButton>
+              ))}
+            </div>
           </FieldGroup>
-        )}
 
-        {lock === "payment" && (
-          <>
-            <FieldGroup label="Price">
-              <GlassInput type="number" defaultValue={(cfg.price as number) || ""} onBlur={(e) => updateConfig("price", e.target.value ? Number(e.target.value) : null)} placeholder="999 = $9.99" />
+          {lock === "password" && (
+            <FieldGroup label="Set passcode">
+              <GlassInput defaultValue={block.lockValue || ""} onBlur={(e) => updateField("lockValue", e.target.value || null)} placeholder="Enter passcode" />
             </FieldGroup>
-            <FieldGroup label="What they get">
-              <GlassInput defaultValue={block.description || ""} onBlur={(e) => updateField("description", e.target.value || null)} placeholder="Description" />
-            </FieldGroup>
-          </>
-        )}
-      </div>
+          )}
 
-      {/* ─── Delivery section (when locked) ─── */}
-      {lock !== "none" && (
+          {lock === "payment" && (
+            <>
+              <FieldGroup label="Price">
+                <GlassInput type="number" defaultValue={(cfg.price as number) || ""} onBlur={(e) => updateConfig("price", e.target.value ? Number(e.target.value) : null)} placeholder="999 = $9.99" />
+              </FieldGroup>
+              <FieldGroup label="What they get">
+                <GlassInput defaultValue={block.description || ""} onBlur={(e) => updateField("description", e.target.value || null)} placeholder="Description" />
+              </FieldGroup>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Delivery section (non-product, when locked) ─── */}
+      {block.type !== "product" && lock !== "none" && (
         <div className="border-t border-white/[0.06] pt-4">
           <FieldGroup label="After unlock, show">
             <div className="flex gap-1.5">
@@ -1731,24 +1993,156 @@ function ContentTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, 
           )}
         </div>
       )}
+
+      {/* ─── REVEAL section — modular reveal payload ─── */}
+      {showRevealSection && (
+        <div className="border-t border-white/[0.06] pt-4">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">
+            Reveal · after unlock
+          </div>
+          {block.revealBlock ? (
+            <RevealAttached
+              reveal={block.revealBlock}
+              onEdit={() => onEditReveal(block.id)}
+              onRemove={() => onRemoveReveal(block.id)}
+            />
+          ) : (
+            <RevealPicker onPick={(type) => onAddReveal(block.id, type)} />
+          )}
+        </div>
+      )}
     </>
+  )
+}
+
+// ─── Reveal: attached preview + edit/remove ──────────────────
+
+function RevealAttached({ reveal, onEdit, onRemove }: {
+  reveal: Block
+  onEdit: () => void
+  onRemove: () => void
+}) {
+  const Icon = TYPE_ICONS[reveal.type] || LinkIcon
+  const color = TYPE_COLORS[reveal.type] || "#e0e0e0"
+  return (
+    <div
+      className="rounded-xl p-3 flex items-center gap-3"
+      style={{
+        background: "rgba(0,255,136,0.04)",
+        border: "0.5px solid rgba(0,255,136,0.18)",
+      }}
+    >
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: `${color}14`, color }}>
+        <Icon size={14} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-white truncate">{reveal.title || "Untitled"}</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#555]">{reveal.type.replace("_", " ")}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="text-xs font-mono px-2.5 py-1.5 rounded-lg text-[#00ff88] hover:bg-[#00ff88]/[0.08] transition-colors"
+      >
+        Edit
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remove reveal"
+        className="text-[#555] hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/[0.08] transition-colors"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+// ─── Reveal: mini card picker ────────────────────────────────
+
+function RevealPicker({ onPick }: { onPick: (type: string) => void }) {
+  const [open, setOpen] = useState(false)
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-mono px-3 py-2.5 rounded-xl transition-colors"
+        style={{
+          background: "rgba(0,255,136,0.04)",
+          border: "0.5px dashed rgba(0,255,136,0.25)",
+          color: "#00ff88",
+        }}
+      >
+        <Plus className="w-3 h-3" />
+        Add reveal card
+      </button>
+    )
+  }
+
+  const ICON_MAP = { ShoppingBag, Lock, LinkIcon, Folder, AlignLeft, Image } as const
+
+  return (
+    <div
+      className="rounded-xl p-2"
+      style={{
+        background: "rgba(255,255,255,0.02)",
+        border: "0.5px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div className="grid grid-cols-3 gap-1.5">
+        {REVEAL_PICKER_TYPES.map(t => {
+          const Icon = ICON_MAP[t.icon]
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => { setOpen(false); onPick(t.id) }}
+              className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
+              title={t.desc}
+            >
+              <Icon size={16} className="text-[#888]" />
+              <span className="text-[10px] font-mono text-[#888]">{t.name}</span>
+            </button>
+          )
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="w-full text-[10px] font-mono text-[#444] hover:text-[#888] transition-colors mt-1.5 py-1"
+      >
+        Cancel
+      </button>
+    </div>
   )
 }
 
 // ─── Style Tab ────────────────────────────────────────────────
 
+const FORCE_FULL_ALWAYS_TYPES = new Set([
+  "drop", "faq", "contact_form", "podcast", "twitch", "collection",
+])
+
 function StyleTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, data: Partial<Block>) => void }) {
   const cfg = block.config || {}
   const animation = (cfg.animation as string) || "none"
   const showPromo = !!cfg.promoCode || cfg.showPromo === true
+  const forceFullAlways = FORCE_FULL_ALWAYS_TYPES.has(block.type)
 
   return (
     <>
       <FieldGroup label="Size">
-        <div className="grid grid-cols-2 gap-2">
-          <SizeOption active={block.size !== "half"} onClick={() => onUpdate(block.id, { size: "full" })} full />
-          <SizeOption active={block.size === "half"} onClick={() => onUpdate(block.id, { size: "half" })} />
-        </div>
+        {forceFullAlways ? (
+          <div className="text-xs text-[#555] font-mono py-1">Full width only for this card type</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <SizeOption active={block.size !== "half"} onClick={() => onUpdate(block.id, { size: "full" })} full />
+            <SizeOption active={block.size === "half"} onClick={() => onUpdate(block.id, { size: "half" })} />
+          </div>
+        )}
       </FieldGroup>
 
       <FieldGroup label="Card style">

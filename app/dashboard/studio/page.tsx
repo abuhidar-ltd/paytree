@@ -4,8 +4,9 @@ import { redirect } from "next/navigation"
 import { StudioEditor } from "./studio-editor"
 
 interface StudioPageProps {
-  searchParams: Promise<{ 
+  searchParams: Promise<{
     checkout?: string
+    session_id?: string
   }>
 }
 
@@ -59,15 +60,16 @@ export default async function StudioPage({ searchParams }: StudioPageProps) {
     redirect("/login")
   }
 
-  // Check if user is coming back from Stripe checkout
-  const checkoutSuccess = params.checkout === 'success'
+  const checkoutSuccess = params.checkout === "success"
+  const checkoutSessionId = params.session_id || null
 
   return (
-    <StudioEditor 
-      initialProfile={profile} 
+    <StudioEditor
+      initialProfile={profile}
       initialLinks={links}
       initialSocialLinks={socialLinks}
       checkoutSuccess={checkoutSuccess}
+      checkoutSessionId={checkoutSessionId}
     />
   )
 }

@@ -207,6 +207,34 @@ Card options:
 - scheduleStart/End: DateTime visibility window
 - config.promoCode: string shown on card
 
+## V2 Architecture — Modular Reveal System
+
+Every card has two properties:
+1. A **trigger** — what causes it to reveal (time, email, payment, password, or nothing).
+2. A **payload** — what gets revealed (URL, text, file, OR another card).
+
+The payload is a full Block stored via Block.revealBlockId → Block.revealBlock
+(self-relation on the Block model, with onDelete: SetNull). A drop can reveal
+a product. A vault can reveal a collection. A product can reveal a download.
+
+Rules:
+- Reveal blocks are hidden from the main grid (queries filter
+  `where: { revealedBy: { none: {} } }`).
+- 1 level of nesting only — a reveal block cannot itself attach another reveal.
+- When rendered, the reveal block uses `isReveal={true}` to skip its own
+  lock / starred glow / animation chrome and renders in a simplified state.
+- Triggers that fire the reveal:
+  - drop: countdown reaches 0
+  - vault: email verified
+  - lockType email/password/payment/age: unlocked
+- Visual: fade-in spring + green `─── UNLOCKED ───` divider above the payload.
+
+Dashboard editing:
+- REVEAL section in the CONTENT tab for drop, vault, and any locked card.
+- "+ Add reveal card" → mini picker (Product/Vault/Link/Collection/Text/Image).
+- Edit reveal drills into the panel with a breadcrumb back to the parent.
+- Remove reveal deletes the reveal Block (FK SetNull clears the parent's ref).
+
 ## Key Files
 ```
 app/dashboard/page.tsx           canvas dashboard

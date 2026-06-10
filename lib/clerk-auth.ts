@@ -15,17 +15,10 @@ import { prisma } from "@/lib/prisma";
 export async function getCurrentUser() {
   try {
     const { userId } = await clerkAuth();
-    
+
     if (!userId) {
-      console.log("[clerk-auth] No userId found");
       return null;
     }
-
-    console.log("[clerk-auth] Got Clerk userId:", userId);
-
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/1aa88823-29aa-4541-a24e-c599d977b99e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clerk-auth.ts:query',message:'About to query prisma',data:{prismaExists:!!prisma,prismaKeys:Object.keys(prisma||{}).slice(0,10)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5-H7'})}).catch(()=>{});
-    // #endregion
 
     // First, try to find user by clerkId (fastest)
     let user = await prisma.user.findUnique({
@@ -33,7 +26,6 @@ export async function getCurrentUser() {
     });
 
     if (user) {
-      console.log("[clerk-auth] Found user by clerkId:", user.id);
       return {
         id: user.id,
         clerkId: userId,
@@ -48,19 +40,12 @@ export async function getCurrentUser() {
     }
 
     // User not in DB yet, fetch from Clerk and create
-    console.log("[clerk-auth] User not in DB, fetching from Clerk...");
     const clerkUser = await currentUser();
-    
-    if (!clerkUser) {
-      console.error("[clerk-auth] Clerk user not found despite having userId");
-      return null;
-    }
+
+    if (!clerkUser) return null;
 
     const email = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!email) {
-      console.error("[clerk-auth] No email found for Clerk user");
-      return null;
-    }
+    if (!email) return null;
 
     // Check if user exists by email (might be from old auth system)
     const existingUser = await prisma.user.findUnique({
@@ -69,8 +54,6 @@ export async function getCurrentUser() {
 
     if (existingUser) {
       // User exists but without clerkId - update it
-      console.log("[clerk-auth] User exists by email, updating clerkId...");
-      
       user = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
@@ -78,8 +61,6 @@ export async function getCurrentUser() {
           image: clerkUser.imageUrl,
         }
       });
-
-      console.log("[clerk-auth] Updated existing user:", user.id);
 
       return {
         id: user.id,
@@ -98,7 +79,7 @@ export async function getCurrentUser() {
     const baseUsername = clerkUser.username || clerkUser.id.toLowerCase().substring(0, 15);
     let username = baseUsername;
     let counter = 1;
-    
+
     // Check if username exists and make it unique
     while (await prisma.user.findUnique({ where: { username } })) {
       username = `${baseUsername}${counter}`;
@@ -108,8 +89,6 @@ export async function getCurrentUser() {
         break;
       }
     }
-
-    console.log("[clerk-auth] Creating new user with username:", username);
 
     // Create user (with race condition handling)
     try {
@@ -124,26 +103,16 @@ export async function getCurrentUser() {
           pageStatus: 'draft',
         }
       });
-
-      console.log("[clerk-auth] Created new user:", user.id);
     } catch (createError: any) {
-        // Handle race condition: another request already created the user
         if (createError.code === 'P2002') {
-          console.log("[clerk-auth] Race condition detected, fetching existing user...");
-          
-          // Try to fetch by clerkId first
-        user = await prisma.user.findUnique({ where: { clerkId: userId } });
-        
-        // If still not found, try by email
-        if (!user) {
-          user = await prisma.user.findUnique({ where: { email: email } });
-        }
-        
-        if (!user) {
-          throw new Error("User creation failed and retry fetch failed");
-        }
-        
-        console.log("[clerk-auth] Retrieved user after race condition:", user.id);
+          // Race condition: another request already created the user
+          user = await prisma.user.findUnique({ where: { clerkId: userId } });
+          if (!user) {
+            user = await prisma.user.findUnique({ where: { email: email } });
+          }
+          if (!user) {
+            throw new Error("User creation failed and retry fetch failed");
+          }
       } else {
         throw createError;
       }
@@ -162,7 +131,6 @@ export async function getCurrentUser() {
     };
   } catch (error: any) {
     console.error("[clerk-auth] Error in getCurrentUser:", error.message);
-    console.error("[clerk-auth] Full error:", error);
     return null;
   }
 }

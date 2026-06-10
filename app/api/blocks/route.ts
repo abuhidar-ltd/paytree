@@ -30,13 +30,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Exclude blocks that are someone's revealBlock — they live inside their parent,
+    // not in the main canvas grid. They are still reachable via the parent's revealBlock include.
     const blocks = await prisma.block.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, revealedBy: { none: {} } },
       orderBy: { position: "asc" },
       include: {
         children: {
           orderBy: { position: "asc" },
         },
+        revealBlock: true,
       },
     })
 

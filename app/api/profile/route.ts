@@ -68,9 +68,13 @@ export async function GET() {
         statsLabel2: true,
         statsLabel3: true,
         aiAgentEnabled: true,
+        aiChatSessions: true,
+        aiChatMessages: true,
         stripeAccountId: true,
         stripeAccountStatus: true,
         subscriptionPlan: true,
+        trialEndsAt: true,
+        subscriptionEndsAt: true,
       }
     })
     

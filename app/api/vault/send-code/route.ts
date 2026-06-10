@@ -33,11 +33,11 @@ export async function POST(req: Request) {
       itemTitle = link.title
     } else {
       const block = await prisma.block.findFirst({
-        where: { id: blockId!, userId: ownerId, lockType: "email" },
+        where: { id: blockId!, userId: ownerId },
         select: { id: true, title: true },
       })
       if (!block) {
-        return NextResponse.json({ error: "Locked block not found" }, { status: 404 })
+        return NextResponse.json({ error: "Block not found" }, { status: 404 })
       }
       itemId = block.id
       itemTitle = block.title

@@ -21,6 +21,11 @@ export async function POST(req: Request) {
         subscriptionPlan: true,
         trialEndsAt: true,
         subscriptionEndsAt: true,
+        socialLinks: {
+          where: { enabled: true },
+          select: { platform: true, url: true },
+          orderBy: { order: "asc" },
+        },
         links: {
           where: { enabled: true, isVaultItem: false },
           select: { title: true, url: true, type: true },
@@ -64,36 +69,95 @@ export async function POST(req: Request) {
 
     const name = user.name || username
 
-    const linksList = user.links
-      .map((l) => `- ${l.title}${l.url ? ` → ${l.url}` : ""}`)
-      .join("\n") || "(none)"
+    const socialList = user.socialLinks.length
+      ? user.socialLinks.map((s) => `- ${s.platform}: ${s.url}`).join("\n")
+      : "(none)"
 
-    const productsList = user.products
-      .map((p) => `- ${p.title}: $${(p.price / 100).toFixed(2)}${p.description ? ` — ${p.description}` : ""}`)
-      .join("\n") || "(none)"
+    const linksList = user.links.length
+      ? user.links.map((l) => `- ${l.title}${l.url ? ` → ${l.url}` : ""}`).join("\n")
+      : "(none)"
 
-    const dropsList = user.drops
-      .map((d) => `- ${d.title} (drops ${new Date(d.dropAt).toLocaleDateString()})${d.description ? `: ${d.description}` : ""}`)
-      .join("\n") || "(none)"
+    const productsList = user.products.length
+      ? user.products
+          .map(
+            (p) =>
+              `- ${p.title}: $${(p.price / 100).toFixed(2)}${p.description ? ` — ${p.description}` : ""}`,
+          )
+          .join("\n")
+      : "(none)"
 
-    const vaultList = vaultItems
-      .map((v) => `- ${v.title} (email-gated)`)
-      .join("\n") || "(none)"
+    const dropsList = user.drops.length
+      ? user.drops
+          .map((d) => {
+            const dropDate = new Date(d.dropAt)
+            const now = new Date()
+            const hoursLeft = Math.round((dropDate.getTime() - now.getTime()) / 3_600_000)
+            const timeLabel =
+              hoursLeft < 0
+                ? "already dropped"
+                : hoursLeft < 24
+                ? `drops in ${hoursLeft}h — very soon!`
+                : `drops ${dropDate.toLocaleDateString()}`
+            return `- ${d.title} (${timeLabel})${d.description ? `: ${d.description}` : ""}`
+          })
+          .join("\n")
+      : "(none)"
 
-    const systemPrompt = `You are ${name}'s personal AI assistant on their Paytree page. Help visitors find what they need and guide them toward ${name}'s products and content. Be friendly and conversational. Never make up information.
+    const vaultList = vaultItems.length
+      ? vaultItems.map((v) => `- ${v.title} (unlock with email)`).join("\n")
+      : "(none)"
 
-Creator: ${name}
+    const isNewSession = messages.length === 1
+
+    const systemPrompt = `You are ${name}'s personal AI sales assistant embedded on their Paytree page. Visitors are landing here to learn about ${name} and potentially buy from them.
+
+YOUR JOB:
+- Understand what the visitor wants and match it to ${name}'s actual offerings
+- Be warm, confident, and direct — like a knowledgeable friend, not a salesperson
+- Create genuine excitement around products, drops, and exclusive content
+- Handle objections honestly ("is it worth it?", "what do I get?")
+- Always end every response with ONE clear, specific next step
+- If drops are coming soon, build urgency around the deadline
+- If someone is unsure, ask what they're looking for so you can guide them better
+- Never invent information — only discuss what's listed below
+- Keep responses under 4 sentences (be concise but warm)
+
+CREATOR PROFILE:
+Name: ${name}
 Bio: ${user.bio || "(none)"}
-Links:
+
+SOCIAL PROFILES:
+${socialList}
+
+LINKS & CONTENT:
 ${linksList}
-Products:
+
+PRODUCTS FOR SALE:
 ${productsList}
-Active drops:
+
+UPCOMING DROPS:
 ${dropsList}
-Vault content:
+
+EXCLUSIVE VAULT CONTENT (email-gated):
 ${vaultList}
 
-Always end with a clear next step. Keep responses concise — under 3 sentences.`
+If someone asks about buying a product, tell them the exact name and price, and guide them to scroll down and tap the card to purchase — payments go directly to ${name} with 0% platform fees.
+If someone asks about the vault, explain they just need to enter their email to unlock it — it's free.
+If drops are listed, create excitement around the exclusivity and timing.
+If someone asks how to follow or connect, direct them to ${name}'s social profiles above.`
+
+    // Track sessions and messages asynchronously (don't block the response)
+    prisma.user
+      .update({
+        where: { id: user.id },
+        data: {
+          aiChatMessages: { increment: 1 },
+          ...(isNewSession && { aiChatSessions: { increment: 1 } }),
+        },
+      })
+      .catch(() => {
+        // Non-critical — don't fail the request if tracking fails
+      })
 
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -165,8 +229,9 @@ Always end with a clear next step. Keep responses concise — under 3 sentences.
         "Cache-Control": "no-cache",
       },
     })
-  } catch (error: any) {
-    console.error("[ai/agent] Error:", error.message)
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "unknown"
+    console.error("[ai/agent] Error:", msg)
     return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
   }
 }

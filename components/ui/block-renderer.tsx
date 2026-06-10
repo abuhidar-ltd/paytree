@@ -5,13 +5,28 @@ import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion
 import { toast } from "sonner"
 import { CryptoVaultPortal } from "./crypto-vault"
 import { LiveStatusPill } from "./live-status-pill"
-import { DropCard } from "./drop-card"
 import { glass, glassReflection } from "@/lib/glass"
 import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag } from "lucide-react"
 
 // ─── Interfaces ───────────────────────────────────────────────
 
 interface BlockChild {
+  id: string
+  type: string
+  title: string
+  url?: string | null
+  description?: string | null
+  thumbnail?: string | null
+  style?: string
+  size?: string
+  layout?: string
+  lockType?: string
+  lockValue?: string | null
+  config?: Record<string, unknown>
+}
+
+// Reveal payload — 1 level deep, no nested children or further reveals
+export interface RevealBlock {
   id: string
   type: string
   title: string
@@ -41,6 +56,8 @@ export interface Block {
   lockValue?: string | null
   config?: Record<string, unknown>
   children?: BlockChild[]
+  revealBlock?: RevealBlock | null
+  salesCount?: number
 }
 
 interface BaseBlockProps {
@@ -231,7 +248,7 @@ const gentleSpring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
 // ─── Main BlockRenderer ──────────────────────────────────────
 
-export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, onOpenCollection }: BaseBlockProps & { block: Block }) {
+export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, onOpenCollection, isReveal = false }: BaseBlockProps & { block: Block; isReveal?: boolean }) {
   const cfg = (block.config || {}) as Record<string, unknown>
 
   useEffect(() => {
@@ -239,6 +256,25 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
       window.open(block.url, "_blank")
     }
   }, [block.priority, block.url])
+
+  // Reveal payload renders in a simplified state: skip lock wrapper, glow,
+  // and animation chrome. The outer reveal divider is supplied by RevealedPayload.
+  if (isReveal) {
+    return (
+      <GlassShell type={block.type}>
+        <BlockContent
+          block={block}
+          userId={userId}
+          cfg={cfg}
+          accentColor={accentColor}
+          buttonStyle={buttonStyle}
+          username={username}
+          creatorStripeReady={creatorStripeReady}
+          onOpenCollection={onOpenCollection}
+        />
+      </GlassShell>
+    )
+  }
 
   // Animation comes from config.animation (style tab) or legacy priority="animate"
   const animation = (cfg.animation as string) || (block.priority === "animate" ? "pulse" : "none")
@@ -268,6 +304,46 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
       )}
       <GlassShell type={block.type}>{content}</GlassShell>
     </div>
+  )
+}
+
+// ─── RevealedPayload ─────────────────────────────────────────
+// Renders a reveal block after its parent unlocks. Wraps in a
+// fade-in motion + green "UNLOCKED" divider, then delegates to
+// BlockRenderer with isReveal=true (prevents nested reveals).
+
+function RevealedPayload({
+  block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection,
+}: { block: RevealBlock } & Omit<BaseBlockProps, "block">) {
+  const asBlock: Block = {
+    ...block,
+    children: [],
+    priority: "none",
+    revealBlock: null,
+  }
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      className="mt-3"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.35), rgba(0,255,136,0.35))" }} />
+        <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: "var(--accent, #00ff88)" }}>Unlocked</span>
+        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, rgba(0,255,136,0.35), rgba(0,255,136,0.35), transparent)" }} />
+      </div>
+      <BlockRenderer
+        block={asBlock}
+        userId={userId}
+        accentColor={accentColor}
+        buttonStyle={buttonStyle}
+        username={username}
+        creatorStripeReady={creatorStripeReady}
+        onOpenCollection={onOpenCollection}
+        isReveal={true}
+      />
+    </motion.div>
   )
 }
 
@@ -583,7 +659,7 @@ function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, userna
 
 // ─── ProfileVaultCard ────────────────────────────────────────
 
-function ProfileVaultCard({ block, userId }: BaseBlockProps) {
+function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const [step, setStep] = useState<"locked" | "email" | "code" | "unlocked">("locked")
   const [email, setEmail] = useState("")
@@ -605,7 +681,7 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
       const res = await fetch("/api/vault/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, linkId: block.id, ownerId: userId }),
+        body: JSON.stringify({ email, blockId: block.id, ownerId: userId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to send code")
@@ -630,7 +706,7 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
       const res = await fetch("/api/vault/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, linkId: block.id, ownerId: userId, code }),
+        body: JSON.stringify({ email, blockId: block.id, ownerId: userId, code }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Verification failed")
@@ -645,6 +721,21 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
   }
 
   if (step === "unlocked") {
+    // Modular reveal: if a reveal block is attached, render it instead of the legacy inline reveal.
+    if (block.revealBlock) {
+      return (
+        <RevealedPayload
+          block={block.revealBlock}
+          userId={userId}
+          accentColor={accentColor}
+          buttonStyle={buttonStyle}
+          username={username}
+          creatorStripeReady={creatorStripeReady}
+          onOpenCollection={onOpenCollection}
+        />
+      )
+    }
+
     const vaultContent = (content?.vaultContent as string) || (cfg.content as string)
     const downloadUrl = (content?.downloadUrl as string) || (cfg.downloadUrl as string)
     const downloadName = (content?.downloadName as string) || (cfg.downloadName as string)
@@ -757,10 +848,16 @@ function ProfileVaultCard({ block, userId }: BaseBlockProps) {
 
 // ─── ProfileDropCard ─────────────────────────────────────────
 
-function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
+function ProfileDropCard({ block, accentColor, userId, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const dropAt = (cfg.dropAt as string) || new Date().toISOString()
   const [now, setNow] = useState(Date.now())
+  const [claiming, setClaiming] = useState(false)
+  const [claimed, setClaimed] = useState(false)
+  const [claimReveal, setClaimReveal] = useState<{ url?: string; text?: string } | null>(null)
+  const [spotsLeft, setSpotsLeft] = useState<number | null>(
+    typeof cfg.spotsLeft === "number" ? cfg.spotsLeft : null
+  )
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000)
@@ -769,16 +866,60 @@ function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
 
   const target = new Date(dropAt).getTime()
   const diff = target - now
-  const isLive = diff <= 0 && diff > -86400000
-  const isEnded = diff <= -86400000
+  const isLive = diff <= 0
   const isScheduled = diff > 0
 
-  const hours = Math.max(0, Math.floor(diff / 3600000))
-  const minutes = Math.max(0, Math.floor((diff % 3600000) / 60000))
-  const seconds = Math.max(0, Math.floor((diff % 60000) / 1000))
+  // Countdown with days
+  const timeLeft = Math.max(0, Math.floor(diff / 1000))
+  const days  = Math.floor(timeLeft / 86400)
+  const hrs   = Math.floor((timeLeft % 86400) / 3600)
+  const mins  = Math.floor((timeLeft % 3600) / 60)
+  const secs  = timeLeft % 60
 
-  const status = isEnded ? "ENDED" : isLive ? "LIVE" : "SCHEDULED"
-  const statusColor = isEnded ? "#555" : accentColor
+  const countdownUnits = days > 0
+    ? [
+        { label: "DAYS", value: days },
+        { label: "HRS",  value: hrs },
+        { label: "MIN",  value: mins },
+        { label: "SEC",  value: secs },
+      ]
+    : [
+        { label: "HRS", value: hrs },
+        { label: "MIN", value: mins },
+        { label: "SEC", value: secs },
+      ]
+
+  const limitedSpots = typeof cfg.limitedSpots === "number" ? cfg.limitedSpots : null
+  const soldOut = limitedSpots !== null && spotsLeft !== null && spotsLeft <= 0
+  const isPaidDrop = block.lockType === "payment"
+
+  const handleClaim = async () => {
+    if (claiming || soldOut) return
+    setClaiming(true)
+    try {
+      const res = await fetch(`/api/blocks/${block.id}/claim-spot`, { method: "POST" })
+      const data = await res.json() as { ok?: boolean; soldOut?: boolean; spotsLeft?: number; revealUrl?: string; revealText?: string; error?: string }
+      if (!res.ok) {
+        toast.error(data.error || "Could not claim spot")
+        return
+      }
+      if (data.soldOut) {
+        setSpotsLeft(0)
+        toast.error("Sorry, all spots are gone!")
+        return
+      }
+      if (typeof data.spotsLeft === "number") setSpotsLeft(data.spotsLeft)
+      setClaimed(true)
+      setClaimReveal({ url: data.revealUrl, text: data.revealText })
+    } catch {
+      toast.error("Network error")
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  const status = isLive ? "LIVE" : "SCHEDULED"
+  const statusColor = isLive ? accentColor : accentColor
 
   return (
     <div
@@ -790,29 +931,46 @@ function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
     >
       <div className="h-[2px]" style={{ background: `linear-gradient(to right, transparent, ${accentColor}66, transparent)` }} />
       <div className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          {isLive && (
-            <motion.div
-              className="w-2 h-2 rounded-full"
-              style={{ background: accentColor }}
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <motion.div
+                className="w-2 h-2 rounded-full"
+                style={{ background: accentColor }}
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            )}
+            <span className="text-[10px] font-mono font-bold tracking-wider" style={{ color: statusColor }}>
+              DROP · {status}
+            </span>
+          </div>
+          {/* Spots badge */}
+          {limitedSpots !== null && (
+            <span
+              className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
+              style={
+                soldOut
+                  ? { background: "rgba(255,85,85,0.1)", border: "1px solid rgba(255,85,85,0.3)", color: "#ff5555" }
+                  : { background: `${accentColor}14`, border: `1px solid ${accentColor}40`, color: accentColor }
+              }
+            >
+              {soldOut ? "Sold out" : `${spotsLeft ?? limitedSpots} spots left`}
+            </span>
           )}
-          <span className="text-[10px] font-mono font-bold tracking-wider" style={{ color: statusColor }}>
-            DROP · {status}
-          </span>
         </div>
-        <p className="text-[15px] font-semibold text-white mb-3">{block.title}</p>
 
+        <p className="text-[15px] font-semibold text-white mb-3">{block.title}</p>
+        {block.description && (
+          <p className="text-xs text-[#888] mb-3">{block.description}</p>
+        )}
+
+        {/* Countdown */}
         {isScheduled && (
-          <div className="flex gap-2">
-            {[
-              { label: "HR", value: String(hours).padStart(2, "0") },
-              { label: "MIN", value: String(minutes).padStart(2, "0") },
-              { label: "SEC", value: String(seconds).padStart(2, "0") },
-            ].map((unit) => (
-              <div key={unit.label} className="bg-black/40 rounded-lg px-3 py-2 text-center min-w-[48px]">
+          <div className={`grid gap-2 mb-3 ${days > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
+            {countdownUnits.map((unit) => (
+              <div key={unit.label} className="bg-black/40 rounded-lg px-2 py-2 text-center">
                 <motion.div
                   key={unit.value}
                   initial={{ scale: 1.1, opacity: 0.7 }}
@@ -821,7 +979,7 @@ function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
                   className="font-mono font-bold text-lg leading-none"
                   style={{ color: accentColor }}
                 >
-                  {unit.value}
+                  {String(unit.value).padStart(2, "0")}
                 </motion.div>
                 <div className="text-[8px] font-mono text-[#555] mt-1">{unit.label}</div>
               </div>
@@ -829,33 +987,97 @@ function ProfileDropCard({ block, accentColor }: BaseBlockProps) {
           </div>
         )}
 
-        {isLive && (
-          <div className="flex gap-2">
-            <DropCard drop={{
-              id: block.id, title: block.title,
-              description: block.description || (cfg.description as string) || undefined,
-              dropAt, revealUrl: (cfg.revealUrl as string) || block.url || undefined,
-              revealText: (cfg.revealText as string) || undefined,
-              status: "live", limitedSpots: cfg.limitedSpots as number | undefined,
-              spotsLeft: cfg.spotsLeft as number | undefined,
-            }} />
+        {/* Live state */}
+        {isLive && !claimed && (
+          <>
+            {soldOut ? (
+              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+                All spots claimed
+              </div>
+            ) : isPaidDrop ? (
+              /* Paid drops — handled by LockedBlock wrapper, nothing extra here */
+              null
+            ) : limitedSpots !== null ? (
+              /* Free drop with limited spots — claim button (reveal comes after claim) */
+              <button
+                onClick={handleClaim}
+                disabled={claiming}
+                className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ background: accentColor }}
+              >
+                {claiming ? "Claiming..." : "Claim your spot →"}
+              </button>
+            ) : block.revealBlock ? (
+              /* Modular reveal — countdown ended, no spots gate, render reveal card */
+              <RevealedPayload
+                block={block.revealBlock}
+                userId={userId}
+                accentColor={accentColor}
+                buttonStyle={buttonStyle}
+                username={username}
+                creatorStripeReady={creatorStripeReady}
+                onOpenCollection={onOpenCollection}
+              />
+            ) : (cfg.revealUrl as string) || block.url ? (
+              <a
+                href={(cfg.revealUrl as string) || block.url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-full px-4 py-3 rounded-xl text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
+                style={{ background: accentColor }}
+              >
+                Access now →
+              </a>
+            ) : (cfg.revealText as string) ? (
+              <div className="mt-1 px-4 py-3 rounded-xl bg-black/40 border border-white/[0.06] text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap">
+                {cfg.revealText as string}
+              </div>
+            ) : (
+              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+                Drop ended
+              </div>
+            )}
+          </>
+        )}
+
+        {/* After claiming (limited-spots free drops) */}
+        {isLive && claimed && block.revealBlock && (
+          <RevealedPayload
+            block={block.revealBlock}
+            userId={userId}
+            accentColor={accentColor}
+            buttonStyle={buttonStyle}
+            username={username}
+            creatorStripeReady={creatorStripeReady}
+            onOpenCollection={onOpenCollection}
+          />
+        )}
+        {isLive && claimed && !block.revealBlock && claimReveal && (
+          <div className="mt-1">
+            {claimReveal.text && (
+              <div className="px-4 py-3 rounded-xl bg-black/40 border border-white/[0.06] text-sm text-[#e0e0e0] font-mono whitespace-pre-wrap mb-2">
+                {claimReveal.text}
+              </div>
+            )}
+            {claimReveal.url && (
+              <a
+                href={claimReveal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-full px-4 py-3 rounded-xl text-black font-mono font-semibold text-sm hover:opacity-90 transition-opacity"
+                style={{ background: accentColor }}
+              >
+                Access your spot →
+              </a>
+            )}
+            {!claimReveal.url && !claimReveal.text && (
+              <div className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-[#888] font-mono text-center">
+                Spot claimed ✓
+              </div>
+            )}
           </div>
         )}
 
-        {isEnded && (cfg.revealUrl || cfg.revealText || block.url) && (
-          <div className="mt-2">
-            {(cfg.revealText as string) && (
-              <p className="text-sm text-[#888] mb-2">{cfg.revealText as string}</p>
-            )}
-            {((cfg.revealUrl as string) || block.url) && (
-              <a href={(cfg.revealUrl as string) || block.url || "#"} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-sm hover:opacity-90 transition-opacity"
-                style={{ background: accentColor }}>
-                View reveal →
-              </a>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
@@ -1060,7 +1282,6 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
   const [loading, setLoading] = useState(false)
   const price = cfg.price as number | undefined
   const formattedPrice = price ? `$${(price / 100).toFixed(2)}` : null
-
   const handleBuy = async () => {
     setLoading(true)
     try {
@@ -1307,6 +1528,19 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
   }, [block.lockType, block.id])
 
   if (unlocked || ageConfirmed) {
+    // Modular reveal: when a reveal block is attached, prefer it over the underlying card's content
+    if (block.revealBlock) {
+      return (
+        <RevealedPayload
+          block={block.revealBlock}
+          userId={userId}
+          accentColor={accentColor}
+          buttonStyle={buttonStyle}
+          username={username}
+          creatorStripeReady={creatorStripeReady}
+        />
+      )
+    }
     return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
   }
 
@@ -1319,7 +1553,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
         const res = await fetch("/api/vault/send-code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, linkId: block.id, ownerId: userId }),
+          body: JSON.stringify({ email, blockId: block.id, ownerId: userId }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed")
@@ -1344,7 +1578,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
         const res = await fetch("/api/vault/verify-code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, linkId: block.id, ownerId: userId, code }),
+          body: JSON.stringify({ email, blockId: block.id, ownerId: userId, code }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Failed")

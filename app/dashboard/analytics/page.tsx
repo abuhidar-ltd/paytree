@@ -7,9 +7,10 @@ import {
   AreaChart, Area, XAxis, YAxis,
   Tooltip as ChartTooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts"
+import { useRouter } from "next/navigation"
 import {
   Eye, Users, MousePointerClick, TrendingUp, ChevronRight, Sparkles, Lock,
-  Smartphone, Monitor, Tablet, Link as LinkIcon, Globe,
+  Smartphone, Monitor, Tablet, Link as LinkIcon, Globe, ArrowLeft,
 } from "lucide-react"
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan } from "@/lib/plans"
@@ -804,6 +805,7 @@ const stagger = {
 }
 
 export default function AnalyticsDashboard() {
+  const router = useRouter()
   const [overview, setOverview] = useState<OverviewStats | null>(null)
   const [viewsData, setViewsData] = useState<ViewData[]>([])
   const [geoData, setGeoData] = useState<GeoData | null>(null)
@@ -868,9 +870,18 @@ export default function AnalyticsDashboard() {
           transition={{ duration: 0.3 }}
           className="flex items-center justify-between mb-6"
         >
-          <div>
-            <h1 className="text-2xl font-bold text-white">Analytics</h1>
-            <p className="text-xs font-mono text-[#555] mt-1">Your audience, in numbers.</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Analytics</h1>
+              <p className="text-xs font-mono text-[#555] mt-1">Your audience, in numbers.</p>
+            </div>
           </div>
           <select
             value={period}

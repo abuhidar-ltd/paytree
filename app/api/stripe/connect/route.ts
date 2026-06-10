@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
+import { resolveUserPlan } from "@/lib/plans"
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -8,8 +9,26 @@ export async function GET() {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { stripeAccountId: true },
+    select: {
+      stripeAccountId: true,
+      subscriptionStatus: true,
+      subscriptionPlan: true,
+      trialEndsAt: true,
+      subscriptionEndsAt: true,
+    },
   })
+
+  const plan = resolveUserPlan({
+    subscriptionStatus: dbUser?.subscriptionStatus,
+    subscriptionPlan: dbUser?.subscriptionPlan,
+    trialEndsAt: dbUser?.trialEndsAt,
+    subscriptionEndsAt: dbUser?.subscriptionEndsAt,
+  })
+
+  if (plan === "free") {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    return NextResponse.redirect(`${appUrl}/pricing?reason=connect`)
+  }
 
   let stripeAccountId: string = dbUser?.stripeAccountId ?? ""
 

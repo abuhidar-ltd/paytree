@@ -73,7 +73,9 @@ model User {
   onboarded Boolean @default(false)
 
   // AI Agent
-  aiAgentEnabled Boolean @default(true)
+  aiAgentEnabled  Boolean @default(true)
+  aiChatSessions  Int     @default(0)
+  aiChatMessages  Int     @default(0)
 
   // Referral / affiliate
   referralCode     String?  @unique
@@ -453,7 +455,13 @@ model Block {
   parent        Block?    @relation("BlockChildren", fields: [parentId], references: [id])
   children      Block[]   @relation("BlockChildren")
 
+  // Modular reveal system — any card can reveal another card after its trigger fires
+  revealBlockId String?
+  revealBlock   Block?    @relation("BlockReveal", fields: [revealBlockId], references: [id], onDelete: SetNull)
+  revealedBy    Block[]   @relation("BlockReveal")
+
   clickCount    Int       @default(0)
+  salesCount    Int       @default(0)
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
