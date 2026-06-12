@@ -3,6 +3,7 @@ import { Inter, Playfair_Display, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
+import { Analytics } from "@vercel/analytics/next";
 
 // Body text
 const inter = Inter({
@@ -81,6 +82,7 @@ export default function RootLayout({
         <body className={`${inter.className} antialiased bg-[#030303]`}>
           {children}
           <Toaster />
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>

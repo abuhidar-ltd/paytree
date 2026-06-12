@@ -935,17 +935,21 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* ─── Add Card Picker ─── */}
+      {/* Desktop: top-right popover. Mobile: bottom sheet so it doesn't fight the keyboard. */}
       <AnimatePresence>
         {showAddPicker && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40" onClick={() => setShowAddPicker(false)} />
+              className="fixed inset-0 z-40 bg-black/40 lg:bg-transparent"
+              onClick={() => setShowAddPicker(false)} />
+
+            {/* Desktop popover */}
             <motion.div
               initial={{ scale: 0.92, opacity: 0, y: -8 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: -8 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="fixed top-14 right-4 z-[60] w-[90vw] max-w-[420px] overflow-hidden"
+              className="hidden lg:block fixed top-14 right-4 z-[60] w-[90vw] max-w-[420px] overflow-hidden"
               style={{
                 background: "#0f0f0f",
                 border: "0.5px solid rgba(255,255,255,0.1)",
@@ -953,6 +957,29 @@ export default function DashboardPage() {
                 boxShadow: "0 24px 64px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
+              <AddBlockPicker
+                onSelect={handleAddBlock}
+                onPasteUrl={handlePasteAdd}
+                onClose={() => setShowAddPicker(false)}
+              />
+            </motion.div>
+
+            {/* Mobile bottom sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 350, damping: 32 }}
+              className="lg:hidden fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl flex flex-col"
+              style={{
+                background: "#0f0f0f",
+                borderTop: "0.5px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 -16px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06)",
+                maxHeight: "calc(100vh - 80px)",
+                paddingBottom: "env(safe-area-inset-bottom, 0px)",
+              }}
+            >
+              <div className="w-10 h-1 bg-white/[0.12] rounded-full mx-auto mt-2 mb-1 flex-shrink-0" />
               <AddBlockPicker
                 onSelect={handleAddBlock}
                 onPasteUrl={handlePasteAdd}
@@ -1374,7 +1401,14 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
   const [search, setSearch] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  // Auto-focus search on desktop only. On touch devices, focusing fires the
+  // on-screen keyboard immediately and covers the type grid — let the user tap.
+  useEffect(() => {
+    const isTouch = typeof window !== "undefined" &&
+      (window.matchMedia?.("(pointer: coarse)").matches ||
+        ("ontouchstart" in window))
+    if (!isTouch) inputRef.current?.focus()
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") onClose()
@@ -1396,7 +1430,6 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
     ? allItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.desc.toLowerCase().includes(search.toLowerCase()))
     : null
 
-  // Quick type grid (Link | Collection / Vault | Drop)
   const quickTypes = [
     { id: "link", name: "Link", icon: LinkIcon },
     { id: "collection", name: "Collection", icon: Folder },
@@ -1405,41 +1438,45 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
   ]
 
   return (
-    <div className="max-h-[70vh] flex flex-col">
-      <div className="p-3 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={glass.input}>
-          <Search size={14} className="text-[#555]" />
+    <div className="lg:max-h-[70vh] flex flex-col min-h-0 flex-1">
+      <div className="p-3 border-b border-white/[0.06] flex-shrink-0">
+        <div className="flex items-center gap-2 rounded-xl px-3 h-11 lg:h-auto lg:py-2.5" style={glass.input}>
+          <Search size={16} className="text-[#555] flex-shrink-0" />
           <input
             ref={inputRef}
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="Paste any link to add instantly..."
-            className="flex-1 bg-transparent text-sm text-[#e0e0e0] font-mono outline-none placeholder:text-[#444]"
+            className="flex-1 min-w-0 bg-transparent text-base lg:text-sm text-[#e0e0e0] font-mono outline-none placeholder:text-[#444]"
           />
-          <button onClick={onClose} className="text-[#555] hover:text-[#888] transition-colors">
-            <X size={14} />
+          <button onClick={onClose} aria-label="Close" className="text-[#555] hover:text-[#888] transition-colors p-1 -m-1">
+            <X size={16} />
           </button>
         </div>
       </div>
 
-      <div className="overflow-y-auto p-2">
+      <div className="overflow-y-auto p-2 overscroll-contain">
         {filtered ? (
           filtered.map((item, idx) => (
             <PickerItem key={`${item.id}-${idx}`} item={item} onSelect={() => onSelect(item.id)} />
           ))
         ) : (
           <>
-            {/* Quick type grid */}
+            {/* Quick type grid — bigger touch targets on mobile */}
             <div className="grid grid-cols-2 gap-2 p-1 mb-2">
               {quickTypes.map((q) => (
                 <button key={q.id} onClick={() => onSelect(q.id)}
-                  className="flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors"
+                  className="flex items-center gap-2.5 px-3 h-14 lg:h-auto lg:py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors"
                   style={glass.card}>
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  <div className="w-9 h-9 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: `${TYPE_COLORS[q.id] || "#888"}12`, color: TYPE_COLORS[q.id] || "#888" }}>
-                    <q.icon size={14} />
+                    <q.icon size={16} />
                   </div>
                   <span className="text-sm text-[#e0e0e0] font-mono">{q.name}</span>
                 </button>
@@ -1464,16 +1501,16 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
 function PickerItem({ item, onSelect }: { item: { id: string; name: string; icon: typeof LinkIcon; desc: string }; onSelect: () => void }) {
   return (
     <button onClick={onSelect}
-      className="w-full flex items-center gap-3 px-3 h-11 rounded-xl hover:bg-white/[0.04] transition-colors text-left group">
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+      className="w-full flex items-center gap-3 px-3 h-14 lg:h-11 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-left group">
+      <div className="w-9 h-9 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${TYPE_COLORS[item.id] || "#888"}12`, color: TYPE_COLORS[item.id] || "#888" }}>
-        <item.icon size={14} />
+        <item.icon size={16} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-[#e0e0e0] leading-tight">{item.name}</p>
         <p className="text-[10px] text-[#555] font-mono truncate">{item.desc}</p>
       </div>
-      <ArrowUpRight size={12} className="text-[#333] group-hover:text-[#666] transition-colors flex-shrink-0" />
+      <ArrowUpRight size={14} className="text-[#333] group-hover:text-[#666] transition-colors flex-shrink-0" />
     </button>
   )
 }
@@ -1530,6 +1567,7 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
           defaultValue={block.title}
           onBlur={(e) => onUpdate(block.id, { title: e.target.value })}
           placeholder="Card title..."
+          autoCapitalize="sentences"
           className="w-full bg-transparent text-lg text-white outline-none placeholder:text-[#444]"
         />
       </div>
@@ -2277,11 +2315,13 @@ function FieldGroup({ label, children }: { label: string; children: React.ReactN
 }
 
 function GlassInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  // text-base (16px) on mobile prevents iOS Safari from auto-zooming on focus.
+  // text-sm on desktop keeps the dense info-rich look.
   return (
     <input
       {...props}
       style={glass.input}
-      className="w-full px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30"
+      className="w-full px-3 py-3 lg:py-2.5 text-base lg:text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30"
     />
   )
 }
@@ -2291,7 +2331,7 @@ function GlassTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>)
     <textarea
       {...props}
       style={glass.input}
-      className="w-full px-3 py-2.5 text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30 resize-none"
+      className="w-full px-3 py-3 lg:py-2.5 text-base lg:text-sm text-[#e0e0e0] font-mono outline-none focus:border-[#00ff88]/30 resize-none"
     />
   )
 }
