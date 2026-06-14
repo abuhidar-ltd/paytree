@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
+import { getUserFeatures } from "@/lib/plans"
 import { z } from "zod"
 
 const blockSchema = z.object({
@@ -63,6 +64,32 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const data = blockSchema.parse(body)
+
+    // Feature gates — free plan restrictions
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { subscriptionStatus: true, subscriptionPlan: true, trialEndsAt: true, subscriptionEndsAt: true },
+    })
+    const features = getUserFeatures(dbUser ?? {})
+
+    if (!features.hasDrops && data.type === "drop") {
+      return NextResponse.json(
+        { error: "Drop countdown cards require a Starter plan.", code: "UPGRADE_REQUIRED" },
+        { status: 403 }
+      )
+    }
+    if (!features.hasLockedLinks && data.lockType && data.lockType !== "none") {
+      return NextResponse.json(
+        { error: "Locking cards (vault, password, payment) requires a Starter plan.", code: "UPGRADE_REQUIRED" },
+        { status: 403 }
+      )
+    }
+    if (!features.hasDrops && data.type === "product") {
+      return NextResponse.json(
+        { error: "Selling products requires a Starter plan.", code: "UPGRADE_REQUIRED" },
+        { status: 403 }
+      )
+    }
 
     const NON_LOCKABLE = ["youtube", "spotify", "podcast", "twitch", "live_status", "stats", "text", "image", "social_link", "crypto"]
     if (NON_LOCKABLE.includes(data.type)) {

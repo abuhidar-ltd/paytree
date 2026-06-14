@@ -12,28 +12,29 @@ interface PricingCardsProps {
 }
 
 const FREE_FEATURES = [
-  { text: "Unlimited links and blocks", included: true },
-  { text: "All block types (YouTube, Vault, Drop, etc.)", included: true },
-  { text: "Full customization", included: true },
-  { text: "Cinematic hero mode", included: true },
-  { text: "Cannot publish your page", included: false },
-  { text: "No analytics", included: false },
-  { text: "No AI agent", included: false },
+  { text: "Publish your page", included: true },
+  { text: "Unlimited basic links", included: true },
+  { text: "Text, image & YouTube blocks", included: true },
+  { text: "Social links", included: true },
+  { text: "Drop countdown cards", included: false },
+  { text: "Vault & password gates", included: false },
+  { text: "Sell products", included: false },
+  { text: "Analytics", included: false },
 ]
 
 const STARTER_FEATURES = [
   { text: "Everything in Free", included: true },
-  { text: "0% transaction fees", included: true },
-  { text: "Publish your page", included: true },
+  { text: "Drop countdown cards", included: true },
+  { text: "Vault — email gate any card", included: true },
+  { text: "Sell products (0% fees)", included: true },
   { text: "Analytics dashboard", included: true },
   { text: "Email audience export", included: true },
+  { text: "Custom styles & backgrounds", included: true },
   { text: "No AI agent", included: false },
-  { text: "No globe analytics", included: false },
 ]
 
 const ULTRA_FEATURES = [
   { text: "Everything in Starter", included: true },
-  { text: "0% transaction fees", included: true },
   { text: "AI sales agent on your page", included: true },
   { text: "Globe analytics + advanced insights", included: true },
   { text: "Remove Paytree branding", included: true },
@@ -119,8 +120,8 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-4xl sm:text-5xl font-bold text-[#e0e0e0]">$0</span>
             <span className="text-lg text-[#888888]">forever</span>
           </div>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Build your page</p>
-          <p className="text-xs text-[#444] mb-8">Everything to build. Upgrade when ready to publish.</p>
+          <p className="text-sm text-[#555555] mb-2 font-semibold">Build and publish free</p>
+          <p className="text-xs text-[#444] mb-8">Publish a basic page. Upgrade to unlock drops, vault, and monetization.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {FREE_FEATURES.map((f, i) => (
@@ -182,8 +183,8 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{starterPrice}</span>
             <span className="text-lg text-[#888888]">{starterPer}</span>
           </div>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Publish and grow</p>
-          <p className="text-xs text-[#444] mb-8">Everything in Free, plus publish your page and start earning.</p>
+          <p className="text-sm text-[#555555] mb-2 font-semibold">Sell and grow</p>
+          <p className="text-xs text-[#444] mb-8">Drops, vault, products, analytics — everything you need to monetize.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {STARTER_FEATURES.map((f, i) => (

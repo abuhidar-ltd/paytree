@@ -12,10 +12,10 @@ const LINKTREE_ITEMS = [
 ]
 
 const PAYTREE_ITEMS = [
-  "0% fees on every paid plan — keep every dollar",
+  "0% fees on all paid plans — keep every dollar",
   "AI sales agent — answers questions, closes sales",
-  "Drop countdown cards built in",
-  "Vault: gate any card behind an email or payment",
+  "Drop countdown cards built in (Starter+)",
+  "Vault: gate any card behind email or payment (Starter+)",
   "Native crypto payment support",
   "$19/mo Ultra vs $35/mo for the equivalent tier",
 ]
@@ -49,7 +49,7 @@ export function HomeComparison() {
         </motion.h2>
 
         <motion.p
-          className="text-[#555] text-lg mb-12"
+          className="text-[#555] text-lg mb-6"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -57,6 +57,20 @@ export function HomeComparison() {
         >
           We built everything they said wasn&apos;t possible.
         </motion.p>
+
+        {/* Fee math callout */}
+        <motion.div
+          className="mb-12 inline-flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-4 py-3"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ delay: 0.22, type: "spring", stiffness: 160, damping: 22 }}
+        >
+          <span className="text-sm font-mono text-[#555]">Selling $10k?</span>
+          <span className="text-sm font-mono text-red-400 line-through">Linktree takes $900</span>
+          <span className="text-sm font-mono text-[#444]">·</span>
+          <span className="text-sm font-mono text-[#00ff88]">Paytree takes $0</span>
+        </motion.div>
 
         {/* Cards */}
         <div className="grid md:grid-cols-2 gap-6">

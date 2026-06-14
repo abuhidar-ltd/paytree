@@ -9,19 +9,9 @@ interface HomeHeroProps {
   isLoggedIn: boolean
 }
 
-const HEADLINE_WORDS = [
-  { text: "Your", color: "text-[#f0f0f0]" },
-  { text: "entire", color: "text-[#f0f0f0]" },
-  { text: "\n", color: "" },
-  { text: "creator", color: "text-[#f0f0f0]" },
-  { text: "business.", color: "text-[#f0f0f0]" },
-  { text: "\n", color: "" },
-  { text: "One", color: "text-[#00ff88] font-mono" },
-  { text: "link.", color: "text-[#00ff88] font-mono" },
-]
-
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   const [mounted, setMounted] = useState(false)
+  const [username, setUsername] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -40,13 +30,19 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
     []
   )
 
+  const claimHref = isLoggedIn
+    ? "/dashboard"
+    : username
+    ? `/register?username=${username}`
+    : "/register"
+
   return (
     <section className="min-h-[calc(100vh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
       {/* Background gradient */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 50% 40%, rgba(0,255,136,0.04) 0%, transparent 60%)",
+          background: "radial-gradient(circle at 50% 40%, rgba(0,255,136,0.05) 0%, transparent 65%)",
         }}
       />
 
@@ -79,68 +75,100 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 25 }}
             >
               <span className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full">
-                ✦ The bio link for creators who monetize
+                ✦ The bio link built for selling
               </span>
             </motion.div>
 
             {/* Headline */}
-            <h1 className="mt-8 text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]">
-              {HEADLINE_WORDS.map((word, i) =>
-                word.text === "\n" ? (
-                  <br key={i} />
-                ) : (
-                  <motion.span
-                    key={i}
-                    className={`inline-block mr-[0.3em] ${word.color}`}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: 0.2 + i * 0.07,
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 25,
-                    }}
-                  >
-                    {word.text}
-                  </motion.span>
-                )
-              )}
+            <h1 className="mt-8 text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08]">
+              <motion.span
+                className="block text-[#f0f0f0]"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
+              >
+                One link to
+              </motion.span>
+              <motion.span
+                className="block text-[#f0f0f0]"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
+              >
+                everything you sell.
+              </motion.span>
+              <motion.span
+                className="block font-mono text-[#00ff88]"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.42, type: "spring", stiffness: 200, damping: 25 }}
+              >
+                0% commission.
+              </motion.span>
             </h1>
 
             {/* Subheadline */}
             <motion.p
-              className="mt-6 text-lg text-[#555] max-w-md leading-relaxed"
+              className="mt-6 text-base sm:text-lg text-[#555] max-w-md leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, type: "spring", stiffness: 120, damping: 20 }}
+              transition={{ delay: 0.55, type: "spring", stiffness: 120, damping: 20 }}
             >
-              0% platform fees on every paid plan. An AI that sells for you. Analytics that show you the world.
+              Linktree takes 9% of every sale you make.{" "}
+              <span className="text-[#888]">We take 0%. Keep every dollar, forever.</span>
             </motion.p>
 
-            {/* CTAs */}
+            {/* Username claim input */}
             <motion.div
-              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto"
+              className="mt-8 w-full max-w-sm"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, type: "spring", stiffness: 120, damping: 20 }}
+              transition={{ delay: 0.68, type: "spring", stiffness: 120, damping: 20 }}
             >
-              <Link
-                href={isLoggedIn ? "/dashboard" : "/register"}
-                className="bg-[#00ff88] text-black font-mono font-semibold px-6 py-3.5 rounded-xl text-sm hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_30px_rgba(0,255,136,0.3)] text-center min-h-[44px] inline-flex items-center justify-center"
-              >
-                Start building free →
-              </Link>
-              <button
-                onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-                className="border border-white/[0.1] text-[#888] font-mono px-6 py-3.5 rounded-xl text-sm hover:border-white/[0.2] hover:text-[#aaa] transition-all text-center min-h-[44px] inline-flex items-center justify-center"
-              >
-                See it in action ↓
-              </button>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="flex w-full bg-[#00ff88] text-black font-mono font-semibold px-6 py-3.5 rounded-xl text-sm hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_30px_rgba(0,255,136,0.3)] items-center justify-center min-h-[52px]"
+                >
+                  Go to dashboard →
+                </Link>
+              ) : (
+                <div
+                  className="flex items-center gap-0 rounded-xl overflow-hidden"
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "0.5px solid rgba(255,255,255,0.12)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(0,255,136,0)",
+                  }}
+                >
+                  <span className="pl-4 pr-1 text-[#444] font-mono text-sm whitespace-nowrap flex-shrink-0">
+                    paytree.to/
+                  </span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) =>
+                      setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                    }
+                    placeholder="yourname"
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#00ff88] font-mono text-sm py-3.5 placeholder:text-[#333]"
+                  />
+                  <Link
+                    href={claimHref}
+                    className="flex-shrink-0 bg-[#00ff88] text-black font-mono font-semibold px-4 py-3.5 text-sm hover:brightness-110 transition-all min-h-[52px] flex items-center"
+                  >
+                    Claim →
+                  </Link>
+                </div>
+              )}
+              <p className="mt-2.5 text-[11px] text-[#333] font-mono">
+                Free forever — no credit card required
+              </p>
             </motion.div>
 
             {/* Social proof */}
             <motion.div
-              className="mt-8 flex items-center gap-3"
+              className="mt-7 flex items-center gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9 }}
@@ -157,7 +185,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 ))}
               </div>
               <span className="text-xs text-[#444] font-mono">
-                Join 1,000+ creators already on Paytree
+                Creators saving $900+ /yr vs Linktree
               </span>
             </motion.div>
           </div>
