@@ -50,7 +50,7 @@ export function HomeFeatures() {
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               Your AI sells while you sleep
             </h3>
-            <p className="text-[#555] text-sm leading-relaxed mb-6">
+            <p className="text-[#888] text-sm leading-relaxed mb-6">
               An AI trained on your content answers questions and closes sales 24/7.
             </p>
 
@@ -109,7 +109,7 @@ export function HomeFeatures() {
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               See your audience from space
             </h3>
-            <p className="text-[#555] text-sm leading-relaxed mb-6">
+            <p className="text-[#888] text-sm leading-relaxed mb-6">
               Watch visitors appear as glowing dots across a 3D globe in real time.
             </p>
 
@@ -142,7 +142,7 @@ export function HomeFeatures() {
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               Launches that sell out
             </h3>
-            <p className="text-[#555] text-sm leading-relaxed mb-6">
+            <p className="text-[#888] text-sm leading-relaxed mb-6">
               Create urgency with countdown timers that drive instant action on your biggest launches.
             </p>
 
@@ -211,7 +211,7 @@ function CountdownDemo() {
         <span className="text-[#00ff88]/40">:</span>
         <span>{pad(time.s)}</span>
       </div>
-      <p className="text-[10px] text-[#555] mt-2">Pro Signals Course — $49</p>
+      <p className="text-[10px] text-[#888] mt-2">Pro Signals Course — $49</p>
     </div>
   )
 }

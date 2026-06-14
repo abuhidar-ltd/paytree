@@ -21,7 +21,7 @@ export default async function HomePage() {
             <span className="text-[#f0f0f0] font-semibold">Paytree</span>
           </Link>
           <nav className="flex items-center gap-4">
-            <Link href="/pricing" className="text-[#666] hover:text-white transition-colors text-sm font-mono hidden sm:block">
+            <Link href="/pricing" className="text-[#999] hover:text-white transition-colors text-sm font-mono hidden sm:block">
               Pricing
             </Link>
             {isLoggedIn ? (
@@ -33,7 +33,7 @@ export default async function HomePage() {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-[#666] hover:text-white transition-colors text-sm font-mono">
+                <Link href="/login" className="text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
                   Sign in
                 </Link>
                 <Link
@@ -64,14 +64,14 @@ export default async function HomePage() {
               <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)]" />
               <span className="font-bold text-white">Paytree</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-[#666] font-mono">
+            <div className="flex items-center gap-6 text-sm text-[#999] font-mono">
               <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             </div>
           </div>
           <div className="border-t border-white/[0.05] mt-6 pt-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#444] font-mono">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#777] font-mono">
               <div>&copy; {new Date().getFullYear()} Paytree. All rights reserved.</div>
               <div>0% platform fees on every paid plan. Stripe processing fees apply.</div>
             </div>

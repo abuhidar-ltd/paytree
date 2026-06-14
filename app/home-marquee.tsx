@@ -29,14 +29,14 @@ export function HomeMarquee() {
   return (
     <section className="border-y border-white/[0.06] bg-white/[0.02] py-6 overflow-hidden">
       <div className="text-center mb-4">
-        <p className="text-xs font-mono text-[#444] uppercase tracking-widest">
+        <p className="text-xs font-mono text-[#777] uppercase tracking-widest">
           Trusted by traders, educators, coaches, and creators
         </p>
       </div>
       <div className="relative">
         <div className="marquee-track flex whitespace-nowrap">
-          <span className="text-sm font-mono text-[#555] tracking-wide">{content}</span>
-          <span className="text-sm font-mono text-[#555] tracking-wide">{content}</span>
+          <span className="text-sm font-mono text-[#888] tracking-wide">{content}</span>
+          <span className="text-sm font-mono text-[#888] tracking-wide">{content}</span>
         </div>
       </div>
 

@@ -18,7 +18,7 @@ export function HomeShowcase() {
           <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-4">
             Your page. Your identity.
           </h2>
-          <p className="text-[#555] text-lg max-w-xl mx-auto">
+          <p className="text-[#888] text-lg max-w-xl mx-auto">
             Classic or Cinematic — your page always looks like a million dollars.
           </p>
         </motion.div>
@@ -39,12 +39,12 @@ export function HomeShowcase() {
             >
               <PhoneMockup variant="classic" />
             </motion.div>
-            <span className="text-xs font-mono text-[#444]">Classic</span>
+            <span className="text-xs font-mono text-[#777]">Classic</span>
           </motion.div>
 
           {/* vs */}
           <motion.span
-            className="text-[#333] font-mono text-sm hidden sm:block"
+            className="text-[#666] font-mono text-sm hidden sm:block"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -67,7 +67,7 @@ export function HomeShowcase() {
             >
               <PhoneMockup variant="cinematic" />
             </motion.div>
-            <span className="text-xs font-mono text-[#444]">Cinematic</span>
+            <span className="text-xs font-mono text-[#777]">Cinematic</span>
           </motion.div>
         </div>
       </div>

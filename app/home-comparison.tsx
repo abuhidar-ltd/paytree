@@ -49,7 +49,7 @@ export function HomeComparison() {
         </motion.h2>
 
         <motion.p
-          className="text-[#555] text-lg mb-6"
+          className="text-[#888] text-lg mb-6"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -66,9 +66,9 @@ export function HomeComparison() {
           viewport={{ once: true, margin: "-40px" }}
           transition={{ delay: 0.22, type: "spring", stiffness: 160, damping: 22 }}
         >
-          <span className="text-sm font-mono text-[#555]">Selling $10k?</span>
+          <span className="text-sm font-mono text-[#999]">Selling $10k?</span>
           <span className="text-sm font-mono text-red-400 line-through">Linktree takes $900</span>
-          <span className="text-sm font-mono text-[#444]">·</span>
+          <span className="text-sm font-mono text-[#666]">·</span>
           <span className="text-sm font-mono text-[#00ff88]">Paytree takes $0</span>
         </motion.div>
 
@@ -99,7 +99,7 @@ export function HomeComparison() {
                   <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span className="text-sm text-[#666]">{item}</span>
+                  <span className="text-sm text-[#999]">{item}</span>
                 </motion.li>
               ))}
             </ul>

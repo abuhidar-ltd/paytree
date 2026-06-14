@@ -11,8 +11,6 @@ interface HomeHeroProps {
 
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   const [mounted, setMounted] = useState(false)
-  const [username, setUsername] = useState("")
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -29,12 +27,6 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
       })),
     []
   )
-
-  const claimHref = isLoggedIn
-    ? "/dashboard"
-    : username
-    ? `/register?username=${username}`
-    : "/register"
 
   return (
     <section className="min-h-[calc(100dvh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
@@ -80,14 +72,14 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             </motion.div>
 
             {/* Headline */}
-            <h1 className="mt-8 text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.08]">
+            <h1 className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]">
               <motion.span
                 className="block text-[#f0f0f0]"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
               >
-                One link to
+                One link for
               </motion.span>
               <motion.span
                 className="block text-[#f0f0f0]"
@@ -95,7 +87,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
               >
-                everything you sell.
+                your entire business.
               </motion.span>
               <motion.span
                 className="block font-mono text-[#00ff88]"
@@ -109,13 +101,13 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
 
             {/* Subheadline */}
             <motion.p
-              className="mt-6 text-base sm:text-lg text-[#555] max-w-md leading-relaxed"
+              className="mt-6 text-base sm:text-lg text-[#999] max-w-md leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55, type: "spring", stiffness: 120, damping: 20 }}
             >
-              Linktree takes 9% of every sale you make.{" "}
-              <span className="text-[#888]">We take 0%. Keep every dollar, forever.</span>
+              <span className="text-[#f0f0f0]">Linktree takes <span className="text-[#ff5555] font-semibold font-mono">9%</span> of every sale you make.</span>{" "}
+              <span className="text-[#00ff88] font-semibold">We take <span className="font-mono">0%</span>. Keep every dollar.</span>
             </motion.p>
 
             {/* CTA */}
@@ -142,44 +134,9 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     Start free →
                   </Link>
 
-                  <p className="mt-2.5 text-[11px] font-mono flex items-center justify-center gap-1.5">
-                    <span className="text-[#00ff88] font-semibold">Free</span>
-                    <span className="text-[#555]">— no credit card required</span>
+                  <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
+                    Free — no credit card required
                   </p>
-
-                  {/* Secondary — claim a username */}
-                  <div className="mt-4 flex items-center gap-3">
-                    <div className="flex-1 h-px bg-white/[0.06]" />
-                    <span className="text-[10px] font-mono text-[#444] uppercase tracking-widest">or claim your link</span>
-                    <div className="flex-1 h-px bg-white/[0.06]" />
-                  </div>
-                  <div
-                    className="mt-3 flex items-center gap-0 rounded-xl overflow-hidden"
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "0.5px solid rgba(255,255,255,0.10)",
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <span className="pl-3 pr-1 text-[#444] font-mono text-sm whitespace-nowrap flex-shrink-0">
-                      paytree.to/
-                    </span>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) =>
-                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                      }
-                      placeholder="yourname"
-                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#00ff88] font-mono text-sm py-3 placeholder:text-[#2a2a2a]"
-                    />
-                    <Link
-                      href={claimHref}
-                      className="flex-shrink-0 bg-white/[0.06] text-[#888] font-mono text-xs font-semibold px-3 py-3 hover:text-white hover:bg-white/[0.1] transition-all flex items-center border-l border-white/[0.06]"
-                    >
-                      →
-                    </Link>
-                  </div>
                 </>
               )}
             </motion.div>
@@ -202,7 +159,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   </div>
                 ))}
               </div>
-              <span className="text-xs text-[#555] font-mono">
+              <span className="text-xs text-[#888] font-mono">
                 Creators saving $900+ /yr vs Linktree
               </span>
             </motion.div>

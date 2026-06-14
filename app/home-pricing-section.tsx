@@ -35,7 +35,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
         </motion.h2>
 
         <motion.p
-          className="text-[#555] text-lg mb-12"
+          className="text-[#888] text-lg mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
