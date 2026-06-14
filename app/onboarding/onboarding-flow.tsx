@@ -283,6 +283,19 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
   const skip = useCallback(() => advance(), [advance])
 
+  // Skip the entire onboarding flow — marks user as onboarded so dashboard layout
+  // doesn't redirect back here, then sends them to the dashboard.
+  const skipAll = useCallback(async () => {
+    try {
+      await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ onboarded: true }),
+      })
+    } catch {}
+    router.push("/dashboard")
+  }, [router])
+
   // ─── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,10 +389,10 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           </button>
 
           <button
-            onClick={() => router.push("/dashboard")}
-            className="text-[#444] text-sm font-mono hover:text-[#888] transition-colors"
+            onClick={skipAll}
+            className="text-[#888] text-sm font-mono hover:text-white transition-colors"
           >
-            Already set up? Go to dashboard →
+            Skip and go to dashboard →
           </button>
         </motion.div>
       </div>
@@ -790,10 +803,10 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
             {step < 4 && (
               <button
-                onClick={() => router.push("/dashboard")}
-                className="text-[#444] text-sm font-mono hover:text-[#888] transition-colors"
+                onClick={skipAll}
+                className="text-[#888] text-sm font-mono hover:text-white transition-colors"
               >
-                skip →
+                Skip onboarding →
               </button>
             )}
           </div>

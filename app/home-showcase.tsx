@@ -10,8 +10,8 @@ export function HomeShowcase() {
         {/* Headline */}
         <motion.div
           className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         >
@@ -28,8 +28,8 @@ export function HomeShowcase() {
           {/* Classic */}
           <motion.div
             className="flex flex-col items-center gap-4"
-            initial={{ opacity: 0, x: -60 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 1, x: -60 }}
+            whileInView={{ x: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -45,8 +45,8 @@ export function HomeShowcase() {
           {/* vs */}
           <motion.span
             className="text-[#666] font-mono text-sm hidden sm:block"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial={false}
+            whileInView={{ }}
             viewport={{ once: true }}
             transition={{ delay: 0.4, duration: 0.4 }}
           >
@@ -56,8 +56,8 @@ export function HomeShowcase() {
           {/* Cinematic */}
           <motion.div
             className="flex flex-col items-center gap-4"
-            initial={{ opacity: 0, x: 60 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 1, x: 60 }}
+            whileInView={{ x: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >

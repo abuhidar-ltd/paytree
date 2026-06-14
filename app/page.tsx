@@ -1,11 +1,14 @@
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { HomeHero } from "./home-hero"
 import { HomeMarquee } from "./home-marquee"
-import { HomeComparison } from "./home-comparison"
-import { HomeFeatures } from "./home-features"
-import { HomeShowcase } from "./home-showcase"
-import { HomePricingSection } from "./home-pricing-section"
+
+// Lazy-load below-fold sections — not needed for initial paint
+const HomeComparison = dynamic(() => import("./home-comparison").then(m => m.HomeComparison), { ssr: true })
+const HomeFeatures = dynamic(() => import("./home-features").then(m => m.HomeFeatures), { ssr: true })
+const HomeShowcase = dynamic(() => import("./home-showcase").then(m => m.HomeShowcase), { ssr: true })
+const HomePricingSection = dynamic(() => import("./home-pricing-section").then(m => m.HomePricingSection), { ssr: true })
 
 export default async function HomePage() {
   const user = await getCurrentUser().catch(() => null)
@@ -14,7 +17,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[rgba(3,3,3,0.8)] backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[#030303] sm:bg-[rgba(3,3,3,0.85)] sm:backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 font-bold text-xl hover:opacity-90 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
@@ -25,23 +28,23 @@ export default async function HomePage() {
               Pricing
             </Link>
             {isLoggedIn ? (
-              <Link
+              <a
                 href="/dashboard"
-                className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity"
+                className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
               >
                 Dashboard
-              </Link>
+              </a>
             ) : (
               <>
-                <Link href="/login" className="text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
+                <a href="/login" className="text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
                   Sign in
-                </Link>
-                <Link
+                </a>
+                <a
                   href="/register"
-                  className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity"
+                  className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
                 >
                   Start free →
-                </Link>
+                </a>
               </>
             )}
           </nav>

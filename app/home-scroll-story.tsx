@@ -68,7 +68,7 @@ export function HomeScrollStory() {
               <AnimatePresence>
                 {activeStage >= 1 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20, height: 0 }}
+                    initial={{ y: 20, height: 0 }}
                     animate={{ opacity: 1, y: 0, height: "auto" }}
                     exit={{ opacity: 0, y: -20, height: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -83,7 +83,7 @@ export function HomeScrollStory() {
               <AnimatePresence>
                 {activeStage >= 2 && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -111,7 +111,7 @@ export function HomeScrollStory() {
               <AnimatePresence>
                 {activeStage >= 3 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 1, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -133,7 +133,7 @@ export function HomeScrollStory() {
               <AnimatePresence>
                 {activeStage >= 4 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 1, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -176,7 +176,7 @@ export function HomeScrollStory() {
               <AnimatePresence mode="wait">
                 <motion.p
                   key={activeStage}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 1, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="text-sm text-[#888888]"

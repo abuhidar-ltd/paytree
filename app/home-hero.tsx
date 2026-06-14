@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { PhoneMockup } from "./home-phone-mockup"
@@ -10,24 +9,6 @@ interface HomeHeroProps {
 }
 
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 40 }, (_, i) => ({
-        id: i,
-        top: `${Math.random() * 100}%`,
-        left: `${Math.random() * 100}%`,
-        opacity: 0.1 + Math.random() * 0.3,
-        duration: 3 + Math.random() * 4,
-        delay: Math.random() * 4,
-      })),
-    []
-  )
-
   return (
     <section className="min-h-[calc(100dvh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
       {/* Background gradient */}
@@ -38,115 +19,74 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
         }}
       />
 
-      {/* Particles */}
-      {mounted && (
-        <div className="absolute inset-0 pointer-events-none">
-          {particles.map((p) => (
-            <div
-              key={p.id}
-              className="absolute w-px h-px rounded-full bg-white"
-              style={{
-                top: p.top,
-                left: p.left,
-                opacity: p.opacity,
-                animation: `twinkle ${p.duration}s ease-in-out ${p.delay}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       <div className="container mx-auto px-6 sm:px-8 lg:px-16 relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
-          {/* Left column */}
-          <div className="flex-[3] max-w-2xl">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 25 }}
-            >
-              <span className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full">
-                ✦ The bio link built for selling
-              </span>
-            </motion.div>
 
-            {/* Headline */}
-            <h1 className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]">
-              <motion.span
-                className="block text-[#f0f0f0]"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
-              >
-                One link for
-              </motion.span>
-              <motion.span
-                className="block text-[#f0f0f0]"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 25 }}
-              >
-                your entire business.
-              </motion.span>
-              <motion.span
-                className="block font-mono text-[#00ff88]"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.42, type: "spring", stiffness: 200, damping: 25 }}
-              >
-                0% commission.
-              </motion.span>
+          {/* Left column — CSS animated, no JS dependency */}
+          <div className="flex-[3] max-w-2xl">
+
+            {/* Badge */}
+            <span
+              className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full"
+              style={{ animation: "fadeIn 0.4s ease 0.05s both" }}
+            >
+              ✦ The bio link built for selling
+            </span>
+
+            {/* Headline — visible immediately, CSS animation only */}
+            <h1
+              className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]"
+              style={{ animation: "slideUp 0.5s ease 0.1s both" }}
+            >
+              <span className="block text-[#f0f0f0]">One link for</span>
+              <span className="block text-[#f0f0f0]">your entire business.</span>
+              <span className="block font-mono text-[#00ff88]">0% commission.</span>
             </h1>
 
             {/* Subheadline */}
-            <motion.p
+            <p
               className="mt-6 text-base sm:text-lg text-[#999] max-w-md leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55, type: "spring", stiffness: 120, damping: 20 }}
+              style={{ animation: "slideUp 0.5s ease 0.18s both" }}
             >
-              <span className="text-[#f0f0f0]">Linktree takes <span className="text-[#ff5555] font-semibold font-mono">9%</span> of every sale you make.</span>{" "}
-              <span className="text-[#00ff88] font-semibold">We take <span className="font-mono">0%</span>. Keep every dollar.</span>
-            </motion.p>
+              <span className="text-[#f0f0f0]">
+                Linktree takes <span className="text-[#ff5555] font-semibold font-mono">9%</span> of every sale you make.
+              </span>{" "}
+              <span className="text-[#00ff88] font-semibold">
+                We take <span className="font-mono">0%</span>. Keep every dollar.
+              </span>
+            </p>
 
-            {/* CTA */}
-            <motion.div
+            {/* CTA — visible immediately */}
+            <div
               className="mt-8 w-full max-w-sm"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.68, type: "spring", stiffness: 120, damping: 20 }}
+              style={{ animation: "slideUp 0.5s ease 0.26s both" }}
             >
               {isLoggedIn ? (
-                <Link
+                <a
                   href="/dashboard"
-                  className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
+                  className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                 >
                   Go to dashboard →
-                </Link>
+                </a>
               ) : (
                 <>
-                  {/* Primary CTA — one tap, no friction */}
-                  <Link
+                  <a
                     href="/register"
-                    className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
+                    className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
-                    Start free →
-                  </Link>
-
+                    Create my free page →
+                  </a>
                   <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
                     Free — no credit card required
                   </p>
                 </>
               )}
-            </motion.div>
+            </div>
 
             {/* Social proof */}
-            <motion.div
+            <div
               className="mt-6 flex items-center gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
+              style={{ animation: "fadeIn 0.5s ease 0.4s both" }}
             >
               <div className="flex -space-x-2">
                 {["#00ff88", "#ff6b6b", "#6b8aff", "#ffb86b", "#a855f7"].map((color, i) => (
@@ -162,14 +102,14 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               <span className="text-xs text-[#888] font-mono">
                 Creators saving $900+ /yr vs Linktree
               </span>
-            </motion.div>
+            </div>
           </div>
 
-          {/* Right column — Phone */}
+          {/* Right column — Phone (framer-motion float is fine here, purely decorative) */}
           <div className="flex-[2] relative flex justify-center">
             <div className="max-w-[240px] mx-auto lg:max-w-none">
               <motion.div
-                initial={{ opacity: 0, x: 80 }}
+                initial={{ x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3, type: "spring", stiffness: 120, damping: 20 }}
               >
@@ -186,7 +126,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             <div className="hidden lg:block">
               <motion.div
                 className="absolute -top-4 -left-8 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ y: 20 }}
                 animate={{ opacity: 1, y: [0, -6, 0] }}
                 transition={{ delay: 1.2, duration: 5, repeat: Infinity, ease: "easeInOut" }}
               >
@@ -195,7 +135,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
 
               <motion.div
                 className="absolute -bottom-4 -right-4 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ y: -20 }}
                 animate={{ opacity: 1, y: [0, 8, 0] }}
                 transition={{ delay: 1.5, duration: 6, repeat: Infinity, ease: "easeInOut" }}
               >
@@ -204,7 +144,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
 
               <motion.div
                 className="absolute top-8 -right-12 bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.15] rounded-xl px-3 py-2"
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 2, type: "spring", stiffness: 120, damping: 20 }}
               >
@@ -212,16 +152,9 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               </motion.div>
             </div>
           </div>
+
         </div>
       </div>
-
-      {/* CSS for particle twinkle */}
-      <style jsx>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </section>
   )
 }

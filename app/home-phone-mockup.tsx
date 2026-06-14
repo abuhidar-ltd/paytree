@@ -67,7 +67,7 @@ function PulsingDot({ color = "#00ff88" }: { color?: string }) {
   )
 }
 
-const PERSON_PHOTO = "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&q=80"
+const PERSON_PHOTO = null // no external dependency
 
 const AI_STEPS = [
   { type: "user", text: "How much is the course?" },
@@ -149,22 +149,38 @@ function CinematicPhone({ className, time }: { className: string; time: { h: num
         <div style={{ width: 90, height: 22, borderRadius: 14, background: "#000", border: "0.5px solid rgba(255,255,255,0.08)" }} />
       </div>
 
-      {/* Hero image — person photo */}
+      {/* Hero — gradient avatar, no external request */}
       <div style={{ height: 215, position: "relative", marginTop: -28, flexShrink: 0, overflow: "hidden" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={PERSON_PHOTO}
-          alt=""
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 8%", zIndex: 1 }}
-        />
-        {/* Cinematic overlay — light at top so face is clear, fades to black at bottom */}
+        {/* Gradient background */}
         <div style={{
-          position: "absolute", inset: 0, zIndex: 2,
-          background: "linear-gradient(180deg, rgba(3,3,3,0.08) 0%, rgba(3,3,3,0.0) 35%, rgba(3,3,3,0.55) 80%, #030303 100%)",
+          position: "absolute", inset: 0, zIndex: 1,
+          background: "linear-gradient(160deg, #0a1a12 0%, #030f08 40%, #030303 100%)",
+        }} />
+        {/* Accent glow */}
+        <div style={{
+          position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)",
+          width: 120, height: 120, borderRadius: "50%", zIndex: 1,
+          background: "radial-gradient(circle, rgba(0,255,136,0.18) 0%, transparent 70%)",
+        }} />
+        {/* Avatar circle */}
+        <div style={{
+          position: "absolute", top: 36, left: "50%", transform: "translateX(-50%)", zIndex: 2,
+          width: 72, height: 72, borderRadius: "50%",
+          background: "linear-gradient(135deg, rgba(0,255,136,0.25) 0%, rgba(0,255,136,0.06) 100%)",
+          border: "2px solid rgba(0,255,136,0.4)",
+          boxShadow: "0 0 20px rgba(0,255,136,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{ color: "#00ff88", fontWeight: 800, fontSize: 26, fontFamily: "Inter, sans-serif" }}>A</span>
+        </div>
+        {/* Fade to bg */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 3,
+          background: "linear-gradient(180deg, transparent 0%, transparent 60%, #030303 100%)",
         }} />
         {/* Name + handle */}
-        <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, zIndex: 3, textAlign: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, letterSpacing: "-0.02em", fontFamily: "Inter, sans-serif", textShadow: "0 2px 16px rgba(0,0,0,0.9)" }}>
+        <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, zIndex: 4, textAlign: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", fontFamily: "Inter, sans-serif" }}>
             Ava Morgan
           </div>
           <div style={{ color: "#00ff88", fontFamily: "'Space Mono', monospace", fontSize: 10, marginTop: 2 }}>

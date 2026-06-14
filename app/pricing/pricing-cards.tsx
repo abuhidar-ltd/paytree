@@ -106,7 +106,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
         {/* Free */}
         <motion.div
           className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0, type: "spring", stiffness: 120, damping: 20 }}
@@ -159,7 +159,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
         {/* Starter (highlighted) */}
         <motion.div
           className="obsidian-card-accent p-6 sm:p-8 relative overflow-hidden flex flex-col"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
@@ -231,7 +231,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
         {/* Ultra */}
         <motion.div
           className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.2, type: "spring", stiffness: 120, damping: 20 }}

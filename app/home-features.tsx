@@ -10,8 +10,8 @@ export function HomeFeatures() {
       <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-16">
         {/* Badge + Headline */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-4"
@@ -23,8 +23,8 @@ export function HomeFeatures() {
 
         <motion.h2
           className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
@@ -37,8 +37,8 @@ export function HomeFeatures() {
           <motion.div
             className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 1, y: 30 }}
+            whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0, type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -58,8 +58,8 @@ export function HomeFeatures() {
             <div className="mt-auto space-y-2">
               <motion.div
                 className="flex justify-end"
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 1, y: 8 }}
+                whileInView={{ y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
               >
@@ -69,8 +69,8 @@ export function HomeFeatures() {
               </motion.div>
               <motion.div
                 className="flex justify-start"
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 1, y: 8 }}
+                whileInView={{ y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.35 }}
               >
@@ -80,8 +80,8 @@ export function HomeFeatures() {
               </motion.div>
               <motion.div
                 className="flex justify-start"
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 1, y: 8 }}
+                whileInView={{ y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.6 }}
               >
@@ -96,8 +96,8 @@ export function HomeFeatures() {
           <motion.div
             className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 1, y: 30 }}
+            whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -116,8 +116,8 @@ export function HomeFeatures() {
             {/* Mini globe */}
             <motion.div
               className="mt-auto flex justify-center"
-              initial={{ opacity: 0, scale: 0.92 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ scale: 0.92 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
@@ -129,8 +129,8 @@ export function HomeFeatures() {
           <motion.div
             className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 1, y: 30 }}
+            whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0.24, type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -149,8 +149,8 @@ export function HomeFeatures() {
             {/* Mini countdown */}
             <motion.div
               className="mt-auto"
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 1, y: 12 }}
+              whileInView={{ y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >

@@ -13,8 +13,8 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
       <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-16">
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-4"
@@ -26,8 +26,8 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
 
         <motion.h2
           className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-4"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
@@ -36,8 +36,8 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
 
         <motion.p
           className="text-[#888] text-lg mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.15, type: "spring", stiffness: 120, damping: 20 }}
         >

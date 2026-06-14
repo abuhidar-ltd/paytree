@@ -26,8 +26,8 @@ export function HomeComparison() {
       <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-16">
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-6"
@@ -40,8 +40,8 @@ export function HomeComparison() {
         {/* Headline */}
         <motion.h2
           className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-3"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
@@ -50,8 +50,8 @@ export function HomeComparison() {
 
         <motion.p
           className="text-[#888] text-lg mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 20 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.15, type: "spring", stiffness: 120, damping: 20 }}
         >
@@ -61,8 +61,8 @@ export function HomeComparison() {
         {/* Fee math callout */}
         <motion.div
           className="mb-12 inline-flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-4 py-3"
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 1, y: 12 }}
+          whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ delay: 0.22, type: "spring", stiffness: 160, damping: 22 }}
         >
@@ -77,8 +77,8 @@ export function HomeComparison() {
           {/* Linktree */}
           <motion.div
             className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 1, x: -50 }}
+            whileInView={{ x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -91,8 +91,8 @@ export function HomeComparison() {
                 <motion.li
                   key={i}
                   className="flex items-start gap-3"
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 1, y: 8 }}
+                  whileInView={{ y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
                 >
@@ -108,8 +108,8 @@ export function HomeComparison() {
           {/* Paytree */}
           <motion.div
             className="bg-[#00ff88]/[0.03] border border-[#00ff88]/[0.2] rounded-2xl p-6 sm:p-8"
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 1, x: 50 }}
+            whileInView={{ x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >
@@ -125,8 +125,8 @@ export function HomeComparison() {
                 <motion.li
                   key={i}
                   className="flex items-start gap-3"
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 1, y: 8 }}
+                  whileInView={{ y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
                 >
