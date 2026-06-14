@@ -67,7 +67,7 @@ function PulsingDot({ color = "#00ff88" }: { color?: string }) {
   )
 }
 
-const PERSON_PHOTO = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80"
+const PERSON_PHOTO = "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&q=80"
 
 const AI_STEPS = [
   { type: "user", text: "How much is the course?" },
@@ -165,10 +165,10 @@ function CinematicPhone({ className, time }: { className: string; time: { h: num
         {/* Name + handle */}
         <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, zIndex: 3, textAlign: "center" }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, letterSpacing: "-0.02em", fontFamily: "Inter, sans-serif", textShadow: "0 2px 16px rgba(0,0,0,0.9)" }}>
-            Ryan Blake
+            Ava Morgan
           </div>
           <div style={{ color: "#00ff88", fontFamily: "'Space Mono', monospace", fontSize: 10, marginTop: 2 }}>
-            @ryanblake
+            @avamorgan
           </div>
         </div>
       </div>

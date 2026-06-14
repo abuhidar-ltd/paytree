@@ -37,7 +37,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
     : "/register"
 
   return (
-    <section className="min-h-[calc(100vh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
+    <section className="min-h-[calc(100dvh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
       {/* Background gradient */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -118,7 +118,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               <span className="text-[#888]">We take 0%. Keep every dollar, forever.</span>
             </motion.p>
 
-            {/* Username claim input */}
+            {/* CTA */}
             <motion.div
               className="mt-8 w-full max-w-sm"
               initial={{ opacity: 0, y: 20 }}
@@ -128,47 +128,65 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               {isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="flex w-full bg-[#00ff88] text-black font-mono font-semibold px-6 py-3.5 rounded-xl text-sm hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_30px_rgba(0,255,136,0.3)] items-center justify-center min-h-[52px]"
+                  className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                 >
                   Go to dashboard →
                 </Link>
               ) : (
-                <div
-                  className="flex items-center gap-0 rounded-xl overflow-hidden"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "0.5px solid rgba(255,255,255,0.12)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(0,255,136,0)",
-                  }}
-                >
-                  <span className="pl-4 pr-1 text-[#444] font-mono text-sm whitespace-nowrap flex-shrink-0">
-                    paytree.to/
-                  </span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) =>
-                      setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                    }
-                    placeholder="yourname"
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#00ff88] font-mono text-sm py-3.5 placeholder:text-[#333]"
-                  />
+                <>
+                  {/* Primary CTA — one tap, no friction */}
                   <Link
-                    href={claimHref}
-                    className="flex-shrink-0 bg-[#00ff88] text-black font-mono font-semibold px-4 py-3.5 text-sm hover:brightness-110 transition-all min-h-[52px] flex items-center"
+                    href="/register"
+                    className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base hover:scale-[1.02] hover:brightness-105 transition-all shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
-                    Claim →
+                    Start free →
                   </Link>
-                </div>
+
+                  <p className="mt-2.5 text-[11px] font-mono flex items-center justify-center gap-1.5">
+                    <span className="text-[#00ff88] font-semibold">Free</span>
+                    <span className="text-[#555]">— no credit card required</span>
+                  </p>
+
+                  {/* Secondary — claim a username */}
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="flex-1 h-px bg-white/[0.06]" />
+                    <span className="text-[10px] font-mono text-[#444] uppercase tracking-widest">or claim your link</span>
+                    <div className="flex-1 h-px bg-white/[0.06]" />
+                  </div>
+                  <div
+                    className="mt-3 flex items-center gap-0 rounded-xl overflow-hidden"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "0.5px solid rgba(255,255,255,0.10)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span className="pl-3 pr-1 text-[#444] font-mono text-sm whitespace-nowrap flex-shrink-0">
+                      paytree.to/
+                    </span>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) =>
+                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                      }
+                      placeholder="yourname"
+                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#00ff88] font-mono text-sm py-3 placeholder:text-[#2a2a2a]"
+                    />
+                    <Link
+                      href={claimHref}
+                      className="flex-shrink-0 bg-white/[0.06] text-[#888] font-mono text-xs font-semibold px-3 py-3 hover:text-white hover:bg-white/[0.1] transition-all flex items-center border-l border-white/[0.06]"
+                    >
+                      →
+                    </Link>
+                  </div>
+                </>
               )}
-              <p className="mt-2.5 text-[11px] text-[#333] font-mono">
-                Free forever — no credit card required
-              </p>
             </motion.div>
 
             {/* Social proof */}
             <motion.div
-              className="mt-7 flex items-center gap-3"
+              className="mt-6 flex items-center gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9 }}
@@ -184,7 +202,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   </div>
                 ))}
               </div>
-              <span className="text-xs text-[#444] font-mono">
+              <span className="text-xs text-[#555] font-mono">
                 Creators saving $900+ /yr vs Linktree
               </span>
             </motion.div>
