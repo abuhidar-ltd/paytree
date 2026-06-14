@@ -86,10 +86,10 @@ export default function RegisterPage() {
           <div className="glass rounded-lg p-4 text-left space-y-2">
             <p className="font-semibold text-white">✨ Free Plan Includes:</p>
             <ul className="text-xs text-gray-300 space-y-1">
-              <li>• Unlimited links and blocks</li>
-              <li>• Full customization & cinematic hero</li>
-              <li>• Preview your page anytime</li>
-              <li>• Upgrade to Starter to publish ($7/mo)</li>
+              <li>• Publish your page — free forever</li>
+              <li>• Drops, vault & password gates</li>
+              <li>• Basic link analytics</li>
+              <li>• Upgrade to sell products &amp; unlock more</li>
             </ul>
           </div>
 

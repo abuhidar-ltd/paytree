@@ -328,7 +328,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             </button>
           ) : (
             <button
-              onClick={isPro ? handlePublish : () => setShowPaywall(true)}
+              onClick={handlePublish}
               className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-1.5 text-xs hover:opacity-90 transition-opacity"
             >
               🚀 Publish

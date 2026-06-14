@@ -16,20 +16,19 @@ const FREE_FEATURES = [
   { text: "Unlimited basic links", included: true },
   { text: "Text, image & YouTube blocks", included: true },
   { text: "Social links", included: true },
-  { text: "Drop countdown cards", included: false },
-  { text: "Vault & password gates", included: false },
+  { text: "Drop countdown cards", included: true },
+  { text: "Vault & password gates", included: true },
+  { text: "Basic link analytics", included: true },
   { text: "Sell products", included: false },
-  { text: "Analytics", included: false },
 ]
 
 const STARTER_FEATURES = [
   { text: "Everything in Free", included: true },
-  { text: "Drop countdown cards", included: true },
-  { text: "Vault — email gate any card", included: true },
   { text: "Sell products (0% fees)", included: true },
-  { text: "Analytics dashboard", included: true },
+  { text: "Payment-locked cards", included: true },
   { text: "Email audience export", included: true },
   { text: "Custom styles & backgrounds", included: true },
+  { text: "Scheduled visibility", included: true },
   { text: "No AI agent", included: false },
 ]
 
@@ -121,7 +120,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-lg text-[#888888]">forever</span>
           </div>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Build and publish free</p>
-          <p className="text-xs text-[#444] mb-8">Publish a basic page. Upgrade to unlock drops, vault, and monetization.</p>
+          <p className="text-xs text-[#444] mb-8">Publish your page, add drops, vault gates, and see analytics — free forever.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {FREE_FEATURES.map((f, i) => (
@@ -184,7 +183,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-lg text-[#888888]">{starterPer}</span>
           </div>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Sell and grow</p>
-          <p className="text-xs text-[#444] mb-8">Drops, vault, products, analytics — everything you need to monetize.</p>
+          <p className="text-xs text-[#444] mb-8">Sell products, gate content behind payments, and export your audience.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {STARTER_FEATURES.map((f, i) => (

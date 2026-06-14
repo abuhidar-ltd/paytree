@@ -41,7 +41,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.15, type: "spring", stiffness: 120, damping: 20 }}
         >
-          Build everything for free. Upgrade when you&apos;re ready to publish.
+          Build, publish, and grow for free. Upgrade when you&apos;re ready to monetize.
         </motion.p>
 
         <PricingCards

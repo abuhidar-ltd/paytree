@@ -331,13 +331,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         router.push("/dashboard")
       } else {
         const data = await res.json().catch(() => ({}))
-        if (res.status === 403) {
-          toast.error(data.error ?? "Upgrade to Starter to publish your page.")
-          router.push("/pricing")
-        } else {
-          toast.error(data.error ?? "Something went wrong.")
-          router.push("/dashboard")
-        }
+        toast.error(data.error ?? "Something went wrong.")
+        router.push("/dashboard")
       }
     } catch {
       toast.error("Something went wrong.")
@@ -724,7 +719,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       </div>
 
       <p className="text-xs text-[#444] font-mono">
-        Publishing requires a Starter or Ultra plan.
+        Free forever. Upgrade to unlock payments &amp; more.
       </p>
     </div>
   )

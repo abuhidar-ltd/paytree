@@ -697,15 +697,15 @@ export default function DashboardPage() {
       <div
         className="fixed inset-0 overflow-y-auto lg:ml-[200px] lg:mr-[360px] bg-[#060606] px-3 sm:px-6 pt-14 pb-10"
       >
-        {/* Upgrade Banner */}
+        {/* Publish nudge — free users who haven't published yet */}
         {userPlan === "free" && profile?.pageStatus !== "published" && (
           <div
             className="mb-4 px-4 py-2 flex items-center justify-between rounded-xl border border-[#00ff88]/[0.1]"
             style={{ background: "linear-gradient(to right, rgba(0,255,136,0.06), transparent)" }}
           >
-            <span className="text-xs text-[#00ff88] font-mono">🚀 Publish your page — upgrade to Starter</span>
-            <Link href="/pricing" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
-              Upgrade $7/mo →
+            <span className="text-xs text-[#00ff88] font-mono">🚀 Your page isn&apos;t live yet — publish it for free</span>
+            <Link href="/dashboard/studio" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
+              Publish →
             </Link>
           </div>
         )}

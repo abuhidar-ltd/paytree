@@ -72,19 +72,14 @@ export async function POST(req: Request) {
     })
     const features = getUserFeatures(dbUser ?? {})
 
-    if (!features.hasDrops && data.type === "drop") {
+    // Payment-locked cards and product selling require a paid plan
+    if (data.lockType === "payment" && features.limits.products === 0) {
       return NextResponse.json(
-        { error: "Drop countdown cards require a Starter plan.", code: "UPGRADE_REQUIRED" },
+        { error: "Payment-locked cards require a Starter plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }
-    if (!features.hasLockedLinks && data.lockType && data.lockType !== "none") {
-      return NextResponse.json(
-        { error: "Locking cards (vault, password, payment) requires a Starter plan.", code: "UPGRADE_REQUIRED" },
-        { status: 403 }
-      )
-    }
-    if (!features.hasDrops && data.type === "product") {
+    if (data.type === "product" && features.limits.products === 0) {
       return NextResponse.json(
         { error: "Selling products requires a Starter plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
