@@ -113,9 +113,9 @@ export function ProductManager({ products, onProductsChange, isPro }: ProductMan
     return (
       <GlassBrick className="text-center py-12">
         <div className="text-5xl mb-4">🛒</div>
-        <h3 className="font-bold text-white text-xl mb-2">Sell Digital Products</h3>
+        <h3 className="font-bold text-white text-xl mb-2">Sell Products, Services & Content</h3>
         <p className="text-[#888888] mb-6 max-w-sm mx-auto">
-          Create and sell digital products directly from your Paytree. Accept payments via Stripe.
+          Sell products, services, and content directly from your Paytree with 0% fees.
         </p>
         <a href="/upgrade" className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold">
           Upgrade
