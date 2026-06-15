@@ -38,23 +38,32 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[#f0f0f0]">One link for</span>
-              <span className="block text-[#f0f0f0]">your entire business.</span>
-              <span className="block font-mono text-[#00ff88]">0% commission.</span>
+              <span className="block text-[#f0f0f0]">One page for your</span>
+              <span className="block text-[#f0f0f0]">entire business.</span>
+              <span className="block font-mono text-[#00ff88]">Keep 100% of your sales.</span>
             </h1>
 
-            {/* Subheadline */}
-            <p
-              className="mt-6 text-base sm:text-lg text-[#999] max-w-md leading-relaxed"
+            {/* Feature bullets — sit right under the headline */}
+            <ul
+              className="mt-6 space-y-2.5 max-w-md"
               style={{ animation: "slideUp 0.5s ease 0.18s both" }}
             >
-              <span className="text-[#f0f0f0]">
-                Linktree takes <span className="text-[#ff5555] font-semibold font-mono">9%</span> of every sale you make.
-              </span>{" "}
-              <span className="text-[#00ff88] font-semibold">
-                We take <span className="font-mono">0%</span>. Keep every dollar.
-              </span>
-            </p>
+              {[
+                { icon: "🤖", text: "AI agent that sells for you 24/7" },
+                { icon: "🔒", text: "Vault & countdown drop cards" },
+                { icon: "💰", text: "Sell digital products with 0% fees" },
+              ].map((f, i) => (
+                <li key={i} className="flex items-center gap-3 text-sm sm:text-base text-[#d8d8d8]">
+                  <span
+                    className="flex-shrink-0 w-7 h-7 rounded-lg bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] flex items-center justify-center text-sm"
+                    aria-hidden="true"
+                  >
+                    {f.icon}
+                  </span>
+                  <span>{f.text}</span>
+                </li>
+              ))}
+            </ul>
 
             {/* CTA — visible immediately */}
             <div
@@ -74,7 +83,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     href="/register"
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
-                    Create my free page →
+                    Create your page for free →
                   </a>
                   <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
                     Free — no credit card required
@@ -105,8 +114,8 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             </div>
           </div>
 
-          {/* Right column — Phone (framer-motion float is fine here, purely decorative) */}
-          <div className="flex-[2] relative flex justify-center">
+          {/* Right column — Phone, hidden on mobile so users reach the Linktree comparison faster */}
+          <div className="hidden lg:flex flex-[2] relative justify-center">
             <div className="max-w-[240px] mx-auto lg:max-w-none">
               <motion.div
                 initial={{ x: 40 }}

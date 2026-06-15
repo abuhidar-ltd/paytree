@@ -43,7 +43,7 @@ export default async function HomePage() {
                   href="/register"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
                 >
-                  Start free →
+                  Create page free →
                 </a>
               </>
             )}

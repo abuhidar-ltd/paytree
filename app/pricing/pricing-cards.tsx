@@ -146,7 +146,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           ) : !isLoggedIn ? (
             <Link href="/register" className="block">
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
-                Start for free →
+                Create your page for free →
               </Button>
             </Link>
           ) : (
