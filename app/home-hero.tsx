@@ -40,7 +40,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             >
               <span className="block text-[#f0f0f0]">One page for your</span>
               <span className="block text-[#f0f0f0]">entire business.</span>
-              <span className="block font-mono text-[#00ff88]">Keep 100% of your sales.</span>
+              <span className="block font-mono text-[#00ff88] text-3xl sm:text-4xl lg:text-5xl">Keep 100% of your sales.</span>
             </h1>
 
             {/* Feature bullets — sit right under the headline */}
@@ -51,7 +51,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               {[
                 { icon: "🤖", text: "AI agent that sells for you 24/7" },
                 { icon: "🔒", text: "Vault & countdown drop cards" },
-                { icon: "💰", text: "Sell digital products with 0% fees" },
+                { icon: "💰", text: "Sell products, services & content with 0% fees" },
               ].map((f, i) => (
                 <li key={i} className="flex items-center gap-3 text-sm sm:text-base text-[#d8d8d8]">
                   <span
