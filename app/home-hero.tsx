@@ -38,9 +38,9 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[#f0f0f0]">Sell physical & digital products,</span>
+              <span className="block text-[#f0f0f0]">Sell physical and digital products,</span>
               <span className="block text-[#f0f0f0]">services, and content from one page.</span>
-              <span className="block font-mono text-[#00ff88] text-2xl sm:text-3xl lg:text-4xl mt-2">0% platform fees. Keep 100% of your sales.</span>
+              <span className="block font-mono text-[#00ff88] text-lg sm:text-xl lg:text-2xl mt-2">0% platform fees. Keep 100% of your sales.</span>
             </h1>
 
             {/* Feature bullets — sit right under the headline */}

@@ -36,14 +36,15 @@ export default async function HomePage() {
               </a>
             ) : (
               <>
-                <a href="/login" className="text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
+                <a href="/login" className="hidden sm:inline text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
                   Sign in
                 </a>
                 <a
                   href="/register"
-                  className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
+                  className="bg-[#00ff88] text-black font-mono font-semibold px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap"
                 >
-                  Create page free →
+                  <span className="sm:hidden">Start free →</span>
+                  <span className="hidden sm:inline">Create page free →</span>
                 </a>
               </>
             )}
