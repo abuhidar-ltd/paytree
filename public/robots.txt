@@ -3,5 +3,5 @@ Allow: /
 Disallow: /api/
 Disallow: /dashboard/
 
-Sitemap: https://paytree.vercel.app/sitemap.xml
+Sitemap: https://paytree.to/sitemap.xml
 

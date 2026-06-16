@@ -1,8 +1,9 @@
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { auth } from "@clerk/nextjs/server"
 import { HomeHero } from "./home-hero"
 import { HomeMarquee } from "./home-marquee"
+import { TrackedLink } from "@/components/tracked-link"
 
 // Lazy-load below-fold sections — not needed for initial paint
 const HomeComparison = dynamic(() => import("./home-comparison").then(m => m.HomeComparison), { ssr: true })
@@ -11,8 +12,9 @@ const HomeShowcase = dynamic(() => import("./home-showcase").then(m => m.HomeSho
 const HomePricingSection = dynamic(() => import("./home-pricing-section").then(m => m.HomePricingSection), { ssr: true })
 
 export default async function HomePage() {
-  const user = await getCurrentUser().catch(() => null)
-  const isLoggedIn = !!user
+  // JWT-only check — no DB hit. Cold-start was killing TTFB on TikTok WebView.
+  const { userId } = await auth().catch(() => ({ userId: null as string | null }))
+  const isLoggedIn = !!userId
 
   return (
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
@@ -28,24 +30,32 @@ export default async function HomePage() {
               Pricing
             </Link>
             {isLoggedIn ? (
-              <a
+              <TrackedLink
+                event="header_cta_click"
+                eventProps={{ variant: "dashboard" }}
                 href="/dashboard"
                 className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
               >
                 Dashboard
-              </a>
+              </TrackedLink>
             ) : (
               <>
-                <a href="/login" className="hidden sm:inline text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]">
+                <TrackedLink
+                  event="header_signin_click"
+                  href="/login"
+                  className="hidden sm:inline text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]"
+                >
                   Sign in
-                </a>
-                <a
+                </TrackedLink>
+                <TrackedLink
+                  event="header_cta_click"
+                  eventProps={{ variant: "register" }}
                   href="/register"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap"
                 >
                   <span className="sm:hidden">Start free →</span>
                   <span className="hidden sm:inline">Create page free →</span>
-                </a>
+                </TrackedLink>
               </>
             )}
           </nav>

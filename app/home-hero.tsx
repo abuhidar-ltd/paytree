@@ -1,8 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { PhoneMockup } from "./home-phone-mockup"
+import { trackEvent } from "@/lib/analytics"
 
 interface HomeHeroProps {
   isLoggedIn: boolean
@@ -73,6 +73,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               {isLoggedIn ? (
                 <a
                   href="/dashboard"
+                  onClick={() => trackEvent("hero_cta_click", { variant: "dashboard" })}
                   className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                 >
                   Go to dashboard →
@@ -81,6 +82,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 <>
                   <a
                     href="/register"
+                    onClick={() => trackEvent("hero_cta_click", { variant: "register" })}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
                     Create your page for free →

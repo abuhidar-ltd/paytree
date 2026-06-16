@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/next";
+import { InAppBrowserBanner } from "@/components/in-app-browser-banner";
 
 // Body text
 const inter = Inter({
@@ -80,6 +81,7 @@ export default function RootLayout({
     <ClerkProvider signInUrl="/login" signUpUrl="/register" afterSignInUrl="/dashboard" afterSignUpUrl="/onboarding">
       <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
+          <InAppBrowserBanner />
           {children}
           <Toaster />
           <Analytics />

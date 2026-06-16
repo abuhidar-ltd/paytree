@@ -1,18 +1,49 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
+import { detectInAppBrowser, sourceLabel } from "@/lib/in-app-browser"
+import { trackEvent } from "@/lib/analytics"
 
 export default function RegisterPage() {
+  const [isWebView, setIsWebView] = useState(false)
+  const [webViewSource, setWebViewSource] = useState<string>("")
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const ref = params.get("ref")
     if (ref) {
       document.cookie = `paytree_ref=${encodeURIComponent(ref)}; path=/; max-age=604800; SameSite=Lax`
     }
+
+    const source = detectInAppBrowser()
+    if (source) {
+      setIsWebView(true)
+      setWebViewSource(sourceLabel(source))
+    }
+
+    trackEvent("register_page_view", {
+      in_app_browser: source ?? "no",
+    })
   }, [])
+
+  // In WebViews: Google/Apple OAuth fails (Google blocks WebView UAs since 2021),
+  // so hide social buttons entirely and force email signup. In real browsers,
+  // keep them visible — they convert better there.
+  const hiddenSocial = isWebView
+    ? {
+        socialButtonsRoot: "hidden",
+        socialButtons: "hidden",
+        socialButtonsBlockButton: "hidden",
+        socialButtonsBlockButtonText: "hidden",
+        socialButtonsIconButton: "hidden",
+        dividerRow: "hidden",
+        dividerLine: "hidden",
+        dividerText: "hidden",
+      }
+    : {}
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
@@ -25,6 +56,20 @@ export default function RegisterPage() {
             <h1 className="text-2xl sm:text-3xl font-bold kinetic-shimmer-accent">Paytree</h1>
           </Link>
         </div>
+
+        {isWebView && (
+          <div
+            className="rounded-xl border border-[#00ff88]/20 bg-[#00ff88]/[0.04] p-3 text-center"
+            role="note"
+          >
+            <p className="text-xs text-[#00ff88] font-mono font-semibold">
+              Signing up via {webViewSource}
+            </p>
+            <p className="text-[11px] text-[#888] mt-1 leading-snug">
+              Use email below — Google/Apple sign-in doesn&apos;t work in in-app browsers.
+            </p>
+          </div>
+        )}
 
         {/* Clerk Sign Up Component */}
         <div className="flex justify-center">
@@ -69,13 +114,13 @@ export default function RegisterPage() {
                 formField__firstName: "hidden",
                 formField__lastName: "hidden",
                 formField__username: "hidden",
+                ...hiddenSocial,
               },
             }}
             routing="path"
             path="/register"
             signInUrl="/login"
             fallbackRedirectUrl="/onboarding"
-            forceRedirectUrl={undefined}
           />
         </div>
 

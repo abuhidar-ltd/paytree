@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { trackEvent } from "@/lib/analytics"
 
 interface PricingCardsProps {
   isLoggedIn: boolean
@@ -55,6 +56,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
   const ultraSave = interval === "yearly" ? "Save 30%" : null
 
   async function handleCheckout(plan: "starter" | "ultra") {
+    trackEvent("pricing_checkout_start", { plan, interval })
     setLoading(plan)
     try {
       const res = await fetch("/api/create-checkout-session", {
@@ -64,11 +66,14 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       })
       const data = await res.json()
       if (data.url) {
+        trackEvent("pricing_checkout_redirect", { plan, interval })
         window.location.href = data.url
       } else {
+        trackEvent("pricing_checkout_error", { plan, interval, reason: data.error || "unknown" })
         alert(data.error || "Something went wrong")
       }
     } catch {
+      trackEvent("pricing_checkout_error", { plan, interval, reason: "network" })
       alert("Network error. Please try again.")
     } finally {
       setLoading(null)
@@ -144,7 +149,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               Current Plan
             </Button>
           ) : !isLoggedIn ? (
-            <Link href="/register" className="block">
+            <Link
+              href="/register"
+              className="block"
+              onClick={() => trackEvent("pricing_cta_click", { plan: "free" })}
+            >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Create your page for free →
               </Button>
@@ -220,7 +229,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               {loading === "starter" ? "Loading…" : "Start Starter →"}
             </Button>
           ) : (
-            <Link href="/register" className="block">
+            <Link
+              href="/register"
+              className="block"
+              onClick={() => trackEvent("pricing_cta_click", { plan: "starter", interval })}
+            >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Start Starter →
               </Button>
@@ -292,7 +305,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               {loading === "ultra" ? "Loading…" : "Start Ultra →"}
             </Button>
           ) : (
-            <Link href="/register" className="block">
+            <Link
+              href="/register"
+              className="block"
+              onClick={() => trackEvent("pricing_cta_click", { plan: "ultra", interval })}
+            >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Start Ultra →
               </Button>
