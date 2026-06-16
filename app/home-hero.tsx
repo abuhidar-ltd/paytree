@@ -38,9 +38,9 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[#f0f0f0]">One page for your</span>
-              <span className="block text-[#f0f0f0]">entire business.</span>
-              <span className="block font-mono text-[#00ff88] text-3xl sm:text-4xl lg:text-5xl">Keep 100% of your sales.</span>
+              <span className="block text-[#f0f0f0]">Sell products, services</span>
+              <span className="block text-[#f0f0f0]">& content with 0% fees.</span>
+              <span className="block font-mono text-[#00ff88] text-2xl sm:text-3xl lg:text-4xl mt-2">AI agent that sells for you 24/7.</span>
             </h1>
 
             {/* Feature bullets — sit right under the headline */}
@@ -49,9 +49,9 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "slideUp 0.5s ease 0.18s both" }}
             >
               {[
-                { icon: "🤖", text: "AI agent that sells for you 24/7" },
-                { icon: "🔒", text: "Vault & countdown drop cards" },
-                { icon: "💰", text: "Sell products, services & content with 0% fees" },
+                { icon: "🌍", text: "Globe analytics — see every fan, country & city" },
+                { icon: "🔒", text: "Vault — gate any card behind email or payment" },
+                { icon: "⏱️", text: "Countdown cards — limited-time drops that sell out" },
               ].map((f, i) => (
                 <li key={i} className="flex items-center gap-3 text-sm sm:text-base text-[#d8d8d8]">
                   <span

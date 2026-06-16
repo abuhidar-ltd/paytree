@@ -77,7 +77,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider signInUrl="/login" signUpUrl="/register" afterSignInUrl="/dashboard" afterSignUpUrl="/dashboard">
+    <ClerkProvider signInUrl="/login" signUpUrl="/register" afterSignInUrl="/dashboard" afterSignUpUrl="/onboarding">
       <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
           {children}

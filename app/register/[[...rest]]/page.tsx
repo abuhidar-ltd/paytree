@@ -17,16 +17,13 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
-      
-      <div className="relative z-10 w-full max-w-md space-y-6">
-        {/* Logo/Brand */}
+
+      <div className="relative z-10 w-full max-w-md space-y-4">
+        {/* Logo only — keep the page light so the form is the focus */}
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl sm:text-4xl font-bold kinetic-shimmer-accent">
-              Paytree
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold kinetic-shimmer-accent">Paytree</h1>
           </Link>
-          <p className="text-sm sm:text-base text-gray-400 mt-2">Create your free account</p>
         </div>
 
         {/* Clerk Sign Up Component */}
@@ -64,49 +61,30 @@ export default function RegisterPage() {
                 identityPreviewText: "text-[#e0e0e0]",
                 identityPreviewEditButton: "text-[#00ff88]",
                 footer: "hidden",
+                // Hide name + username — collected at onboarding instead
+                formFieldRow__name: "hidden",
+                formFieldRow__firstName: "hidden",
+                formFieldRow__lastName: "hidden",
+                formFieldRow__username: "hidden",
+                formField__firstName: "hidden",
+                formField__lastName: "hidden",
+                formField__username: "hidden",
               },
             }}
             routing="path"
             path="/register"
             signInUrl="/login"
-            fallbackRedirectUrl="/dashboard"
+            fallbackRedirectUrl="/onboarding"
             forceRedirectUrl={undefined}
           />
         </div>
 
-        {/* Additional Info */}
-        <div className="text-center space-y-3 text-sm">
-          <p className="text-gray-400">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
-              Sign in
-            </Link>
-          </p>
-          
-          <div className="glass rounded-lg p-4 text-left space-y-2">
-            <p className="font-semibold text-white">✨ Free Plan Includes:</p>
-            <ul className="text-xs text-gray-300 space-y-1">
-              <li>• Publish your page — free forever</li>
-              <li>• Drops, vault & password gates</li>
-              <li>• Basic link analytics</li>
-              <li>• Upgrade to sell products &amp; unlock more</li>
-            </ul>
-          </div>
-
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-300 transition-colors">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-gray-300 transition-colors">
-              Terms of Service
-            </Link>
-          </div>
-
-          <p className="text-xs text-gray-500">
-            By signing up, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </div>
+        <p className="text-center text-xs text-gray-500">
+          Already have an account?{" "}
+          <Link href="/login" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

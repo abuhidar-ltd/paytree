@@ -2,28 +2,40 @@
 
 import { motion } from "framer-motion"
 
-const LINKTREE_ITEMS = [
-  "9% transaction fees on creator sales",
-  "No AI sales agent",
-  "No drop countdown cards",
-  "No vault / email gate on any block",
-  "No crypto payment support",
-  "$35/mo for equivalent feature tier",
+type Cell = string | boolean
+
+const ROWS: Array<{ feature: string; linktree: Cell; paytree: Cell; highlight?: boolean }> = [
+  { feature: "Transaction fees on creator sales", linktree: "9%", paytree: "0%", highlight: true },
+  { feature: "AI sales agent on your page", linktree: false, paytree: true },
+  { feature: "Countdown drop cards", linktree: false, paytree: true },
+  { feature: "Vault — gate any card by email/payment", linktree: false, paytree: true },
+  { feature: "Native crypto payments", linktree: false, paytree: true },
+  { feature: "Globe analytics — country & city map", linktree: false, paytree: true },
+  { feature: "Top tier monthly price", linktree: "$35", paytree: "$19", highlight: true },
 ]
 
-const PAYTREE_ITEMS = [
-  "0% fees on all paid plans — keep every dollar",
-  "AI sales agent — answers questions, closes sales",
-  "Drop countdown cards built in (Starter+)",
-  "Vault: gate any card behind email or payment (Starter+)",
-  "Native crypto payment support",
-  "$19/mo Ultra vs $35/mo for the equivalent tier",
-]
+function Mark({ value }: { value: Cell }) {
+  if (typeof value === "string") {
+    return <span className="font-mono text-sm sm:text-base">{value}</span>
+  }
+  if (value) {
+    return (
+      <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+      </svg>
+    )
+  }
+  return (
+    <svg className="w-5 h-5 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )
+}
 
 export function HomeComparison() {
   return (
     <section className="py-24 sm:py-32 relative">
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-16">
+      <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-16">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 1, y: 20 }}
@@ -33,7 +45,7 @@ export function HomeComparison() {
           className="mb-6"
         >
           <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#888] text-xs font-mono px-3 py-1.5 rounded-full">
-            Why creators switch
+            Head to head
           </span>
         </motion.div>
 
@@ -45,100 +57,86 @@ export function HomeComparison() {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
-          Everything Linktree can&apos;t do.
+          Paytree <span className="text-[#00ff88]">vs</span> Linktree
         </motion.h2>
 
         <motion.p
-          className="text-[#888] text-lg mb-6"
+          className="text-[#888] text-lg mb-8"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.15, type: "spring", stiffness: 120, damping: 20 }}
         >
-          We built everything they said wasn&apos;t possible.
+          Same idea. Better product. Half the price.
         </motion.p>
 
-        {/* Fee math callout */}
+        {/* Vs table */}
         <motion.div
-          className="mb-12 inline-flex items-center gap-3 bg-white/[0.03] border border-white/[0.07] rounded-xl px-4 py-3"
+          className="relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden"
+          initial={{ opacity: 1, y: 24 }}
+          whileInView={{ y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 120, damping: 22 }}
+        >
+          {/* Reflection */}
+          <div
+            className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)" }}
+          />
+
+          {/* Header row */}
+          <div className="grid grid-cols-[1fr_88px_88px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Feature</div>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#444]" />
+              <span className="text-xs sm:text-sm font-mono text-[#888]">Linktree</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_rgba(0,255,136,0.6)]" />
+              <span className="text-xs sm:text-sm font-mono text-[#00ff88]">Paytree</span>
+            </div>
+          </div>
+
+          {/* Rows */}
+          {ROWS.map((row, i) => (
+            <motion.div
+              key={i}
+              className={`grid grid-cols-[1fr_88px_88px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 ${
+                i < ROWS.length - 1 ? "border-b border-white/[0.04]" : ""
+              } ${row.highlight ? "bg-[#00ff88]/[0.015]" : ""}`}
+              initial={{ opacity: 1, y: 6 }}
+              whileInView={{ y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ delay: i * 0.04, type: "spring", stiffness: 200, damping: 24 }}
+            >
+              <span className="text-sm text-[#d8d8d8]">{row.feature}</span>
+              <div className="flex justify-center">
+                <span className={typeof row.linktree === "string" ? "font-mono text-sm text-red-400/90 line-through" : ""}>
+                  <Mark value={row.linktree} />
+                </span>
+              </div>
+              <div className="flex justify-center">
+                <span className={typeof row.paytree === "string" ? "font-mono text-sm text-[#00ff88]" : ""}>
+                  <Mark value={row.paytree} />
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Savings callout */}
+        <motion.div
+          className="mt-6 flex flex-wrap items-center justify-center gap-3 text-center"
           initial={{ opacity: 1, y: 12 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
-          transition={{ delay: 0.22, type: "spring", stiffness: 160, damping: 22 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 160, damping: 22 }}
         >
-          <span className="text-sm font-mono text-[#999]">Selling $10k?</span>
-          <span className="text-sm font-mono text-red-400 line-through">Linktree takes $900</span>
+          <span className="text-sm font-mono text-[#999]">Sell $10k →</span>
+          <span className="text-sm font-mono text-red-400 line-through">Linktree keeps $900</span>
           <span className="text-sm font-mono text-[#666]">·</span>
-          <span className="text-sm font-mono text-[#00ff88]">Paytree takes $0</span>
+          <span className="text-sm font-mono text-[#00ff88]">You keep all of it</span>
         </motion.div>
-
-        {/* Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Linktree */}
-          <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8"
-            initial={{ opacity: 1, x: -50 }}
-            whileInView={{ x: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#444]" />
-              <span className="text-sm font-mono text-[#888]">Linktree</span>
-            </div>
-            <ul className="space-y-3">
-              {LINKTREE_ITEMS.map((item, i) => (
-                <motion.li
-                  key={i}
-                  className="flex items-start gap-3"
-                  initial={{ opacity: 1, y: 8 }}
-                  whileInView={{ y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
-                >
-                  <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-[#999]">{item}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Paytree */}
-          <motion.div
-            className="bg-[#00ff88]/[0.03] border border-[#00ff88]/[0.2] rounded-2xl p-6 sm:p-8"
-            initial={{ opacity: 1, x: 50 }}
-            whileInView={{ x: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#00ff88]" />
-              <span className="text-sm font-mono text-[#00ff88]">Paytree</span>
-              <span className="ml-2 text-[10px] font-mono bg-[#00ff88]/[0.1] border border-[#00ff88]/[0.2] text-[#00ff88] px-2 py-0.5 rounded-full">
-                ✦ Better
-              </span>
-            </div>
-            <ul className="space-y-3">
-              {PAYTREE_ITEMS.map((item, i) => (
-                <motion.li
-                  key={i}
-                  className="flex items-start gap-3"
-                  initial={{ opacity: 1, y: 8 }}
-                  whileInView={{ y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ delay: i * 0.05, type: "spring", stiffness: 200, damping: 24 }}
-                >
-                  <svg className="w-4 h-4 text-[#00ff88] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-[#ccc]">{item}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
       </div>
     </section>
   )
