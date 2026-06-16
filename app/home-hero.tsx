@@ -40,7 +40,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             >
               <span className="block text-[#f0f0f0]">Sell physical and digital products,</span>
               <span className="block text-[#f0f0f0]">services, and content from one page.</span>
-              <span className="block font-mono text-[#00ff88] text-lg sm:text-xl lg:text-2xl mt-2">0% platform fees. Keep 100% of your sales.</span>
+              <span className="block font-mono text-[#00ff88] text-lg sm:text-xl lg:text-2xl mt-2">0% platform fees. AI agent that sells for you 24/7.</span>
             </h1>
 
             {/* Feature bullets — sit right under the headline */}
