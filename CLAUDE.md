@@ -38,9 +38,9 @@ Secondary: Educators, coaches, YouTubers
 Geography: MENA first then global
 
 ## Plans
-Free:    $0      — build everything, cannot publish
-Starter: $7/mo   — publish + 5% transaction fee
-Ultra:   $19/mo  — 0% fees + AI agent + globe
+Free:    $0      — publish + sell products (5% fee)
+Starter: $7/mo   — 0% fees + AI agent
+Ultra:   $19/mo  — 0% fees + AI agent + globe + no branding
 
 ## Tech Stack
 Next.js 15, TypeScript, Tailwind CSS 4
