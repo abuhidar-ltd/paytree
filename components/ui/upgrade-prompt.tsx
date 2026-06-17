@@ -36,7 +36,7 @@ export function UpgradePrompt({
             )}
             <Link href="/pricing">
               <Button size="sm" className="bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold">
-                View Plans →
+                Try free for 7 days →
               </Button>
             </Link>
           </div>
@@ -63,9 +63,10 @@ export function UpgradePrompt({
         </svg>
       </div>
       <h3 className="text-2xl font-bold mb-2">Upgrade Your Plan</h3>
-      <p className="text-gray-400 mb-6">
+      <p className="text-gray-400 mb-2">
         Unlock {feature} and more premium features
       </p>
+      <p className="text-xs text-[#00ff88] font-mono mb-6">7-day free trial — no charge until after your trial ends</p>
       {description && (
         <p className="text-sm text-gray-500 mb-6">
           {description}
@@ -73,7 +74,7 @@ export function UpgradePrompt({
       )}
       <Link href="/pricing">
         <Button className="bg-[#00ff88] text-[#030303] hover:bg-[#00cc6a] font-bold h-12 px-8 text-lg">
-          View Pricing Plans
+          Try free for 7 days →
         </Button>
       </Link>
     </div>

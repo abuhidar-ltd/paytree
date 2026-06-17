@@ -191,6 +191,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{starterPrice}</span>
             <span className="text-lg text-[#888888]">{starterPer}</span>
           </div>
+          <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Sell and grow</p>
           <p className="text-xs text-[#444] mb-8">Sell products, gate content behind payments, and export your audience.</p>
 
@@ -220,14 +221,17 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               Downgrade from Ultra
             </Button>
           ) : isLoggedIn ? (
-            <Button
-              variant="accent-solid"
-              className="w-full min-h-[48px] font-bold"
-              onClick={() => handleCheckout("starter")}
-              disabled={loading === "starter"}
-            >
-              {loading === "starter" ? "Loading…" : "Start Starter →"}
-            </Button>
+            <>
+              <Button
+                variant="accent-solid"
+                className="w-full min-h-[48px] font-bold"
+                onClick={() => handleCheckout("starter")}
+                disabled={loading === "starter"}
+              >
+                {loading === "starter" ? "Loading…" : "Try free for 7 days →"}
+              </Button>
+              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+            </>
           ) : (
             <Link
               href="/register"
@@ -235,8 +239,9 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               onClick={() => trackEvent("pricing_cta_click", { plan: "starter", interval })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
-                Start Starter →
+                Try free for 7 days →
               </Button>
+              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
             </Link>
           )}
         </motion.div>
@@ -262,6 +267,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{ultraPrice}</span>
             <span className="text-lg text-[#888888]">{ultraPer}</span>
           </div>
+          <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Maximize revenue</p>
           <p className="text-xs text-[#444] mb-8">Everything in Starter, plus AI that sells for you and globe analytics.</p>
 
@@ -296,14 +302,17 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               {loading === "ultra" ? "Loading…" : "Upgrade to Ultra"}
             </Button>
           ) : isLoggedIn ? (
-            <Button
-              variant="accent-solid"
-              className="w-full min-h-[48px] font-bold"
-              onClick={() => handleCheckout("ultra")}
-              disabled={loading === "ultra"}
-            >
-              {loading === "ultra" ? "Loading…" : "Start Ultra →"}
-            </Button>
+            <>
+              <Button
+                variant="accent-solid"
+                className="w-full min-h-[48px] font-bold"
+                onClick={() => handleCheckout("ultra")}
+                disabled={loading === "ultra"}
+              >
+                {loading === "ultra" ? "Loading…" : "Try free for 7 days →"}
+              </Button>
+              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+            </>
           ) : (
             <Link
               href="/register"
@@ -311,8 +320,9 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               onClick={() => trackEvent("pricing_cta_click", { plan: "ultra", interval })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
-                Start Ultra →
+                Try free for 7 days →
               </Button>
+              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
             </Link>
           )}
         </motion.div>
