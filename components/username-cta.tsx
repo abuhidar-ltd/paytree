@@ -14,7 +14,7 @@ export function UsernameCTA() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (sanitizedUsername) {
-      router.push(`/register?username=${sanitizedUsername}`)
+      router.push(`/join?username=${sanitizedUsername}`)
     }
   }
 

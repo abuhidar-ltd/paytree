@@ -68,7 +68,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#0A1128",
+  themeColor: "#030303",
   colorScheme: "dark",
 };
 
@@ -78,7 +78,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider signInUrl="/login" signUpUrl="/join" afterSignInUrl="/dashboard" afterSignUpUrl="/onboarding">
+    <ClerkProvider
+      signInUrl="/login"
+      signUpUrl="/join"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding"
+    >
       <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
           <InAppBrowserBanner />

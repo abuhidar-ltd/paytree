@@ -3,7 +3,7 @@
 import { SignIn, useUser } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { detectInAppBrowser, sourceLabel } from "@/lib/in-app-browser"
 import { trackEvent } from "@/lib/analytics"
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const router = useRouter()
   const [isWebView, setIsWebView] = useState(false)
   const [webViewSource, setWebViewSource] = useState<string>("")
+  const containerRef = useRef<HTMLDivElement>(null)
+  const seenStages = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -27,6 +29,24 @@ export default function LoginPage() {
       setWebViewSource(sourceLabel(source))
     }
     trackEvent("login_page_view", { in_app_browser: source ?? "no" })
+  }, [])
+
+  // Mirror of /join funnel observation — see app/join page for explanation.
+  useEffect(() => {
+    const root = containerRef.current
+    if (!root) return
+    function fireOnce(stage: string) {
+      if (seenStages.current.has(stage)) return
+      seenStages.current.add(stage)
+      trackEvent(stage)
+    }
+    const obs = new MutationObserver(() => {
+      if (root.querySelector(".cl-rootBox")) fireOnce("signin_form_mounted")
+      if (root.querySelector(".cl-formFieldInput")) fireOnce("signin_form_fields_visible")
+      if (root.querySelector(".cl-formButtonPrimary")) fireOnce("signin_submit_visible")
+    })
+    obs.observe(root, { childList: true, subtree: true })
+    return () => obs.disconnect()
   }, [])
 
   if (isLoaded && user) {
@@ -76,7 +96,7 @@ export default function LoginPage() {
         )}
 
         {/* Clerk Sign In Component */}
-        <div className="flex justify-center">
+        <div ref={containerRef} className="flex justify-center">
           <SignIn
             appearance={{
               variables: {

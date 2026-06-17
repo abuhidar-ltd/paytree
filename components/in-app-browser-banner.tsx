@@ -2,18 +2,32 @@
 
 import { useEffect, useState } from "react"
 import {
+  buildChromeIntentUrl,
   detectInAppBrowser,
+  detectPlatform,
   openInBrowserInstructions,
   sourceLabel,
   type InAppBrowserSource,
+  type Platform,
 } from "@/lib/in-app-browser"
 import { captureAttribution, trackEvent } from "@/lib/analytics"
 
 const DISMISS_KEY = "paytree_iab_banner_dismissed"
 
+// Routes that REQUIRE the banner. On the landing page we still capture
+// attribution (so we know they came from TikTok) but render the banner only
+// on auth flows, where the cost of NOT showing it is total funnel death.
+const REQUIRED_PATHS = ["/join", "/login", "/onboarding"]
+
+function isAuthPath(path: string): boolean {
+  return REQUIRED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))
+}
+
 export function InAppBrowserBanner() {
   const [source, setSource] = useState<InAppBrowserSource>(null)
+  const [platform, setPlatform] = useState<Platform>("other")
   const [dismissed, setDismissed] = useState(true) // start hidden — only show after mount
+  const [isRequiredPath, setIsRequiredPath] = useState(false)
 
   useEffect(() => {
     captureAttribution()
@@ -28,11 +42,14 @@ export function InAppBrowserBanner() {
       // sessionStorage can throw in some WebViews — assume not dismissed.
     }
 
+    const path = window.location.pathname
     setSource(detected)
+    setPlatform(detectPlatform())
     setDismissed(alreadyDismissed)
+    setIsRequiredPath(isAuthPath(path))
 
-    if (!alreadyDismissed) {
-      trackEvent("in_app_browser_banner_shown", { source: detected })
+    if (!alreadyDismissed && isAuthPath(path)) {
+      trackEvent("in_app_browser_banner_shown", { source: detected, path })
     }
   }, [])
 
@@ -53,14 +70,23 @@ export function InAppBrowserBanner() {
       trackEvent("in_app_browser_link_copied", { source: source ?? "unknown" })
     } catch {
       // Some WebViews block clipboard write — fall back to a manual selection prompt
-      window.prompt("Copy this link", url)
+      window.prompt("Long-press to copy this link, then open it in your browser:", url)
     }
   }
 
-  if (!source || dismissed) return null
+  function handleOpenAndroidChrome() {
+    const url = typeof window !== "undefined" ? window.location.href : ""
+    const intent = buildChromeIntentUrl(url)
+    if (!intent) return
+    trackEvent("in_app_browser_chrome_intent_clicked", { source: source ?? "unknown" })
+    window.location.href = intent
+  }
+
+  if (!source || dismissed || !isRequiredPath) return null
 
   const label = sourceLabel(source)
-  const instructions = openInBrowserInstructions(source)
+  const instructions = openInBrowserInstructions(source, platform)
+  const showAndroidButton = platform === "android"
 
   return (
     <div
@@ -72,10 +98,10 @@ export function InAppBrowserBanner() {
         left: 0,
         right: 0,
         zIndex: 100,
-        background: "linear-gradient(180deg, rgba(0,255,136,0.10) 0%, rgba(0,0,0,0.95) 100%)",
+        background: "linear-gradient(180deg, rgba(0,255,136,0.12) 0%, rgba(0,0,0,0.96) 100%)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
-        borderBottom: "0.5px solid rgba(0,255,136,0.25)",
+        borderBottom: "0.5px solid rgba(0,255,136,0.28)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
         padding: "10px 14px",
       }}
@@ -101,32 +127,54 @@ export function InAppBrowserBanner() {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#f0f0f0", fontSize: 12, fontWeight: 600, lineHeight: 1.3 }}>
-            You&apos;re viewing in {label}&apos;s browser
+            Open in your real browser to sign up
           </div>
           <div style={{ color: "#888", fontSize: 11, marginTop: 1, lineHeight: 1.3 }}>
-            Sign-up may fail. {instructions}.
+            {label}&apos;s browser blocks sign-up. {instructions}.
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCopy}
-          style={{
-            flexShrink: 0,
-            background: "#00ff88",
-            color: "#000",
-            fontFamily: "'Space Mono', monospace",
-            fontSize: 11,
-            fontWeight: 700,
-            border: "none",
-            borderRadius: 8,
-            padding: "7px 10px",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Copy link
-        </button>
+        {showAndroidButton ? (
+          <button
+            type="button"
+            onClick={handleOpenAndroidChrome}
+            style={{
+              flexShrink: 0,
+              background: "#00ff88",
+              color: "#000",
+              fontFamily: "'Space Mono', monospace",
+              fontSize: 11,
+              fontWeight: 700,
+              border: "none",
+              borderRadius: 8,
+              padding: "7px 10px",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Open Chrome
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{
+              flexShrink: 0,
+              background: "#00ff88",
+              color: "#000",
+              fontFamily: "'Space Mono', monospace",
+              fontSize: 11,
+              fontWeight: 700,
+              border: "none",
+              borderRadius: 8,
+              padding: "7px 10px",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Copy link
+          </button>
+        )}
 
         <button
           type="button"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
@@ -10,6 +10,8 @@ import { trackEvent } from "@/lib/analytics"
 export default function RegisterPage() {
   const [isWebView, setIsWebView] = useState(false)
   const [webViewSource, setWebViewSource] = useState<string>("")
+  const containerRef = useRef<HTMLDivElement>(null)
+  const seenStages = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -24,11 +26,69 @@ export default function RegisterPage() {
       setWebViewSource(sourceLabel(source))
     }
 
-    trackEvent("register_page_view", {
+    trackEvent("signup_page_view", {
       in_app_browser: source ?? "no",
+      ref: ref ?? null,
     })
   }, [])
 
+  // Funnel tracking — we don't get Clerk lifecycle hooks, so we observe the DOM.
+  // Each stage fires once per page load; that lets us see in Vercel Analytics
+  // exactly where the 40→0 conversion dies.
+  useEffect(() => {
+    const root = containerRef.current
+    if (!root) return
+
+    function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {
+      if (seenStages.current.has(stage)) return
+      seenStages.current.add(stage)
+      trackEvent(stage, props)
+    }
+
+    const observer = new MutationObserver(() => {
+      // Clerk renders elements with `cl-` prefixed classes.
+      if (root.querySelector(".cl-rootBox")) fireOnce("signup_form_mounted")
+      if (root.querySelector(".cl-formFieldInput")) fireOnce("signup_form_fields_visible")
+      if (root.querySelector(".cl-formButtonPrimary")) fireOnce("signup_submit_visible")
+      // Verification / second-step screens
+      if (root.querySelector('input[name="code"]')) fireOnce("signup_verification_visible")
+      // Error states
+      const err = root.querySelector(".cl-formFieldErrorText")
+      if (err && err.textContent) {
+        fireOnce(`signup_error_${slugify(err.textContent)}`, {
+          message: err.textContent.slice(0, 80),
+        })
+      }
+    })
+
+    observer.observe(root, { childList: true, subtree: true, characterData: true })
+
+    function onFocusIn(e: FocusEvent) {
+      const t = e.target as HTMLElement | null
+      if (!t) return
+      if (t.matches('input[type="email"]')) fireOnce("signup_email_focused")
+      if (t.matches('input[type="password"]')) fireOnce("signup_password_focused")
+      if (t.matches('input[name="code"]')) fireOnce("signup_verification_focused")
+    }
+    function onClick(e: MouseEvent) {
+      const t = e.target as HTMLElement | null
+      if (!t) return
+      const submit = t.closest(".cl-formButtonPrimary")
+      if (submit) fireOnce("signup_submit_clicked")
+    }
+    root.addEventListener("focusin", onFocusIn)
+    root.addEventListener("click", onClick)
+
+    return () => {
+      observer.disconnect()
+      root.removeEventListener("focusin", onFocusIn)
+      root.removeEventListener("click", onClick)
+    }
+  }, [])
+
+  // In WebViews: Google/Apple OAuth fails (Google blocks WebView UAs since 2021),
+  // so hide social buttons entirely and force email signup. In real browsers,
+  // keep them visible — they convert better there.
   const hiddenSocial = isWebView
     ? {
         socialButtonsRoot: "hidden",
@@ -67,7 +127,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div className="flex justify-center">
+        <div ref={containerRef} className="flex justify-center">
           <SignUp
             appearance={{
               variables: {
@@ -127,4 +187,12 @@ export default function RegisterPage() {
       </div>
     </div>
   )
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40)
 }

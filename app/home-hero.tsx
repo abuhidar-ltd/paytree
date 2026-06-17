@@ -1,6 +1,5 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { PhoneMockup } from "./home-phone-mockup"
 import { trackEvent } from "@/lib/analytics"
 
@@ -8,6 +7,10 @@ interface HomeHeroProps {
   isLoggedIn: boolean
 }
 
+// All hero animations are CSS keyframes (declared in globals.css) — no
+// framer-motion imports here. Hero is the first-paint chunk, and shipping
+// framer-motion + motion.div wrappers for desktop-only floats was adding
+// ~50KB of JS that mobile users (and TikTok WebView users) never needed.
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   return (
     <section className="min-h-[calc(100dvh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
@@ -82,7 +85,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 <>
                   <a
                     href="/join"
-                    onClick={() => trackEvent("hero_cta_click", { variant: "register" })}
+                    onClick={() => trackEvent("hero_cta_click", { variant: "join" })}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
                     Create your page for free →
@@ -116,56 +119,63 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
             </div>
           </div>
 
-          {/* Right column — Phone, hidden on mobile so users reach the Linktree comparison faster */}
+          {/* Right column — Phone, hidden on mobile so users reach the comparison faster */}
           <div className="hidden lg:flex flex-[2] relative justify-center">
-            <div className="max-w-[240px] mx-auto lg:max-w-none">
-              <motion.div
-                initial={{ x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, type: "spring", stiffness: 120, damping: 20 }}
-              >
-                <motion.div
-                  animate={{ y: [-6, 6, -6] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <PhoneMockup />
-                </motion.div>
-              </motion.div>
+            <div
+              className="max-w-[240px] mx-auto lg:max-w-none"
+              style={{ animation: "heroPhoneFloat 4s ease-in-out infinite, heroPhoneIn 0.6s 0.3s ease both" }}
+            >
+              <PhoneMockup />
             </div>
 
-            {/* Floating stat cards — desktop only */}
-            <div className="hidden lg:block">
-              <motion.div
-                className="absolute -top-4 -left-8 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-                initial={{ y: 20 }}
-                animate={{ opacity: 1, y: [0, -6, 0] }}
-                transition={{ delay: 1.2, duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <span className="text-xs font-mono text-[#e0e0e0]">🌍 47 countries</span>
-              </motion.div>
+            {/* Floating stat cards — desktop only, CSS animations */}
+            <div
+              className="absolute -top-4 -left-8 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
+              style={{ animation: "fadeIn 0.5s 1.2s ease both, floatA 5s 1.2s ease-in-out infinite" }}
+            >
+              <span className="text-xs font-mono text-[#e0e0e0]">🌍 47 countries</span>
+            </div>
 
-              <motion.div
-                className="absolute -bottom-4 -right-4 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
-                initial={{ y: -20 }}
-                animate={{ opacity: 1, y: [0, 8, 0] }}
-                transition={{ delay: 1.5, duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <span className="text-xs font-mono text-[#e0e0e0]">💰 $2,840 this month</span>
-              </motion.div>
+            <div
+              className="absolute -bottom-4 -right-4 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 backdrop-blur-sm"
+              style={{ animation: "fadeIn 0.5s 1.5s ease both, floatB 6s 1.5s ease-in-out infinite" }}
+            >
+              <span className="text-xs font-mono text-[#e0e0e0]">💰 $2,840 this month</span>
+            </div>
 
-              <motion.div
-                className="absolute top-8 -right-12 bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.15] rounded-xl px-3 py-2"
-                initial={{ x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 2, type: "spring", stiffness: 120, damping: 20 }}
-              >
-                <span className="text-xs font-mono text-[#00ff88]">🤖 AI just made a sale</span>
-              </motion.div>
+            <div
+              className="absolute top-8 -right-12 bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.15] rounded-xl px-3 py-2"
+              style={{ animation: "slideInRight 0.5s 2s ease both" }}
+            >
+              <span className="text-xs font-mono text-[#00ff88]">🤖 AI just made a sale</span>
             </div>
           </div>
 
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes heroPhoneIn {
+          from { transform: translateX(40px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes heroPhoneFloat {
+          0%, 100% { transform: translateY(-6px); }
+          50%      { transform: translateY(6px); }
+        }
+        @keyframes floatA {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-6px); }
+        }
+        @keyframes floatB {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(8px); }
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(40px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+      `}</style>
     </section>
   )
 }

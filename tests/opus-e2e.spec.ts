@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test"
 
 /**
  * Targeted visual + behavioral verification of the highest-value pages.
- * - Landing, /register, /pricing render and look correct at 375 & 1440
+ * - Landing, /join, /pricing render and look correct at 375 & 1440
  * - /opustest (seeded published Ultra profile) renders all 15 block types
  * - The GIF on the featured link actually animates (decoded frames change)
  * - Cinematic hero shows
@@ -25,7 +25,7 @@ test.describe("Paytree E2E", () => {
     await mp.goto("/", { waitUntil: "networkidle" })
     await mp.screenshot({ path: `${SCREENS}/landing-375.png`, fullPage: true })
     // Sanity: hero CTA visible
-    await expect(mp.getByRole("link", { name: /start building free/i })).toBeVisible()
+    await expect(mp.getByRole("link", { name: /create your page for free|start free/i }).first()).toBeVisible()
     await m.close()
 
     // Desktop
@@ -36,18 +36,13 @@ test.describe("Paytree E2E", () => {
     await d.close()
   })
 
-  test("register page renders & content audit", async ({ page }) => {
-    await page.goto("/register", { waitUntil: "domcontentloaded" })
-    await page.screenshot({ path: `${SCREENS}/register.png`, fullPage: true })
-    // Bug check: stale $4.99/mo copy should NOT be present after fixes — record current state
+  test("join page renders", async ({ page }) => {
+    await page.goto("/join", { waitUntil: "domcontentloaded" })
+    await page.screenshot({ path: `${SCREENS}/join.png`, fullPage: true })
     const body = await page.textContent("body")
     test.info().annotations.push({
-      type: "audit:register-has-4.99",
+      type: "audit:join-has-stale-4.99",
       description: String(body?.includes("$4.99")),
-    })
-    test.info().annotations.push({
-      type: "audit:register-mentions-pro",
-      description: String(body?.includes("Upgrade to Pro")),
     })
   })
 

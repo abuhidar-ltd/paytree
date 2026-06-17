@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
-  "/login(.*)",  // Allow all Clerk login routes
-  "/register(.*)",  // Legacy — redirects to /join
-  "/join(.*)",  // Allow all Clerk register routes
-  "/sign-in(.*)",  // Clerk sign-in routes
-  "/sign-up(.*)",  // Clerk sign-up routes
+  "/login(.*)",  // Clerk sign-in routes
+  "/join(.*)",   // Clerk sign-up routes (replaces /register)
+  "/sign-in(.*)",
+  "/sign-up(.*)",
   "/pricing",
   "/privacy",
   "/terms",

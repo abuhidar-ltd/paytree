@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { headers } from "next/headers"
+import { after } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { ProfileClient } from "./profile-client"
@@ -53,8 +54,11 @@ const PRIVATE_IP = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::ffff
 async function lookupGeo(ip: string): Promise<{ country?: string; city?: string; lat?: number; lng?: number }> {
   if (!ip || PRIVATE_IP.test(ip)) return {}
   try {
+    // 1.2s timeout instead of 3s — ip-api.com rate-limits to 45 req/min/IP.
+    // Under TikTok traffic spikes we hit that ceiling and slow responses
+    // pile up. Better to drop geo than hang.
     const res = await fetch(`http://ip-api.com/json/${ip}?fields=country,city,lat,lon`, {
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(1200),
     })
     if (!res.ok) return {}
     const data = await res.json()
@@ -69,28 +73,48 @@ async function lookupGeo(ip: string): Promise<{ country?: string; city?: string;
   }
 }
 
-async function trackView(
+/**
+ * Track a view entirely post-response via `after()` — the public profile
+ * render never waits on Prisma or ip-api. Two phases inside:
+ *   1. INSERT the view row.
+ *   2. Best-effort geo enrichment that UPDATEs the row with country/city.
+ *
+ * Either phase can fail silently; analytics is not allowed to slow profiles.
+ */
+function scheduleViewTracking(
   userId: string,
   wasLive: boolean,
   ip: string | null,
   userAgent: string | null,
   referer: string | null,
 ) {
-  try {
-    const geo = ip ? await lookupGeo(ip) : {}
-    await prisma.view.create({
-      data: {
-        userId,
-        userAgent: userAgent || undefined,
-        device: detectDevice(userAgent),
-        referrer: normalizeReferrer(referer),
-        wasLive,
-        ...geo,
-      },
-    })
-  } catch (error) {
-    console.error("Failed to track view:", error)
-  }
+  after(async () => {
+    try {
+      const view = await prisma.view.create({
+        data: {
+          userId,
+          userAgent: userAgent || undefined,
+          device: detectDevice(userAgent),
+          referrer: normalizeReferrer(referer),
+          wasLive,
+        },
+        select: { id: true },
+      })
+
+      if (!ip || PRIVATE_IP.test(ip)) return
+
+      const geo = await lookupGeo(ip)
+      if (geo.country || geo.city || geo.lat || geo.lng) {
+        try {
+          await prisma.view.update({ where: { id: view.id }, data: geo })
+        } catch {
+          // View may have been deleted by retention job; that's fine.
+        }
+      }
+    } catch (error) {
+      console.error("Failed to track view:", error)
+    }
+  })
 }
 
 export default async function ProfilePage({
@@ -130,7 +154,7 @@ export default async function ProfilePage({
       : (reqHeaders.get("x-real-ip") ?? null)
     const userAgent = reqHeaders.get("user-agent")
     const referer = reqHeaders.get("referer")
-    trackView(user.id, user.liveStatus, ip, userAgent, referer).catch(console.error)
+    scheduleViewTracking(user.id, user.liveStatus, ip, userAgent, referer)
   }
 
   const socialIconPosition = user.socialIconPosition || "bottom"

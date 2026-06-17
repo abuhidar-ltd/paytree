@@ -3,15 +3,17 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      // 307 (not 308) — TikTok and other in-app WebViews flag 308 chains
+      // as untrusted; 307 preserves method and survives WebView intercepts.
       {
         source: "/register",
         destination: "/join",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/register/:path*",
         destination: "/join/:path*",
-        permanent: true,
+        permanent: false,
       },
     ]
   },

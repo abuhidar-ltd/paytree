@@ -24,7 +24,7 @@ export async function GET() {
 
   return NextResponse.json({
     referralCode,
-    referralLink: referralCode ? `${appUrl}/register?ref=${referralCode}` : null,
+    referralLink: referralCode ? `${appUrl}/join?ref=${referralCode}` : null,
     totalReferrals: dbUser?._count.referralsGiven ?? 0,
     convertedReferrals,
     totalEarnings: ((dbUser?.referralEarnings ?? 0) / 100).toFixed(2),

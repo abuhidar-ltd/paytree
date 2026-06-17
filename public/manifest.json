@@ -1,11 +1,11 @@
 {
   "name": "Paytree",
   "short_name": "Paytree",
-  "description": "Your Payment Links, Beautifully Organized",
+  "description": "The bio link for creators who monetize. 0% fees. AI agent. Globe analytics.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#8b5cf6",
+  "background_color": "#030303",
+  "theme_color": "#00ff88",
   "orientation": "portrait-primary",
   "icons": [
     {

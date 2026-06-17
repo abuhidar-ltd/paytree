@@ -22,6 +22,8 @@ export type InAppBrowserSource =
   | "unknown"
   | null
 
+export type Platform = "ios" | "android" | "other"
+
 const PATTERNS: Array<{ source: Exclude<InAppBrowserSource, null | "unknown">; regex: RegExp }> = [
   { source: "tiktok",     regex: /\b(BytedanceWebview|TikTok|musical_ly|trill|Aweme)\b/i },
   { source: "instagram",  regex: /\bInstagram\b/i },
@@ -60,6 +62,14 @@ export function isInAppBrowser(userAgent?: string): boolean {
   return detectInAppBrowser(userAgent) !== null
 }
 
+export function detectPlatform(userAgent?: string): Platform {
+  const ua = userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : "")
+  if (!ua) return "other"
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios"
+  if (/Android/i.test(ua)) return "android"
+  return "other"
+}
+
 /**
  * Human-readable name for analytics + UI copy.
  */
@@ -83,19 +93,32 @@ export function sourceLabel(source: InAppBrowserSource): string {
 /**
  * Per-platform instructions for opening in a real browser.
  */
-export function openInBrowserInstructions(source: InAppBrowserSource): string {
-  switch (source) {
-    case "tiktok":
-      return "Tap ⋯ at the top right, then 'Open in browser'"
-    case "instagram":
-      return "Tap ⋯ at the top right, then 'Open in external browser'"
-    case "facebook":
-      return "Tap ⋯ at the top right, then 'Open in browser'"
-    case "snapchat":
-      return "Tap ⋯ at the top right, then 'Open in browser'"
-    case "twitter":
-      return "Tap the share icon, then 'Open in Safari/Chrome'"
-    default:
-      return "Tap the menu button, then 'Open in browser'"
+export function openInBrowserInstructions(source: InAppBrowserSource, platform: Platform): string {
+  if (platform === "android") return "Tap the ⋮ menu in the top right, then 'Open in Chrome'"
+  if (platform === "ios") {
+    switch (source) {
+      case "tiktok":   return "Tap ⋯ at the top right, then 'Open in browser'"
+      case "instagram":return "Tap ⋯ at the top right, then 'Open in external browser'"
+      case "facebook": return "Tap ⋯ at the top right, then 'Open in browser'"
+      case "snapchat": return "Tap ⋯ at the top right, then 'Open in browser'"
+      default:         return "Tap the share icon, then 'Open in Safari'"
+    }
+  }
+  return "Tap the menu button, then 'Open in browser'"
+}
+
+/**
+ * Build an Android intent:// URL that forces Chrome to handle the link.
+ * Returns null on non-Android. The URL passed in must be absolute.
+ */
+export function buildChromeIntentUrl(absoluteUrl: string): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const u = new URL(absoluteUrl)
+    if (u.protocol !== "https:" && u.protocol !== "http:") return null
+    const hostAndPath = `${u.host}${u.pathname}${u.search}${u.hash}`
+    return `intent://${hostAndPath}#Intent;scheme=${u.protocol.replace(":", "")};package=com.android.chrome;end`
+  } catch {
+    return null
   }
 }
