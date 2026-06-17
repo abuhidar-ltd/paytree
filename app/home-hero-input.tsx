@@ -17,7 +17,7 @@ export function HomeHeroInput() {
         placeholder="yourname"
         className="flex-1 bg-transparent border-none outline-none text-[#00ff88] font-mono text-lg py-3"
       />
-      <Link href={username ? `/register?username=${username}` : "/register"}>
+      <Link href={username ? `/join?username=${username}` : "/join"}>
         <Button variant="accent-solid" size="sm" className="px-6">
           Claim
         </Button>

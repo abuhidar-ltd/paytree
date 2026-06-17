@@ -81,7 +81,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               ) : (
                 <>
                   <a
-                    href="/register"
+                    href="/join"
                     onClick={() => trackEvent("hero_cta_click", { variant: "register" })}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >

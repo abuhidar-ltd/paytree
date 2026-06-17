@@ -1,37 +1,33 @@
 "use client"
 
-import { SignIn, useUser } from "@clerk/nextjs"
+import { useEffect, useState } from "react"
+import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { detectInAppBrowser, sourceLabel } from "@/lib/in-app-browser"
 import { trackEvent } from "@/lib/analytics"
 
-export default function LoginPage() {
-  const { user, isLoaded } = useUser()
-  const router = useRouter()
+export default function RegisterPage() {
   const [isWebView, setIsWebView] = useState(false)
   const [webViewSource, setWebViewSource] = useState<string>("")
 
   useEffect(() => {
-    if (isLoaded && user) {
-      router.push('/dashboard')
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get("ref")
+    if (ref) {
+      document.cookie = `paytree_ref=${encodeURIComponent(ref)}; path=/; max-age=604800; SameSite=Lax`
     }
-  }, [isLoaded, user, router])
 
-  useEffect(() => {
     const source = detectInAppBrowser()
     if (source) {
       setIsWebView(true)
       setWebViewSource(sourceLabel(source))
     }
-    trackEvent("login_page_view", { in_app_browser: source ?? "no" })
-  }, [])
 
-  if (isLoaded && user) {
-    return null
-  }
+    trackEvent("register_page_view", {
+      in_app_browser: source ?? "no",
+    })
+  }, [])
 
   const hiddenSocial = isWebView
     ? {
@@ -50,15 +46,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
 
-      <div className="relative z-10 w-full max-w-md space-y-6">
-        {/* Logo/Brand */}
+      <div className="relative z-10 w-full max-w-md space-y-4">
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl sm:text-4xl font-bold kinetic-shimmer-accent">
-              Paytree
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold kinetic-shimmer-accent">Paytree</h1>
           </Link>
-          <p className="text-sm sm:text-base text-gray-400 mt-2">Sign in to your account</p>
         </div>
 
         {isWebView && (
@@ -67,7 +59,7 @@ export default function LoginPage() {
             role="note"
           >
             <p className="text-xs text-[#00ff88] font-mono font-semibold">
-              Signing in via {webViewSource}
+              Signing up via {webViewSource}
             </p>
             <p className="text-[11px] text-[#888] mt-1 leading-snug">
               Use email below — Google/Apple sign-in doesn&apos;t work in in-app browsers.
@@ -75,9 +67,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Clerk Sign In Component */}
         <div className="flex justify-center">
-          <SignIn
+          <SignUp
             appearance={{
               variables: {
                 colorBackground: "#0a0a0a",
@@ -110,34 +101,29 @@ export default function LoginPage() {
                 identityPreviewText: "text-[#e0e0e0]",
                 identityPreviewEditButton: "text-[#00ff88]",
                 footer: "hidden",
+                formFieldRow__name: "hidden",
+                formFieldRow__firstName: "hidden",
+                formFieldRow__lastName: "hidden",
+                formFieldRow__username: "hidden",
+                formField__firstName: "hidden",
+                formField__lastName: "hidden",
+                formField__username: "hidden",
                 ...hiddenSocial,
               },
             }}
             routing="path"
-            path="/login"
-            signUpUrl="/join"
-            fallbackRedirectUrl="/dashboard"
+            path="/join"
+            signInUrl="/login"
+            fallbackRedirectUrl="/onboarding"
           />
         </div>
 
-        {/* Additional Links */}
-        <div className="text-center space-y-2 text-sm">
-          <p className="text-gray-400">
-            Don&apos;t have an account?{" "}
-            <Link href="/join" className="text-blue-400 hover:text-blue-300 font-semibold">
-              Sign up for free
-            </Link>
-          </p>
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-300 transition-colors">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-gray-300 transition-colors">
-              Terms of Service
-            </Link>
-          </div>
-        </div>
+        <p className="text-center text-xs text-gray-500">
+          Already have an account?{" "}
+          <Link href="/login" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

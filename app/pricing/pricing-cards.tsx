@@ -150,7 +150,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             </Button>
           ) : !isLoggedIn ? (
             <Link
-              href="/register"
+              href="/join"
               className="block"
               onClick={() => trackEvent("pricing_cta_click", { plan: "free" })}
             >
@@ -234,7 +234,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             </>
           ) : (
             <Link
-              href="/register"
+              href="/join"
               className="block"
               onClick={() => trackEvent("pricing_cta_click", { plan: "starter", interval })}
             >
@@ -315,7 +315,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             </>
           ) : (
             <Link
-              href="/register"
+              href="/join"
               className="block"
               onClick={() => trackEvent("pricing_cta_click", { plan: "ultra", interval })}
             >

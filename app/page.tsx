@@ -50,7 +50,7 @@ export default async function HomePage() {
                 <TrackedLink
                   event="header_cta_click"
                   eventProps={{ variant: "register" }}
-                  href="/register"
+                  href="/join"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap"
                 >
                   <span className="sm:hidden">Start free →</span>
