@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",  // Clerk sign-in routes
-  "/join(.*)",   // Clerk sign-up routes (replaces /register)
+  "/start(.*)",  // Canonical sign-up entry — TikTok-safe URL
+  "/join(.*)",   // Legacy sign-up alias (kept for inbound links)
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/pricing",

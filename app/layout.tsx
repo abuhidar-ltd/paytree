@@ -80,7 +80,7 @@ export default function RootLayout({
   return (
     <ClerkProvider
       signInUrl="/login"
-      signUpUrl="/join"
+      signUpUrl="/start"
       signInFallbackRedirectUrl="/dashboard"
       signUpFallbackRedirectUrl="/onboarding"
     >

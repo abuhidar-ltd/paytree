@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import {
   buildChromeIntentUrl,
   detectInAppBrowser,
@@ -17,17 +18,25 @@ const DISMISS_KEY = "paytree_iab_banner_dismissed"
 // Routes that REQUIRE the banner. On the landing page we still capture
 // attribution (so we know they came from TikTok) but render the banner only
 // on auth flows, where the cost of NOT showing it is total funnel death.
-const REQUIRED_PATHS = ["/join", "/login", "/onboarding"]
+const REQUIRED_PATHS = ["/start", "/join", "/login", "/onboarding"]
 
 function isAuthPath(path: string): boolean {
   return REQUIRED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))
 }
 
 export function InAppBrowserBanner() {
+  return (
+    <Suspense fallback={null}>
+      <InnerBanner />
+    </Suspense>
+  )
+}
+
+function InnerBanner() {
+  const pathname = usePathname() ?? "/"
   const [source, setSource] = useState<InAppBrowserSource>(null)
   const [platform, setPlatform] = useState<Platform>("other")
   const [dismissed, setDismissed] = useState(true) // start hidden — only show after mount
-  const [isRequiredPath, setIsRequiredPath] = useState(false)
 
   useEffect(() => {
     captureAttribution()
@@ -42,16 +51,19 @@ export function InAppBrowserBanner() {
       // sessionStorage can throw in some WebViews — assume not dismissed.
     }
 
-    const path = window.location.pathname
     setSource(detected)
     setPlatform(detectPlatform())
     setDismissed(alreadyDismissed)
-    setIsRequiredPath(isAuthPath(path))
-
-    if (!alreadyDismissed && isAuthPath(path)) {
-      trackEvent("in_app_browser_banner_shown", { source: detected, path })
-    }
   }, [])
+
+  // Fire show event whenever we land on a new auth path with a banner-visible IAB.
+  useEffect(() => {
+    if (!source || dismissed) return
+    if (!isAuthPath(pathname)) return
+    trackEvent("in_app_browser_banner_shown", { source, path: pathname })
+  }, [source, dismissed, pathname])
+
+  const isRequiredPath = isAuthPath(pathname)
 
   function handleDismiss() {
     try {

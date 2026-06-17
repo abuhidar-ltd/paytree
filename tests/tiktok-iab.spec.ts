@@ -67,7 +67,7 @@ test.describe("TikTok IAB funnel", () => {
 
     // 2. Click CTA → /join
     await Promise.all([
-      page.waitForURL("**/join", { waitUntil: "domcontentloaded" }),
+      page.waitForURL("**/start", { waitUntil: "domcontentloaded" }),
       heroCta.click(),
     ])
 
@@ -116,12 +116,13 @@ test.describe("TikTok IAB funnel", () => {
       hasTouch: true,
     })
     const page = await ctx.newPage()
+    await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
     await page.goto("http://localhost:3000/", { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(800)
     await page.screenshot({ path: path.join(SS_DIR, "01-landing-ios.png"), fullPage: true })
 
     await page.getByRole("link", { name: /create your page for free/i }).first().click()
-    await page.waitForURL("**/join", { waitUntil: "domcontentloaded" })
+    await page.waitForURL("**/start", { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(3500)
     await page.screenshot({ path: path.join(SS_DIR, "02-join-ios.png"), fullPage: true })
 
@@ -144,7 +145,8 @@ test.describe("TikTok IAB funnel", () => {
       hasTouch: true,
     })
     const page = await ctx.newPage()
-    await page.goto("http://localhost:3000/join", { waitUntil: "domcontentloaded" })
+    await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
+    await page.goto("http://localhost:3000/start", { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(800)
     const banner = await page.locator('[role="dialog"][aria-label="Open in browser recommendation"]').count()
     expect(banner, "Banner must NOT show in real Chrome").toBe(0)

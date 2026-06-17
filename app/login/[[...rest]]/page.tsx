@@ -135,7 +135,7 @@ export default function LoginPage() {
             }}
             routing="path"
             path="/login"
-            signUpUrl="/join"
+            signUpUrl="/start"
             fallbackRedirectUrl="/dashboard"
           />
         </div>
@@ -144,7 +144,7 @@ export default function LoginPage() {
         <div className="text-center space-y-2 text-sm">
           <p className="text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link href="/join" className="text-blue-400 hover:text-blue-300 font-semibold">
+            <Link href="/start" className="text-blue-400 hover:text-blue-300 font-semibold">
               Sign up for free
             </Link>
           </p>

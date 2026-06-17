@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { PhoneMockup } from "./home-phone-mockup"
 import { trackEvent } from "@/lib/analytics"
 
@@ -74,22 +75,30 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "slideUp 0.5s ease 0.26s both" }}
             >
               {isLoggedIn ? (
-                <a
+                <Link
                   href="/dashboard"
                   onClick={() => trackEvent("hero_cta_click", { variant: "dashboard" })}
                   className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                 >
                   Go to dashboard →
-                </a>
+                </Link>
               ) : (
                 <>
-                  <a
-                    href="/join"
-                    onClick={() => trackEvent("hero_cta_click", { variant: "join" })}
+                  {/*
+                    Soft navigation via next/link is required here: TikTok's
+                    in-app browser intercepts hard <a> navigations to auth
+                    keywords (join, signup, register) and shows its safety
+                    interstitial. Soft nav (History API) is invisible to it.
+                    We route through /start for the same reason — /join is
+                    a recognized auth-keyword on TikTok's URL blocklist.
+                  */}
+                  <Link
+                    href="/start"
+                    onClick={() => trackEvent("hero_cta_click", { variant: "start" })}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
                     Create your page for free →
-                  </a>
+                  </Link>
                   <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
                     Free — no credit card required
                   </p>
