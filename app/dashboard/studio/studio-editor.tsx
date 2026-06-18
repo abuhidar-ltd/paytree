@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { Check, ChevronDown, Upload, Sparkles, ArrowLeft } from "lucide-react"
 import { AiBioWriter } from "@/components/ui/ai-bio-writer"
 import { getButtonCardStyles } from "@/components/ui/block-renderer"
+import { trackEvent } from "@/lib/analytics"
 
 interface Profile {
   id: string
@@ -109,6 +110,11 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   const isPublished = profile.pageStatus === "published"
   const accent = profile.accentColor || "#00ff88"
 
+  // Mount telemetry — one-shot per design-page visit.
+  useEffect(() => {
+    trackEvent("design_page_visited")
+  }, [])
+
   // ── fetch fresh data (unchanged) ───────────────────────────────────────────
   useEffect(() => {
     const fetchFreshData = async () => {
@@ -145,6 +151,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
               setProcessingPayment(false)
               toast.success("🎉 Your page is now live!")
               setPublishedLink(`${window.location.origin}/${data.user.username}`)
+              trackEvent("upgrade_completed", { activation_path: "session_verify" })
               router.replace("/dashboard/studio")
               return
             }
@@ -164,6 +171,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
             setProcessingPayment(false)
             toast.success("🎉 Your page is now live!")
             setPublishedLink(`${window.location.origin}/${data.username}`)
+            trackEvent("upgrade_completed", { activation_path: "webhook_poll" })
             router.replace("/dashboard/studio")
             return true
           }
@@ -392,7 +400,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest block">Bio</label>
                       <button
                         type="button"
-                        onClick={() => setAiBioOpen(true)}
+                        onClick={() => {
+                          trackEvent("ai_bio_writer_opened")
+                          setAiBioOpen(true)
+                        }}
                         className="inline-flex items-center gap-1 text-[#00ff88] text-xs font-mono px-2 py-1 rounded-lg transition-colors"
                         style={{
                           background: "transparent",
@@ -428,7 +439,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
                   {/* Classic */}
                   <button
-                    onClick={() => setProfile({ ...profile, heroStyle: "classic" })}
+                    onClick={() => {
+                      setProfile({ ...profile, heroStyle: "classic" })
+                      trackEvent("hero_style_changed", { style: "classic" })
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       (profile.heroStyle ?? "classic") === "classic"
                         ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.02]"
@@ -448,7 +462,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
                   {/* Cinematic */}
                   <button
-                    onClick={() => setProfile({ ...profile, heroStyle: "cinematic" })}
+                    onClick={() => {
+                      setProfile({ ...profile, heroStyle: "cinematic" })
+                      trackEvent("hero_style_changed", { style: "cinematic" })
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       profile.heroStyle === "cinematic"
                         ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.02]"
@@ -479,7 +496,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   {ACCENT_COLORS.map((color) => (
                     <button
                       key={color}
-                      onClick={() => setProfile({ ...profile, accentColor: color })}
+                      onClick={() => {
+                        setProfile({ ...profile, accentColor: color })
+                        trackEvent("accent_color_changed", { color, source: "swatch" })
+                      }}
                       className={`w-9 h-9 rounded-full flex-shrink-0 transition-all hover:scale-110 ${
                         (profile.accentColor || "#00ff88") === color
                           ? "ring-2 ring-white ring-offset-2 ring-offset-[#080808]"
@@ -496,7 +516,12 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     value={accent}
                     onChange={(e) => {
                       const val = e.target.value
-                      if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setProfile({ ...profile, accentColor: val })
+                      if (/^#[0-9a-fA-F]{0,6}$/.test(val)) {
+                        setProfile({ ...profile, accentColor: val })
+                        if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                          trackEvent("accent_color_changed", { color: val, source: "hex" })
+                        }
+                      }
                     }}
                     className="w-24 bg-transparent text-[#e0e0e0] text-sm font-mono outline-none"
                     placeholder="#00ff88"
@@ -516,7 +541,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     return (
                       <button
                         key={value}
-                        onClick={() => setProfile({ ...profile, buttonStyle: value })}
+                        onClick={() => {
+                          setProfile({ ...profile, buttonStyle: value })
+                          trackEvent("button_style_changed", { style: value })
+                        }}
                         className={`rounded-xl border p-3 flex flex-col gap-2.5 transition-all ${
                           active
                             ? "border-[#00ff88]/[0.3] bg-[#00ff88]/[0.03]"
@@ -685,7 +713,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
         currentBio={profile.bio || ""}
         name={profile.name || ""}
         username={profile.username}
-        onSelect={(bio) => setProfile({ ...profile, bio })}
+        onSelect={(bio) => {
+          setProfile({ ...profile, bio })
+          trackEvent("ai_bio_applied", { length: bio.length })
+        }}
       />
 
       {publishedLink && (

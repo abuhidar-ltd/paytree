@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { StandaloneSwatch } from "@/components/ui/color-swatch-selector"
 import { detectLinkType } from "@/lib/link-type"
+import { trackEvent } from "@/lib/analytics"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,23 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // Navigation
   const [step, setStep] = useState(-1)
   const [direction, setDirection] = useState(1)
+
+  // Fire onboarding_started once per session. Clerk lands users on
+  // /onboarding after signup so this doubles as the post-signup landing event,
+  // and we fire signup_completed once (session-gated) so re-entries don't
+  // inflate it.
+  useEffect(() => {
+    trackEvent("onboarding_started")
+    try {
+      if (!sessionStorage.getItem("paytree_signup_completed_fired")) {
+        sessionStorage.setItem("paytree_signup_completed_fired", "1")
+        trackEvent("signup_completed")
+      }
+    } catch {
+      // sessionStorage blocked — skip the dedupe rather than double-fire
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Step 0 — Identity
   const [name, setName] = useState(user.name ?? "")
@@ -261,6 +279,10 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       }
 
       setIsSaved(true)
+      trackEvent("onboarding_completed", {
+        added_first_link: !!firstLinkUrl,
+        chose_category: !!category,
+      })
       router.push("/dashboard")
     } catch (err) {
       console.error("Onboarding save failed:", err)
@@ -273,7 +295,12 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
   const advance = useCallback(() => {
     setDirection(1)
-    setStep((s) => s + 1)
+    setStep((s) => {
+      // Track the step the user just completed (the one they're leaving).
+      // step === -1 is the welcome screen; treat that as step 0 starting.
+      if (s >= 0) trackEvent("onboarding_step_completed", { step: s })
+      return s + 1
+    })
   }, [])
 
   const retreat = useCallback(() => {

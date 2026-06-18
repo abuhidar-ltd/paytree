@@ -12,6 +12,7 @@ import {
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan, type PlanId } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { trackEvent } from "@/lib/analytics"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,7 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
+    trackEvent("payments_page_visited")
     Promise.allSettled([loadProfile(), loadProducts()]).finally(() => setLoading(false))
   }, [])
 
@@ -130,10 +132,16 @@ export default function PaymentsPage() {
         try {
           const res = await fetch("/api/stripe/connect/status")
           const data = await res.json()
-          if (data.status === "active") toast.success("Stripe account connected!")
-          else toast.success("Stripe onboarding started. Finish setup to activate payments.")
+          if (data.status === "active") {
+            toast.success("Stripe account connected!")
+            trackEvent("stripe_connected", { status: "active" })
+          } else {
+            toast.success("Stripe onboarding started. Finish setup to activate payments.")
+            trackEvent("stripe_connected", { status: "pending" })
+          }
         } catch {
           toast.success("Stripe account connected!")
+          trackEvent("stripe_connected", { status: "unknown" })
         }
         loadProfile()
         router.replace("/dashboard/payments")
@@ -352,6 +360,7 @@ function ConnectionCard({
         <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
           <a
             href="/api/stripe/connect"
+            onClick={() => trackEvent("stripe_connect_clicked", { source: "continue_setup" })}
             className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity"
           >
             Continue setup <ArrowUpRight size={12} />
@@ -416,6 +425,7 @@ function ConnectionCard({
           <>
             <a
               href="/api/stripe/connect"
+              onClick={() => trackEvent("stripe_connect_clicked", { source: "first_time" })}
               className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
             >
               Connect Stripe <ArrowUpRight size={14} />

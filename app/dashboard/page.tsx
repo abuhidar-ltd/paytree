@@ -18,6 +18,7 @@ import { resolveUserPlan } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
+import { trackEvent } from "@/lib/analytics"
 import {
   Plus, X, GripVertical, ChevronRight, ArrowUpRight,
   Search, Folder, Link as LinkIcon, Lock, Timer, Youtube, ShoppingBag,
@@ -281,6 +282,19 @@ export default function DashboardPage() {
     )
   }, [])
 
+  // First-visit telemetry — fires once ever per browser.
+  useEffect(() => {
+    try {
+      const KEY = "paytree_dashboard_first_visit_fired"
+      if (!window.localStorage.getItem(KEY)) {
+        window.localStorage.setItem(KEY, "1")
+        trackEvent("dashboard_first_visit")
+      }
+    } catch {
+      // localStorage blocked — skip
+    }
+  }, [])
+
   const dismissStripeBanner = () => {
     try { window.localStorage.setItem("paytree_stripe_banner_dismissed", "1") } catch {}
     setStripeBannerDismissed(true)
@@ -352,6 +366,7 @@ export default function DashboardPage() {
       setSelectedBlockId(block.id)
       setEditTab("content")
       refreshPreview()
+      trackEvent("block_added", { type, source: "picker" })
       toast.success("Card added")
     } catch {
       toast.error("Failed to create card")
@@ -399,11 +414,14 @@ export default function DashboardPage() {
   }
 
   const handleDeleteBlock = async (id: string) => {
+    // Snapshot type BEFORE removing so we can report what was deleted.
+    const deletedType = blocks.find(b => b.id === id)?.type ?? "unknown"
     setBlocks(prev => prev.filter(b => b.id !== id))
     if (selectedBlockId === id) setSelectedBlockId(null)
     try {
       await fetch(`/api/blocks/${id}`, { method: "DELETE" })
       refreshPreview()
+      trackEvent("block_deleted", { type: deletedType })
     } catch {
       toast.error("Failed to delete")
     }
@@ -563,6 +581,8 @@ export default function DashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ blocks: reordered.map((b, i) => ({ id: b.id, position: i })) }),
     }).catch(() => toast.error("Failed to save order"))
+
+    trackEvent("blocks_reordered", { in_collection: !!collectionViewId })
   }
 
   // ─── Render ───
@@ -684,7 +704,10 @@ export default function DashboardPage() {
           )}
           <button
             ref={addButtonRef}
-            onClick={() => setShowAddPicker(true)}
+            onClick={() => {
+              trackEvent("add_card_picker_opened", { source: "topbar" })
+              setShowAddPicker(true)
+            }}
             className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 py-1.5 hover:opacity-90 transition-opacity"
             aria-label="Add card"
           >
@@ -837,7 +860,10 @@ export default function DashboardPage() {
               <Plus size={24} className="text-[#444]" />
             </div>
             <p className="text-sm text-[#666] font-mono mb-3">No cards yet</p>
-            <button onClick={() => setShowAddPicker(true)}
+            <button onClick={() => {
+                trackEvent("add_card_picker_opened", { source: "empty_state" })
+                setShowAddPicker(true)
+              }}
               className="bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-xl px-4 py-2 hover:opacity-90 transition-opacity">
               Add your first card
             </button>

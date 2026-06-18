@@ -8,6 +8,7 @@ import { useApplyAccentColor } from "@/contexts/accent-color-context"
 import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 import { SocialProofToast } from "@/components/ui/social-proof-toast"
 import { BlockRenderer, type Block } from "@/components/ui/block-renderer"
+import { trackEvent } from "@/lib/analytics"
 
 // ─── Font loading ─────────────────────────────────────────────
 
@@ -106,6 +107,18 @@ export function ProfileClient({
 }: ProfileClientProps) {
   useApplyAccentColor(user.accentColor)
   useLoadFont(user.fontFamily)
+
+  // Public profile view event — fire once per mount, skip when owner is
+  // previewing their own page so we don't pollute "real fan" metrics.
+  useEffect(() => {
+    if (isPreview || isOwner) return
+    trackEvent("profile_viewed", {
+      username: user.username,
+      is_published: isPublished,
+      block_count: blocks.length,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const resolvedAccent = accentColor || user.accentColor || "#00ff88"
   const heroStyle = user.heroStyle ?? "classic"

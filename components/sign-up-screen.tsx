@@ -49,6 +49,12 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
       ref: ref ?? null,
       path,
     })
+    // Canonical name per analytics spec — fire alongside the legacy event
+    // so we can transition dashboards without losing history.
+    trackEvent("signup_page_viewed", {
+      in_app_browser: source ?? "no",
+      path,
+    })
   }, [path])
 
   // Funnel tracking via DOM observation — Clerk has no lifecycle hooks.

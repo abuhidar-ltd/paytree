@@ -86,7 +86,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               {isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  onClick={() => trackEvent("hero_cta_click", { variant: "dashboard" })}
+                  onClick={() => {
+                    trackEvent("hero_cta_click", { variant: "dashboard" })
+                    trackEvent("cta_clicked", { location: "hero", variant: "dashboard" })
+                  }}
                   className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                 >
                   Go to dashboard →
@@ -103,7 +106,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   */}
                   <Link
                     href="/start"
-                    onClick={() => trackEvent("hero_cta_click", { variant: "start" })}
+                    onClick={() => {
+                      trackEvent("hero_cta_click", { variant: "start" })
+                      trackEvent("cta_clicked", { location: "hero", variant: "start" })
+                    }}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                   >
                     Create your page for free →

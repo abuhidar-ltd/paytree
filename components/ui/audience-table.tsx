@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { GlassBrick } from "./obsidian-card"
 import type { PlanId } from "@/lib/plans"
+import { trackEvent } from "@/lib/analytics"
 
 interface AudienceMember {
   id: string
@@ -160,6 +161,10 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
       const suffix = ids && ids.length > 0 ? "-selected" : ""
       downloadBlob(blob, `paytree-audience${suffix}-${today}.csv`)
 
+      trackEvent("email_list_exported", {
+        count: ids?.length ?? 0,
+        scope: ids && ids.length > 0 ? "selected" : "all",
+      })
       setExportState({ kind: "success" })
       exportTimer.current = setTimeout(() => setExportState({ kind: "idle" }), 2000)
     } catch (err) {

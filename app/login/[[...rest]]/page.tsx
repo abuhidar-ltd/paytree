@@ -18,6 +18,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoaded && user) {
+      // Idempotent — guards against repeat firings if Clerk re-renders before
+      // the router transition lands.
+      try {
+        if (!sessionStorage.getItem("paytree_login_completed")) {
+          sessionStorage.setItem("paytree_login_completed", "1")
+          trackEvent("login_completed")
+        }
+      } catch {
+        trackEvent("login_completed")
+      }
       router.push('/dashboard')
     }
   }, [isLoaded, user, router])

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { trackEvent } from "@/lib/analytics"
 
 interface HomeStickyCTAProps {
@@ -16,16 +16,25 @@ interface HomeStickyCTAProps {
  */
 export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
   const [visible, setVisible] = useState(false)
+  const engagedFired = useRef(false)
 
   useEffect(() => {
     function onScroll() {
       // Show after one viewport scrolled — roughly past the hero.
-      setVisible(window.scrollY > Math.max(window.innerHeight * 0.7, 480))
+      const shouldShow = window.scrollY > Math.max(window.innerHeight * 0.7, 480)
+      setVisible(shouldShow)
+
+      // Fire landing_engaged once when the user demonstrably engages with the
+      // page by scrolling past the hero. Anything less is a bounce.
+      if (shouldShow && !engagedFired.current) {
+        engagedFired.current = true
+        trackEvent("landing_engaged", { logged_in: isLoggedIn })
+      }
     }
     window.addEventListener("scroll", onScroll, { passive: true })
     onScroll()
     return () => window.removeEventListener("scroll", onScroll)
-  }, [])
+  }, [isLoggedIn])
 
   const href = isLoggedIn ? "/dashboard" : "/start"
   const label = isLoggedIn ? "Open dashboard →" : "Create your page — free →"
@@ -50,9 +59,11 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
     >
       <Link
         href={href}
-        onClick={() =>
-          trackEvent("sticky_cta_click", { variant: isLoggedIn ? "dashboard" : "start" })
-        }
+        onClick={() => {
+          const variant = isLoggedIn ? "dashboard" : "start"
+          trackEvent("sticky_cta_click", { variant })
+          trackEvent("cta_clicked", { location: "sticky_mobile", variant })
+        }}
         className="pointer-events-auto flex w-full items-center justify-center bg-[#00ff88] text-black font-mono font-bold px-5 py-4 rounded-2xl text-base shadow-[0_8px_32px_rgba(0,255,136,0.35)] active:scale-[0.98] transition-transform"
         style={{ minHeight: 56 }}
       >

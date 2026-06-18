@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,13 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly")
   const [loading, setLoading] = useState<string | null>(null)
 
+  // upgrade_page_viewed fires once whenever the pricing UI is mounted —
+  // covers both /pricing and the embedded section on the landing page.
+  useEffect(() => {
+    trackEvent("upgrade_page_viewed", { logged_in: isLoggedIn, current_plan: currentPlan })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const normalizedPlan = currentPlan === "pro" ? "ultra" : currentPlan
 
   const starterPrice = interval === "monthly" ? "$7" : "$59"
@@ -57,6 +64,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
   async function handleCheckout(plan: "starter" | "ultra") {
     trackEvent("pricing_checkout_start", { plan, interval })
+    trackEvent("upgrade_clicked", { plan, billing: interval, source: "pricing_cards" })
     setLoading(plan)
     try {
       const res = await fetch("/api/create-checkout-session", {

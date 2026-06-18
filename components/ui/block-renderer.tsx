@@ -5,6 +5,7 @@ import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion
 import { toast } from "sonner"
 import { CryptoVaultPortal } from "./crypto-vault"
 import { LiveStatusPill } from "./live-status-pill"
+import { trackEvent } from "@/lib/analytics"
 import { glass, glassReflection } from "@/lib/glass"
 import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag } from "lucide-react"
 
@@ -670,13 +671,18 @@ function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, c
 
   useEffect(() => {
     const key = `vault_unlocked_${block.id}`
-    if (localStorage.getItem(key)) setStep("unlocked")
+    if (localStorage.getItem(key)) {
+      setStep("unlocked")
+    } else {
+      trackEvent("vault_opened", { block_id: block.id })
+    }
   }, [block.id])
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+    trackEvent("vault_email_submitted", { block_id: block.id })
     try {
       const res = await fetch("/api/vault/send-code", {
         method: "POST",
@@ -688,6 +694,7 @@ function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, c
       if (data.alreadyVerified) {
         localStorage.setItem(`vault_unlocked_${block.id}`, email)
         setStep("unlocked")
+        trackEvent("vault_unlocked", { block_id: block.id, path: "already_verified" })
       } else {
         setStep("code")
       }
@@ -713,6 +720,7 @@ function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, c
       localStorage.setItem(`vault_unlocked_${block.id}`, email)
       setContent(data.content || null)
       setStep("unlocked")
+      trackEvent("vault_unlocked", { block_id: block.id, path: "verified" })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {

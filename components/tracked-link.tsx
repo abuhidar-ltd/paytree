@@ -9,6 +9,11 @@ type LinkProps = ComponentProps<typeof Link>
 interface TrackedLinkProps extends Omit<LinkProps, "children"> {
   event: string
   eventProps?: Record<string, string | number | boolean | null>
+  /**
+   * Optional location label. When supplied, also fires the unified
+   * `cta_clicked` event with `{ location }` for consistent funnel analysis.
+   */
+  location?: string
   children: ReactNode
 }
 
@@ -22,12 +27,15 @@ interface TrackedLinkProps extends Omit<LinkProps, "children"> {
  * the "TikTok can't open this page directly" interstitial. Soft navigation
  * bypasses that check entirely because the URL change is client-side.
  */
-export function TrackedLink({ event, eventProps, onClick, children, ...rest }: TrackedLinkProps) {
+export function TrackedLink({ event, eventProps, location, onClick, children, ...rest }: TrackedLinkProps) {
   return (
     <Link
       {...rest}
       onClick={(e) => {
         trackEvent(event, eventProps)
+        if (location) {
+          trackEvent("cta_clicked", { ...eventProps, location })
+        }
         onClick?.(e)
       }}
     >

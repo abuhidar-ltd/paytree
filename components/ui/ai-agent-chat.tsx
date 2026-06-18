@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { X, Send, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { trackEvent } from "@/lib/analytics"
 
 interface Message {
   role: "user" | "assistant"
@@ -308,7 +309,14 @@ export function AiAgentChat({ username, creatorName, accentColor = "#00ff88" }: 
       {/* ── Siri orb (hidden when panel is open) ── */}
       <AnimatePresence>
         {!isOpen && (
-          <SiriOrb accent={accent} onClick={() => setIsOpen(true)} creatorName={creatorName} />
+          <SiriOrb
+            accent={accent}
+            onClick={() => {
+              trackEvent("ai_agent_opened", { username })
+              setIsOpen(true)
+            }}
+            creatorName={creatorName}
+          />
         )}
       </AnimatePresence>
 

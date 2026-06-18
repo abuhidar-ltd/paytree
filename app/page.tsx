@@ -36,6 +36,7 @@ export default async function HomePage() {
               <TrackedLink
                 event="header_cta_click"
                 eventProps={{ variant: "dashboard" }}
+                location="header"
                 href="/dashboard"
                 className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
               >
@@ -45,6 +46,7 @@ export default async function HomePage() {
               <>
                 <TrackedLink
                   event="header_signin_click"
+                  location="header"
                   href="/login"
                   className="hidden sm:inline text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]"
                 >
@@ -53,6 +55,7 @@ export default async function HomePage() {
                 <TrackedLink
                   event="header_cta_click"
                   eventProps={{ variant: "start" }}
+                  location="header"
                   href="/start"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap"
                 >
