@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { UpgradeButton } from "./upgrade-button"
 
+// Auth-gated, reads request headers via getCurrentUser. Force-dynamic so
+// the build doesn't try (and fail) to pre-render it.
+export const dynamic = "force-dynamic"
+
 export default async function UpgradePage() {
   const currentUser = await getCurrentUser()
   

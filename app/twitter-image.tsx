@@ -16,8 +16,9 @@ export default async function TwitterImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(0,255,136,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0,255,136,0.06) 0%, transparent 55%), #030303",
+          backgroundColor: "#030303",
+          backgroundImage:
+            "radial-gradient(circle at 30% 30%, rgba(0,255,136,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0,255,136,0.06) 0%, transparent 55%)",
           fontFamily: "'Inter', system-ui, sans-serif",
           padding: 80,
           position: "relative",

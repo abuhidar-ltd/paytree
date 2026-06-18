@@ -10,6 +10,10 @@ interface StudioPageProps {
   }>
 }
 
+// Auth-gated, reads headers via getCurrentUser. Force-dynamic so the build
+// doesn't try (and fail) to pre-render it.
+export const dynamic = "force-dynamic"
+
 export default async function StudioPage({ searchParams }: StudioPageProps) {
   const user = await getCurrentUser()
   const params = await searchParams

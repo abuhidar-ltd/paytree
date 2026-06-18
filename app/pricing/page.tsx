@@ -4,6 +4,11 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { PricingCards } from "./pricing-cards"
 import Link from "next/link"
 
+// getCurrentUser() reads request headers, so this page can't be statically
+// generated. Marking it dynamic silences the build-time clerk-auth error and
+// makes the rendering strategy explicit.
+export const dynamic = "force-dynamic"
+
 export default async function PricingPage() {
   const currentUser = await getCurrentUser()
 

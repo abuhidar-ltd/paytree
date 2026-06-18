@@ -1,5 +1,9 @@
 import { ImageResponse } from "next/og"
 
+// edge runtime: ImageResponse (Satori) bundles its system font loader for
+// edge; on Node it tries to fetch dynamic fonts at build time, which fails
+// in the sandbox. The "Using edge runtime ... disables static generation"
+// warning is benign for image routes (CDN caches them anyway).
 export const runtime = "edge"
 export const alt = "Paytree — The bio link for creators who monetize"
 export const size = { width: 1200, height: 630 }
@@ -16,8 +20,12 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(0,255,136,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0,255,136,0.06) 0%, transparent 55%), #030303",
+          // Satori rejects `background: <gradient>, <color>` shorthand —
+          // it parses the trailing color as `background-image` and errors.
+          // Split into explicit properties.
+          backgroundColor: "#030303",
+          backgroundImage:
+            "radial-gradient(circle at 30% 30%, rgba(0,255,136,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0,255,136,0.06) 0%, transparent 55%)",
           fontFamily: "'Inter', system-ui, sans-serif",
           padding: 80,
           position: "relative",
