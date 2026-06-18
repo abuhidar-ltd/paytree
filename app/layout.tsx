@@ -5,7 +5,6 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/next";
-import { InAppBrowserBanner } from "@/components/in-app-browser-banner";
 
 // Body text
 const inter = Inter({
@@ -131,7 +130,6 @@ export default function RootLayout({
               `,
             }}
           />
-          <InAppBrowserBanner />
           {children}
           <Toaster />
           <Analytics />
