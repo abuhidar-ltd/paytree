@@ -5,7 +5,6 @@ import { after } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/clerk-auth"
 import { ProfileClient } from "./profile-client"
-import { ShareButton } from "@/components/share-button"
 import { ProfileLocked } from "./profile-locked"
 import { PublishBanner } from "./publish-banner"
 import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
@@ -158,7 +157,6 @@ export default async function ProfilePage({
   }
 
   const socialIconPosition = user.socialIconPosition || "bottom"
-  const profileUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"}/${user.username}`
   const showPublishBanner = isOwner && !isPublished
 
   // ─── Single Block query — the only source of truth ──────────────
@@ -216,15 +214,7 @@ export default async function ProfilePage({
 
       {showPublishBanner && <PublishBanner username={user.username} canPublish={userFeatures.canPublish} />}
 
-      {isPublished && (
-        <ShareButton
-          url={profileUrl}
-          title={`${user.name || user.username}'s Paytree`}
-          text={user.bio || undefined}
-        />
-      )}
-
-      <div
+<div
         className={`relative z-10 min-h-screen flex items-start justify-center px-4 sm:px-6 pb-8 sm:pb-12 ${
           user.heroStyle === 'cinematic'
             ? showPublishBanner
