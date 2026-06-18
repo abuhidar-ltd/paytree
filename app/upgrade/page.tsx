@@ -104,7 +104,7 @@ export default async function UpgradePage() {
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                   {[
-                    { icon: "🚀", title: "Publish Your Page", desc: "Get your permanent paytree.com/" + user.username + " link" },
+                    { icon: "🚀", title: "Publish Your Page", desc: "Get your permanent paytree.to/" + user.username + " link" },
                     { icon: "🔗", title: "Unlimited Links", desc: "Add as many payment links as you need" },
                     { icon: "📊", title: "Advanced Analytics", desc: "Track views, clicks, and conversions" },
                     { icon: "🎯", title: "Custom Branding", desc: "Coming soon - Colors, fonts, and backgrounds", comingSoon: true },

@@ -24,7 +24,10 @@ export async function GET() {
 
   return NextResponse.json({
     referralCode,
-    referralLink: referralCode ? `${appUrl}/join?ref=${referralCode}` : null,
+    // /start (not /join) — referral links get shared in DMs, on Twitter, in
+    // TikTok bios. /join is on TikTok's auth-keyword safety blocklist, /start
+    // is neutral. Same SignUpScreen renders either way.
+    referralLink: referralCode ? `${appUrl}/start?ref=${referralCode}` : null,
     totalReferrals: dbUser?._count.referralsGiven ?? 0,
     convertedReferrals,
     totalEarnings: ((dbUser?.referralEarnings ?? 0) / 100).toFixed(2),
