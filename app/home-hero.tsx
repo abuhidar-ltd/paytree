@@ -34,18 +34,27 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full"
               style={{ animation: "fadeIn 0.4s ease 0.05s both" }}
             >
-              ✦ The bio link built for selling
+              ✦ Linktree replacement · 0% fees
             </span>
 
-            {/* Headline — visible immediately, CSS animation only */}
+            {/* Headline — punchy, benefit-led. Math angle (highest converting per
+                MARKETING.md). Avoids product descriptors; promises an outcome. */}
             <h1
-              className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]"
+              className="mt-6 sm:mt-8 text-[40px] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[#f0f0f0]">Sell physical and digital products,</span>
-              <span className="block text-[#f0f0f0]">services, and content from one page.</span>
-              <span className="block font-mono text-[#00ff88] text-lg sm:text-xl lg:text-2xl mt-2">0% platform fees. AI agent that sells for you 24/7.</span>
+              <span className="block text-[#f0f0f0]">The bio link that</span>
+              <span className="block text-[#00ff88]">sells for you.</span>
             </h1>
+            <p
+              className="mt-3 text-base sm:text-lg lg:text-xl text-[#aaa] max-w-lg leading-snug"
+              style={{ animation: "slideUp 0.5s ease 0.14s both" }}
+            >
+              0% fees. AI agent that closes deals 24/7. Drop countdowns that sell out.
+              <span className="block mt-1 text-[#666] text-sm sm:text-base font-mono">
+                Linktree takes 9%. We take 0%.
+              </span>
+            </p>
 
             {/* Feature bullets — sit right under the headline */}
             <ul

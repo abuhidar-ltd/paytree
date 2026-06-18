@@ -9,12 +9,13 @@ export function UsernameCTA() {
   const router = useRouter()
 
   const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9]/g, "")
-  const previewUrl = sanitizedUsername ? `paytree.com/${sanitizedUsername}` : "paytree.com/yourname"
+  const previewUrl = sanitizedUsername ? `paytree.to/${sanitizedUsername}` : "paytree.to/yourname"
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (sanitizedUsername) {
-      router.push(`/join?username=${sanitizedUsername}`)
+      // /start (not /join) — TikTok's URL safety filter blocks auth-keyword paths
+      router.push(`/start?username=${sanitizedUsername}`)
     }
   }
 

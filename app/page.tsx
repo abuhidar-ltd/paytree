@@ -3,6 +3,7 @@ import dynamic from "next/dynamic"
 import { auth } from "@clerk/nextjs/server"
 import { HomeHero } from "./home-hero"
 import { HomeMarquee } from "./home-marquee"
+import { HomeStickyCTA } from "./home-sticky-cta"
 import { TrackedLink } from "@/components/tracked-link"
 
 // Lazy-load below-fold sections — not needed for initial paint
@@ -17,7 +18,9 @@ export default async function HomePage() {
   const isLoggedIn = !!userId
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden">
+    // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky
+    // mobile bar (HomeStickyCTA). No effect on desktop.
+    <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden pb-32 sm:pb-0">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[#030303] sm:bg-[rgba(3,3,3,0.85)] sm:backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -69,6 +72,8 @@ export default async function HomePage() {
       <HomeFeatures />
       <HomeShowcase />
       <HomePricingSection isLoggedIn={isLoggedIn} />
+
+      <HomeStickyCTA isLoggedIn={isLoggedIn} />
 
       {/* Footer */}
       <footer className="border-t border-white/[0.05] bg-[rgba(3,3,3,0.8)] backdrop-blur-xl">

@@ -38,14 +38,30 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: TITLE,
+  title: {
+    default: TITLE,
+    template: "%s · Paytree",
+  },
   description: DESCRIPTION,
   manifest: "/manifest.json",
+  alternates: {
+    canonical: "/",
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Paytree",
   },
+  keywords: [
+    "bio link",
+    "link in bio",
+    "linktree alternative",
+    "creator monetization",
+    "AI bio link",
+    "0% fees bio link",
+    "creator tools",
+  ],
+  authors: [{ name: "Paytree" }],
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
@@ -53,13 +69,23 @@ export const metadata: Metadata = {
     siteName: "Paytree",
     type: "website",
     locale: "en_US",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/og-image.png"],
+    creator: "@paytree",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

@@ -5,14 +5,26 @@ const nextConfig: NextConfig = {
     return [
       // 307 (not 308) — TikTok and other in-app WebViews flag 308 chains
       // as untrusted; 307 preserves method and survives WebView intercepts.
+      // Destination is /start (not /join) — /start is the TikTok-safe entry
+      // because /join is on TikTok's URL safety blocklist for auth keywords.
       {
         source: "/register",
-        destination: "/join",
+        destination: "/start",
         permanent: false,
       },
       {
         source: "/register/:path*",
-        destination: "/join/:path*",
+        destination: "/start/:path*",
+        permanent: false,
+      },
+      {
+        source: "/signup",
+        destination: "/start",
+        permanent: false,
+      },
+      {
+        source: "/sign-up",
+        destination: "/start",
         permanent: false,
       },
     ]
