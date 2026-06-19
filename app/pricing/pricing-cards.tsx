@@ -130,10 +130,10 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
           <div className="flex items-baseline gap-1 mb-2">
             <span className="text-4xl sm:text-5xl font-bold text-[#e0e0e0]">$0</span>
-            <span className="text-lg text-[#888888]">forever</span>
+            <span className="text-lg text-[#888888]">/mo</span>
           </div>
           <p className="text-sm text-[#555555] mb-2 font-semibold">Build and publish free</p>
-          <p className="text-xs text-[#444] mb-8">Publish your page, add drops, vault gates, and see analytics — free forever.</p>
+          <p className="text-xs text-[#444] mb-8">Publish your page, add drops, vault gates, and see analytics.</p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {FREE_FEATURES.map((f, i) => (
