@@ -24,7 +24,7 @@ import {
   Search, Folder, Link as LinkIcon, Lock, Timer, Youtube, ShoppingBag,
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
-  Tv, Hash, Copy, Pencil, CopyPlus,
+  Tv, Copy, Pencil, CopyPlus,
   LayoutGrid, Paintbrush, Settings, Menu, CreditCard, Sparkles,
 } from "lucide-react"
 
@@ -189,7 +189,7 @@ const TYPE_ICONS: Record<string, typeof LinkIcon> = {
   youtube: Youtube, spotify: Music, podcast: Mic, twitch: Tv,
   product: ShoppingBag, discount_code: Tag, social_link: Share2,
   text: AlignLeft, image: Image, faq: HelpCircle, contact_form: Mail,
-  stats: BarChart2, crypto: Hash, live_status: Radio,
+  stats: BarChart2, live_status: Radio,
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -198,7 +198,7 @@ const TYPE_COLORS: Record<string, string> = {
   podcast: "#f59e0b", twitch: "#9146FF", product: "#3b82f6",
   discount_code: "#f59e0b", social_link: "#e0e0e0", text: "#888",
   image: "#888", faq: "#888", contact_form: "#888", stats: "#00ff88",
-  crypto: "#f7931a", live_status: "#ef4444",
+  live_status: "#ef4444",
 }
 
 // ─── Dashboard Page ───────────────────────────────────────────

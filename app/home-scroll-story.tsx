@@ -61,7 +61,7 @@ export function HomeScrollStory() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white">T.Tricks</h2>
-                <p className="text-[#888888] text-sm">@tricks_crypto_academy</p>
+                <p className="text-[#888888] text-sm">@tricks_academy</p>
               </div>
 
               {/* Stage 1: Live Status */}
@@ -150,7 +150,7 @@ export function HomeScrollStory() {
                     </GlassBrick>
                     <GlassBrick className="!py-4">
                       <div className="label">Finances</div>
-                      <div className="title">₿ Crypto Vault &amp; Tips</div>
+                      <div className="title">💳 Payment Links</div>
                     </GlassBrick>
                   </motion.div>
                 )}

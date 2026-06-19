@@ -11,7 +11,6 @@ const ITEMS = [
   "SaaS Founders",
   "YouTube Creators",
   "Music Producers",
-  "Web3 Builders",
   "Community Leaders",
   "TikTok Creators",
   "Photographers",

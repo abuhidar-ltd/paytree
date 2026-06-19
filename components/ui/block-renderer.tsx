@@ -3,7 +3,6 @@
 import { useState, useEffect, type ReactNode } from "react"
 import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion"
 import { toast } from "sonner"
-import { CryptoVaultPortal } from "./crypto-vault"
 import { LiveStatusPill } from "./live-status-pill"
 import { trackEvent } from "@/lib/analytics"
 import { glass, glassReflection } from "@/lib/glass"
@@ -374,18 +373,6 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
       return <SpotifyBlock block={block} cfg={cfg} />
     case "twitch":
       return <TwitchBlock block={block} cfg={cfg} />
-    case "crypto":
-      return (
-        <CryptoVaultPortal
-          addresses={[{
-            id: block.id,
-            currency: (cfg.currency as string) || "BTC",
-            address: (cfg.address as string) || "",
-            label: block.title,
-            enabled: true,
-          }]}
-        />
-      )
     case "stats":
       return (
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">

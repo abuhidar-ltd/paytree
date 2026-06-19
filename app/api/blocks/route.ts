@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const NON_LOCKABLE = ["youtube", "spotify", "podcast", "twitch", "live_status", "stats", "text", "image", "social_link", "crypto"]
+    const NON_LOCKABLE = ["youtube", "spotify", "podcast", "twitch", "live_status", "stats", "text", "image", "social_link"]
     if (NON_LOCKABLE.includes(data.type)) {
       data.lockType = "none"
     }
