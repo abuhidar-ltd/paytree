@@ -5,9 +5,6 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/next";
-import { TikTokBrowserBanner } from "@/components/tiktok-browser-banner";
-// NOTE: Clerk Turnstile is set to Smart/Disabled mode in the Clerk dashboard
-// to support TikTok in-app browser. Error 600010 = Turnstile fails in BytedanceWebview.
 
 // Body text
 const inter = Inter({
@@ -113,7 +110,6 @@ export default function RootLayout({
     >
       <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
-          <TikTokBrowserBanner />
           {/*
             Microsoft Clarity — session replay + heatmaps. afterInteractive
             so it runs post-hydration and doesn't compete with first paint.

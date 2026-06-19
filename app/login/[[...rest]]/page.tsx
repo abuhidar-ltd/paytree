@@ -5,14 +5,11 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { detectInAppBrowser, sourceLabel } from "@/lib/in-app-browser"
 import { trackEvent } from "@/lib/analytics"
 
 export default function LoginPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
-  const [isWebView, setIsWebView] = useState(false)
-  const [webViewSource, setWebViewSource] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
   const seenStages = useRef<Set<string>>(new Set())
 
@@ -33,12 +30,7 @@ export default function LoginPage() {
   }, [isLoaded, user, router])
 
   useEffect(() => {
-    const source = detectInAppBrowser()
-    if (source) {
-      setIsWebView(true)
-      setWebViewSource(sourceLabel(source))
-    }
-    trackEvent("login_page_view", { in_app_browser: source ?? "no" })
+    trackEvent("login_page_view")
   }, [])
 
   // Mirror of /join funnel observation — see app/join page for explanation.
@@ -63,19 +55,6 @@ export default function LoginPage() {
     return null
   }
 
-  const hiddenSocial = isWebView
-    ? {
-        socialButtonsRoot: "hidden",
-        socialButtons: "hidden",
-        socialButtonsBlockButton: "hidden",
-        socialButtonsBlockButtonText: "hidden",
-        socialButtonsIconButton: "hidden",
-        dividerRow: "hidden",
-        dividerLine: "hidden",
-        dividerText: "hidden",
-      }
-    : {}
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
@@ -90,20 +69,6 @@ export default function LoginPage() {
           </Link>
           <p className="text-sm sm:text-base text-gray-400 mt-2">Sign in to your account</p>
         </div>
-
-        {isWebView && (
-          <div
-            className="rounded-xl border border-[#00ff88]/20 bg-[#00ff88]/[0.04] p-3 text-center"
-            role="note"
-          >
-            <p className="text-xs text-[#00ff88] font-mono font-semibold">
-              Signing in via {webViewSource}
-            </p>
-            <p className="text-[11px] text-[#888] mt-1 leading-snug">
-              Use email below — Google/Apple sign-in doesn&apos;t work in in-app browsers.
-            </p>
-          </div>
-        )}
 
         {/* Clerk Sign In Component */}
         <div ref={containerRef} className="flex justify-center">
@@ -140,7 +105,6 @@ export default function LoginPage() {
                 identityPreviewText: "text-[#e0e0e0]",
                 identityPreviewEditButton: "text-[#00ff88]",
                 footer: "hidden",
-                ...hiddenSocial,
               },
             }}
             routing="path"
