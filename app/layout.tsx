@@ -107,8 +107,6 @@ export default function RootLayout({
     <ClerkProvider
       signInUrl="/login"
       signUpUrl="/start"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/onboarding"
     >
       <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
         <body className={`${inter.className} antialiased bg-[#030303]`}>
