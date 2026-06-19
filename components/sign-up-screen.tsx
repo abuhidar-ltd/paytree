@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
-import { detectInAppBrowser, sourceLabel } from "@/lib/in-app-browser"
+import { detectInAppBrowser, sourceLabel, detectPlatform, openInBrowserInstructions } from "@/lib/in-app-browser"
 import { trackEvent } from "@/lib/analytics"
 
 interface SignUpScreenProps {
@@ -28,6 +28,8 @@ interface SignUpScreenProps {
 export function SignUpScreen({ path }: SignUpScreenProps) {
   const [isWebView, setIsWebView] = useState(false)
   const [webViewSource, setWebViewSource] = useState<string>("")
+  const [isTikTok, setIsTikTok] = useState(false)
+  const [tikTokInstructions, setTikTokInstructions] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
   const seenStages = useRef<Set<string>>(new Set())
 
@@ -42,6 +44,11 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
     if (source) {
       setIsWebView(true)
       setWebViewSource(sourceLabel(source))
+    }
+    if (source === "tiktok") {
+      const platform = detectPlatform()
+      setIsTikTok(true)
+      setTikTokInstructions(openInBrowserInstructions(source, platform))
     }
 
     trackEvent("signup_page_view", {
@@ -105,6 +112,93 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
       root.removeEventListener("click", onClick)
     }
   }, [])
+
+  if (isTikTok) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: "#030303",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        textAlign: "center"
+      }}>
+        <div style={{
+          color: "#00ff88",
+          fontFamily: "monospace",
+          fontWeight: "bold",
+          fontSize: 24,
+          marginBottom: 32
+        }}>
+          Paytree
+        </div>
+
+        <div style={{
+          width: 64, height: 64,
+          borderRadius: "50%",
+          background: "rgba(0,255,136,0.1)",
+          border: "0.5px solid rgba(0,255,136,0.3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 28,
+          marginBottom: 24
+        }}>
+          🌐
+        </div>
+
+        <div style={{
+          color: "#f0f0f0",
+          fontSize: 20,
+          fontWeight: 600,
+          marginBottom: 12
+        }}>
+          Open in your browser to sign up
+        </div>
+
+        <div style={{
+          color: "#888",
+          fontSize: 14,
+          lineHeight: 1.6,
+          maxWidth: 280,
+          marginBottom: 32
+        }}>
+          TikTok&apos;s browser doesn&apos;t support secure sign up. Open in Safari or Chrome instead.
+        </div>
+
+        <div style={{
+          background: "rgba(255,255,255,0.05)",
+          border: "0.5px solid rgba(255,255,255,0.1)",
+          borderRadius: 16,
+          padding: "16px 24px",
+          maxWidth: 280
+        }}>
+          <div style={{
+            color: "#888",
+            fontSize: 12,
+            fontFamily: "monospace",
+            marginBottom: 8
+          }}>
+            HOW TO OPEN
+          </div>
+          <div style={{ color: "#d8d8d8", fontSize: 14, lineHeight: 1.8 }}>
+            {tikTokInstructions || "Tap ⋯ at the top right, then \"Open in browser\""}
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 24,
+          color: "#444",
+          fontSize: 12,
+          fontFamily: "monospace"
+        }}>
+          paytree.to
+        </div>
+      </div>
+    )
+  }
 
   const hiddenSocial = isWebView
     ? {
