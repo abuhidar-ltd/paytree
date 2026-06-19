@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { unstable_noStore as noStore } from "next/cache"
-import { headers } from "next/headers"
 import { getCurrentUser } from "@/lib/clerk-auth"
 
 export default async function DashboardLayout({
@@ -17,11 +16,7 @@ export default async function DashboardLayout({
   }
 
   if (!user.onboarded) {
-    const headersList = await headers()
-    const pathname = headersList.get("x-pathname") ?? ""
-    if (!pathname.startsWith("/onboarding") && !pathname.startsWith("/api")) {
-      redirect("/onboarding")
-    }
+    redirect("/onboarding")
   }
 
   return <>{children}</>

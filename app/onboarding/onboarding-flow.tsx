@@ -144,6 +144,9 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   const [copied, setCopied] = useState(false)
   const saveCalledRef = useRef(false)
 
+  // Skip entire onboarding loading state — prevents double-clicks and loop
+  const [isSkipping, setIsSkipping] = useState(false)
+
   // ─── Username auto-suggest from display name ─────────────────────────────────
 
   useEffect(() => {
@@ -310,18 +313,27 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
   const skip = useCallback(() => advance(), [advance])
 
-  // Skip the entire onboarding flow — marks user as onboarded so dashboard layout
-  // doesn't redirect back here, then sends them to the dashboard.
+  // Skip the entire onboarding flow. We MUST confirm the DB write before
+  // navigating — if we push to /dashboard while onboarded=false, DashboardLayout
+  // redirects back here and the user sees an infinite bounce loop.
   const skipAll = useCallback(async () => {
+    if (isSkipping) return
+    setIsSkipping(true)
     try {
-      await fetch("/api/profile", {
+      const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ onboarded: true }),
       })
-    } catch {}
+      if (!res.ok) throw new Error(`PATCH failed ${res.status}`)
+    } catch (err) {
+      console.error("[onboarding] skipAll failed:", err)
+      setIsSkipping(false)
+      return
+    }
+    trackEvent("onboarding_skipped")
     router.push("/dashboard")
-  }, [router])
+  }, [router, isSkipping])
 
   // ─── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -417,9 +429,25 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
           <button
             onClick={skipAll}
-            className="text-[#888] text-sm font-mono hover:text-white transition-colors"
+            disabled={isSkipping}
+            style={{
+              color: isSkipping ? "#555" : "#666",
+              fontSize: 13,
+              fontFamily: "monospace",
+              background: "transparent",
+              border: "none",
+              cursor: isSkipping ? "not-allowed" : "pointer",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(255,255,255,0.2)",
+              padding: "8px 16px",
+              marginTop: 8,
+              minHeight: 44,
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
+            onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
           >
-            Skip and go to dashboard →
+            {isSkipping ? "Skipping..." : "Skip and go to dashboard →"}
           </button>
         </motion.div>
       </div>
@@ -831,9 +859,24 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             {step < 4 && (
               <button
                 onClick={skipAll}
-                className="text-[#888] text-sm font-mono hover:text-white transition-colors"
+                disabled={isSkipping}
+                style={{
+                  color: isSkipping ? "#555" : "#666",
+                  fontSize: 13,
+                  fontFamily: "monospace",
+                  background: "transparent",
+                  border: "none",
+                  cursor: isSkipping ? "not-allowed" : "pointer",
+                  textDecoration: "underline",
+                  textDecorationColor: "rgba(255,255,255,0.2)",
+                  padding: "8px 12px",
+                  minHeight: 44,
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
+                onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
               >
-                Skip onboarding →
+                {isSkipping ? "Skipping..." : "Skip →"}
               </button>
             )}
           </div>
@@ -879,7 +922,25 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               {step > 0 && step < 4 && (
                 <button
                   onClick={skip}
-                  className="w-full text-center text-[#444] text-sm font-mono hover:text-[#888] transition-colors py-1"
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    color: "#666",
+                    fontSize: 13,
+                    fontFamily: "monospace",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textDecorationColor: "rgba(255,255,255,0.2)",
+                    minHeight: 44,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#888"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.4)" }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#666"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.2)" }}
                 >
                   Skip this step →
                 </button>
