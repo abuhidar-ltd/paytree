@@ -43,8 +43,8 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-6 sm:mt-8 text-[40px] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[#f0f0f0]">The bio link that</span>
-              <span className="block text-[#00ff88]">sells for you.</span>
+              <span className="block text-[#f0f0f0]">Sell physical and digital products, services and content from 1 page.</span>
+              <span className="block text-[#00ff88] text-[28px] sm:text-[34px] lg:text-[40px] mt-2">0% platform fees and an AI that sells for you 24/7.</span>
             </h1>
             <p
               className="mt-3 text-base sm:text-lg lg:text-xl text-[#aaa] max-w-lg leading-snug"
