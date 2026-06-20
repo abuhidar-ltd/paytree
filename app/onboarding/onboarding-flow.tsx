@@ -395,7 +395,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // ─── Render helpers ───────────────────────────────────────────────────────────
 
   const renderWelcome = () => (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6 pb-safe">
       <div className="max-w-md w-full text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -422,7 +422,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
           <button
             onClick={advance}
-            className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 py-4 text-base hover:opacity-90 transition-opacity mb-4"
+            className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 text-base hover:opacity-90 active:scale-[0.97] transition-all mb-4"
+            style={{ minHeight: 56 }}
           >
             Let&apos;s go →
           </button>
@@ -825,11 +826,11 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // ─── Main layout (steps 0–4) ──────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white">
+    <div className="min-h-screen bg-[#080808] text-white pb-safe">
       <div className="flex flex-col lg:flex-row min-h-screen">
 
-        {/* ── Left: form panel ── */}
-        <div className="flex-1 flex flex-col px-6 sm:px-10 lg:px-14 py-8 max-w-2xl w-full mx-auto lg:mx-0">
+        {/* ── Left: form panel — mobile-tighter px + py for more vertical room. ── */}
+        <div className="flex-1 flex flex-col px-5 sm:px-10 lg:px-14 py-6 sm:py-8 max-w-2xl w-full mx-auto lg:mx-0">
 
           {/* Progress + skip */}
           <div className="flex items-center justify-between mb-10">
@@ -897,14 +898,15 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             </AnimatePresence>
           </div>
 
-          {/* Navigation buttons */}
+          {/* Navigation buttons — 48px minimum so taps land cleanly on iOS. */}
           {step < 4 && (
             <div className="mt-8 space-y-3">
               <div className="flex gap-3">
                 {step > 0 && (
                   <button
                     onClick={retreat}
-                    className="px-5 py-3 rounded-xl font-mono text-sm bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] hover:border-white/20 transition-colors"
+                    className="px-5 rounded-xl font-mono text-sm bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] hover:border-white/20 active:scale-[0.97] transition-all"
+                    style={{ minHeight: 48 }}
                   >
                     ← Back
                   </button>
@@ -912,8 +914,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                 <button
                   onClick={advance}
                   disabled={!canContinue()}
-                  className="flex-1 py-3 rounded-xl font-mono font-semibold text-black text-sm transition-opacity disabled:opacity-40"
-                  style={{ background: accentColor }}
+                  className="flex-1 rounded-xl font-mono font-semibold text-black text-sm transition-all active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100"
+                  style={{ background: accentColor, minHeight: 48 }}
                 >
                   {step === 3 ? "Finish →" : "Continue →"}
                 </button>
@@ -949,23 +951,60 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           )}
         </div>
 
-        {/* ── Right: phone preview ── */}
-        <div className="w-full lg:w-[380px] lg:sticky lg:top-0 lg:h-screen flex items-center justify-center p-8 bg-[#060606] border-t lg:border-t-0 lg:border-l border-white/[0.04]">
+        {/* ── Right: phone preview ──
+            Mobile shows a tighter, scaled-down version above the fold (so it
+            stays the dopamine driver) without eating the whole viewport. The
+            phone is fixed at 240x480; we wrap in a transform + overflow-hidden
+            box that reserves real layout space matching the scaled size. */}
+        <div className="w-full lg:w-[380px] lg:sticky lg:top-0 lg:h-screen flex items-center justify-center p-4 sm:p-8 bg-[#060606] border-t lg:border-t-0 lg:border-l border-white/[0.04]">
           <div className="text-center">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#333] mb-6">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#333] mb-3 sm:mb-6">
               Live preview
             </div>
-            <PhonePreview
-              name={name}
-              username={username}
-              bio={bio}
-              image={image}
-              accentColor={accentColor}
-              category={category}
-              firstLinkUrl={firstLinkUrl}
-              firstLinkTitle={firstLinkTitle}
-              firstLinkIcon={firstLinkIcon}
-            />
+            {/* Mobile: scale 0.7 (240→168, 480→336). Desktop: full size. */}
+            <div
+              className="lg:hidden mx-auto"
+              style={{
+                width: 168,
+                height: 336,
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  transform: "scale(0.7)",
+                  transformOrigin: "top left",
+                  width: 240,
+                  height: 480,
+                }}
+              >
+                <PhonePreview
+                  name={name}
+                  username={username}
+                  bio={bio}
+                  image={image}
+                  accentColor={accentColor}
+                  category={category}
+                  firstLinkUrl={firstLinkUrl}
+                  firstLinkTitle={firstLinkTitle}
+                  firstLinkIcon={firstLinkIcon}
+                />
+              </div>
+            </div>
+            <div className="hidden lg:block">
+              <PhonePreview
+                name={name}
+                username={username}
+                bio={bio}
+                image={image}
+                accentColor={accentColor}
+                category={category}
+                firstLinkUrl={firstLinkUrl}
+                firstLinkTitle={firstLinkTitle}
+                firstLinkIcon={firstLinkIcon}
+              />
+            </div>
           </div>
         </div>
       </div>
