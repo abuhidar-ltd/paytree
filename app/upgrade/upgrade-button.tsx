@@ -16,7 +16,7 @@ export function UpgradeButton() {
 
   const handleUpgrade = async () => {
     setIsLoading(true)
-    trackEvent("upgrade_clicked", { plan: "pro", billing: "monthly", source: "upgrade_page" })
+    trackEvent("upgrade_checkout_started", { plan: "pro", billing: "monthly" })
     toast.info("Creating checkout session...")
 
     try {

@@ -819,7 +819,7 @@ export default function AnalyticsDashboard() {
   // Mount telemetry — one-shot, decoupled from the period-driven loader
   // below so changing the date range doesn't refire the event.
   useEffect(() => {
-    trackEvent("analytics_viewed")
+    trackEvent("analytics_page_viewed")
   }, [])
 
   useEffect(() => {

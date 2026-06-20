@@ -35,8 +35,7 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
       document.cookie = `paytree_ref=${encodeURIComponent(ref)}; path=/; max-age=604800; SameSite=Lax`
     }
 
-    trackEvent("signup_page_view", { ref: ref ?? null, path })
-    trackEvent("signup_page_viewed", { path })
+    trackEvent("signup_page_viewed", { ref: ref ?? null, path })
   }, [path])
 
   // Funnel tracking via DOM observation — Clerk has no lifecycle hooks.

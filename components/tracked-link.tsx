@@ -32,10 +32,7 @@ export function TrackedLink({ event, eventProps, location, onClick, children, ..
     <Link
       {...rest}
       onClick={(e) => {
-        trackEvent(event, eventProps)
-        if (location) {
-          trackEvent("cta_clicked", { ...eventProps, location })
-        }
+        trackEvent(event, { ...eventProps, ...(location ? { location } : {}) })
         onClick?.(e)
       }}
     >

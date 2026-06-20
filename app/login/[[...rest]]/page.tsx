@@ -30,7 +30,7 @@ export default function LoginPage() {
   }, [isLoaded, user, router])
 
   useEffect(() => {
-    trackEvent("login_page_view")
+    trackEvent("login_page_viewed")
   }, [])
 
   // Mirror of /join funnel observation — see app/join page for explanation.

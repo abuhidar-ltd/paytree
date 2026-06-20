@@ -112,7 +112,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
   // Mount telemetry — one-shot per design-page visit.
   useEffect(() => {
-    trackEvent("design_page_visited")
+    trackEvent("design_page_viewed")
   }, [])
 
   // ── fetch fresh data (unchanged) ───────────────────────────────────────────
@@ -441,7 +441,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   <button
                     onClick={() => {
                       setProfile({ ...profile, heroStyle: "classic" })
-                      trackEvent("hero_style_changed", { style: "classic" })
+                      trackEvent("profile_hero_style_changed", { style: "classic" })
                     }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       (profile.heroStyle ?? "classic") === "classic"
@@ -464,7 +464,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   <button
                     onClick={() => {
                       setProfile({ ...profile, heroStyle: "cinematic" })
-                      trackEvent("hero_style_changed", { style: "cinematic" })
+                      trackEvent("profile_hero_style_changed", { style: "cinematic" })
                     }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       profile.heroStyle === "cinematic"
@@ -498,7 +498,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       key={color}
                       onClick={() => {
                         setProfile({ ...profile, accentColor: color })
-                        trackEvent("accent_color_changed", { color, source: "swatch" })
+                        trackEvent("profile_accent_color_changed", { color, source: "swatch" })
                       }}
                       className={`w-9 h-9 rounded-full flex-shrink-0 transition-all hover:scale-110 ${
                         (profile.accentColor || "#00ff88") === color
@@ -519,7 +519,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       if (/^#[0-9a-fA-F]{0,6}$/.test(val)) {
                         setProfile({ ...profile, accentColor: val })
                         if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-                          trackEvent("accent_color_changed", { color: val, source: "hex" })
+                          trackEvent("profile_accent_color_changed", { color: val, source: "hex" })
                         }
                       }
                     }}
@@ -543,7 +543,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                         key={value}
                         onClick={() => {
                           setProfile({ ...profile, buttonStyle: value })
-                          trackEvent("button_style_changed", { style: value })
+                          trackEvent("profile_button_style_changed", { style: value })
                         }}
                         className={`rounded-xl border p-3 flex flex-col gap-2.5 transition-all ${
                           active

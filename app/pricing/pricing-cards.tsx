@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -45,13 +45,6 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly")
   const [loading, setLoading] = useState<string | null>(null)
 
-  // upgrade_page_viewed fires once whenever the pricing UI is mounted —
-  // covers both /pricing and the embedded section on the landing page.
-  useEffect(() => {
-    trackEvent("upgrade_page_viewed", { logged_in: isLoggedIn, current_plan: currentPlan })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const normalizedPlan = currentPlan === "pro" ? "ultra" : currentPlan
 
   const starterPrice = interval === "monthly" ? "$7" : "$59"
@@ -63,8 +56,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
   const ultraSave = interval === "yearly" ? "Save 30%" : null
 
   async function handleCheckout(plan: "starter" | "ultra") {
-    trackEvent("pricing_checkout_start", { plan, interval })
-    trackEvent("upgrade_clicked", { plan, billing: interval, source: "pricing_cards" })
+    trackEvent("pricing_checkout_started", { plan, interval })
     setLoading(plan)
     try {
       const res = await fetch("/api/create-checkout-session", {
@@ -74,14 +66,14 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       })
       const data = await res.json()
       if (data.url) {
-        trackEvent("pricing_checkout_redirect", { plan, interval })
+        trackEvent("pricing_checkout_redirected", { plan, interval })
         window.location.href = data.url
       } else {
-        trackEvent("pricing_checkout_error", { plan, interval, reason: data.error || "unknown" })
+        trackEvent("pricing_checkout_failed", { plan, interval, reason: data.error || "unknown" })
         alert(data.error || "Something went wrong")
       }
     } catch {
-      trackEvent("pricing_checkout_error", { plan, interval, reason: "network" })
+      trackEvent("pricing_checkout_failed", { plan, interval, reason: "network" })
       alert("Network error. Please try again.")
     } finally {
       setLoading(null)
@@ -160,7 +152,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <Link
               href="/start"
               className="block"
-              onClick={() => trackEvent("pricing_cta_click", { plan: "free" })}
+              onClick={() => trackEvent("pricing_plan_selected", { plan: "free" })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Create your page for free →
@@ -244,7 +236,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <Link
               href="/start"
               className="block"
-              onClick={() => trackEvent("pricing_cta_click", { plan: "starter", interval })}
+              onClick={() => trackEvent("pricing_plan_selected", { plan: "starter", interval })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Try free for 7 days →
@@ -325,7 +317,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <Link
               href="/start"
               className="block"
-              onClick={() => trackEvent("pricing_cta_click", { plan: "ultra", interval })}
+              onClick={() => trackEvent("pricing_plan_selected", { plan: "ultra", interval })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Try free for 7 days →

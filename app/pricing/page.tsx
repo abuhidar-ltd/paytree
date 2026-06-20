@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/clerk-auth"
 import { prisma } from "@/lib/prisma"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { PricingCards } from "./pricing-cards"
+import { PricingPageView } from "./pricing-page-view"
 import Link from "next/link"
 
 // getCurrentUser() reads request headers, so this page can't be statically
@@ -51,6 +52,8 @@ export default async function PricingPage() {
             Start with a 7-day free trial. Cancel anytime.
           </p>
         </div>
+
+        <PricingPageView isLoggedIn={!!currentUser} currentPlan={userPlan} />
 
         {/* Interactive pricing cards */}
         <PricingCards

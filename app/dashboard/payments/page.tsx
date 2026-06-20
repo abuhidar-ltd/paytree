@@ -119,7 +119,7 @@ export default function PaymentsPage() {
   }
 
   useEffect(() => {
-    trackEvent("payments_page_visited")
+    trackEvent("payments_page_viewed")
     Promise.allSettled([loadProfile(), loadProducts()]).finally(() => setLoading(false))
   }, [])
 
