@@ -41,27 +41,21 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               ✦ 0% fees · Linktree alternative
             </span>
 
-            {/* Headline — attack-mode. Direct math angle (MARKETING.md angle #1).
-                Two-line break on mobile keeps "Linktree 9%" on its own line for
-                maximum visual impact and scannability in a TikTok WebView. */}
+            {/* Headline — two-part. White lead is the dominant headline (the
+                product promise). Green payoff sits below as a supporting line
+                at a smaller weight — eye lands on white first, gets reinforced
+                by green. Subhead removed; the green line replaces it. */}
             <h1
-              className="mt-5 sm:mt-8 text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#f0f0f0]"
+              className="mt-5 sm:mt-8 font-bold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              Stop giving{" "}
-              <span className="text-[#00ff88]">Linktree 9%</span>{" "}
-              of your money.
-            </h1>
-
-            <p
-              className="mt-4 sm:mt-5 text-base sm:text-lg lg:text-xl text-[#aaa] max-w-lg leading-snug"
-              style={{ animation: "slideUp 0.5s ease 0.14s both" }}
-            >
-              Same bio link. Half the price.
-              <span className="block mt-1 text-[#d8d8d8]">
-                AI agent that closes sales 24/7.
+              <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
+                Sell your physical &amp; digital products, and content.
               </span>
-            </p>
+              <span className="block mt-3 sm:mt-4 text-lg sm:text-2xl lg:text-3xl text-[#00ff88] font-semibold leading-snug">
+                0% commission. AI that sells for you 24/7.
+              </span>
+            </h1>
 
             {/* CTA — visible above the fold on mobile. Lives at ~360px from top
                 so the entire button + microcopy is inside the first viewport
@@ -99,7 +93,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                     style={{ minHeight: 56 }}
                   >
-                    Take your money back →
+                    Start free now →
                   </Link>
                   <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
                     Free · No card · 0% forever
@@ -165,7 +159,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                       className="w-2 h-2 rounded-full bg-[#00ff88]"
                       style={{ boxShadow: "0 0 6px rgba(0,255,136,0.6)" }}
                     />
-                    You keep (0%)
+                    You keep (100%)
                   </span>
                   <span className="text-base sm:text-lg font-mono font-bold tabular-nums text-[#00ff88]">
                     $10,000
