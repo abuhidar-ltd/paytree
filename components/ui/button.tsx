@@ -8,13 +8,16 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "default", size = "default", ...props }, ref) => {
+    // duration-150 keeps press feedback snappy (iOS-feel) while still
+    // smoothing hover. duration-300 felt laggy on tap.
     const baseStyles = `
       inline-flex items-center justify-center gap-2 font-semibold
-      transition-all duration-300
+      transition-all duration-150 ease-out
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff88] focus-visible:ring-offset-2 focus-visible:ring-offset-[#030303]
       disabled:pointer-events-none disabled:opacity-50
       btn-touch touch-action-manipulation select-none
       rounded-full
+      active:scale-[0.97]
     `.trim()
     
     const variants = {
@@ -103,9 +106,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       `.trim(),
     }
     
+    // Apple HIG: 44px minimum touch target. Bumped sm from 40 → 44.
     const sizes = {
       default: "h-12 px-7 py-3 text-sm min-h-[48px]",
-      sm: "h-10 px-5 py-2 text-sm min-h-[40px]",
+      sm: "h-11 px-5 py-2 text-sm min-h-[44px]",
       lg: "h-14 px-10 py-4 text-base min-h-[56px]",
     }
     

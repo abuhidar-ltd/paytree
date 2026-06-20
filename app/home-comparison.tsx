@@ -33,8 +33,8 @@ function Mark({ value }: { value: Cell }) {
 
 export function HomeComparison() {
   return (
-    <section className="py-24 sm:py-32 relative">
-      <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-16">
+    <section className="py-16 sm:py-32 relative">
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-16">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 1, y: 20 }}
@@ -50,7 +50,7 @@ export function HomeComparison() {
 
         {/* Headline */}
         <motion.h2
-          className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-3"
+          className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-3"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -60,7 +60,7 @@ export function HomeComparison() {
         </motion.h2>
 
         <motion.p
-          className="text-[#888] text-lg mb-8"
+          className="text-[#888] text-base sm:text-lg mb-8"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -84,7 +84,7 @@ export function HomeComparison() {
           />
 
           {/* Header row */}
-          <div className="grid grid-cols-[1fr_88px_88px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+          <div className="grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 border-b border-white/[0.06]">
             <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Feature</div>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#444]" />
@@ -100,7 +100,7 @@ export function HomeComparison() {
           {ROWS.map((row, i) => (
             <motion.div
               key={i}
-              className={`grid grid-cols-[1fr_88px_88px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 ${
+              className={`grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 ${
                 i < ROWS.length - 1 ? "border-b border-white/[0.04]" : ""
               } ${row.highlight ? "bg-[#00ff88]/[0.015]" : ""}`}
               initial={{ opacity: 1, y: 6 }}
@@ -108,7 +108,7 @@ export function HomeComparison() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.04, type: "spring", stiffness: 200, damping: 24 }}
             >
-              <span className="text-sm text-[#d8d8d8]">{row.feature}</span>
+              <span className="text-[13px] sm:text-sm text-[#d8d8d8] leading-snug">{row.feature}</span>
               <div className="flex justify-center">
                 <span className={typeof row.linktree === "string" ? "font-mono text-sm text-red-400/90 line-through" : ""}>
                   <Mark value={row.linktree} />

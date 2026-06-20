@@ -82,35 +82,39 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
   return (
     <div className="space-y-8">
-      {/* Interval toggle */}
-      <div className="flex items-center justify-center gap-3">
+      {/* Interval toggle — segmented control, 44px tall, scale-tap feedback. */}
+      <div
+        className="inline-flex mx-auto items-center p-1 rounded-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)]"
+        style={{ width: "fit-content" }}
+      >
         <button
           onClick={() => setInterval("monthly")}
-          className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+          className={`min-h-[40px] px-5 rounded-full text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
             interval === "monthly"
               ? "bg-[#00ff88] text-black"
-              : "bg-[rgba(255,255,255,0.05)] text-[#888888] hover:text-white"
+              : "text-[#888888] hover:text-white"
           }`}
         >
           Monthly
         </button>
         <button
           onClick={() => setInterval("yearly")}
-          className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+          className={`min-h-[40px] px-5 rounded-full text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
             interval === "yearly"
               ? "bg-[#00ff88] text-black"
-              : "bg-[rgba(255,255,255,0.05)] text-[#888888] hover:text-white"
+              : "text-[#888888] hover:text-white"
           }`}
         >
           Yearly
         </button>
       </div>
 
-      {/* Cards */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      {/* Cards — stacked on mobile, 3-up on md+. Smaller padding + lower gap
+          at 375px keeps the cards from feeling cramped without scrolling. */}
+      <div className="grid md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
         {/* Free */}
         <motion.div
-          className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          className="obsidian-card-static p-5 sm:p-8 relative overflow-hidden flex flex-col"
           initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -167,13 +171,15 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
         {/* Starter (highlighted) */}
         <motion.div
-          className="obsidian-card-accent p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          className="obsidian-card-accent p-5 sm:p-8 relative overflow-hidden flex flex-col"
           initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
-          <div className="absolute top-4 right-4 px-3 py-1.5 bg-[rgba(0,255,136,0.15)] border border-[rgba(0,255,136,0.4)] rounded-full text-xs font-bold text-[#00ff88] flex items-center gap-1.5">
+          {/* Inline badge on mobile (avoids overlap with title), absolute on
+              desktop where the card is wider. */}
+          <div className="sm:absolute sm:top-4 sm:right-4 mb-4 sm:mb-0 inline-flex w-fit px-3 py-1.5 bg-[rgba(0,255,136,0.15)] border border-[rgba(0,255,136,0.4)] rounded-full text-xs font-bold text-[#00ff88] items-center gap-1.5">
             <span className="beeping-dot !w-1.5 !h-1.5" />
             MOST POPULAR
           </div>
@@ -248,7 +254,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
         {/* Ultra */}
         <motion.div
-          className="obsidian-card-static p-6 sm:p-8 relative overflow-hidden flex flex-col"
+          className="obsidian-card-static p-5 sm:p-8 relative overflow-hidden flex flex-col"
           initial={{ y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}

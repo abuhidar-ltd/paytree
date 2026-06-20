@@ -21,15 +21,22 @@ export default async function HomePage() {
     // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky
     // mobile bar (HomeStickyCTA). No effect on desktop.
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden pb-32 sm:pb-0">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[#030303] sm:bg-[rgba(3,3,3,0.85)] sm:backdrop-blur-xl">
+      {/* Header — respects iOS safe-area-top (notch) and minimum 44px touch
+          targets on every interactive element. */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[#030303] sm:bg-[rgba(3,3,3,0.85)] sm:backdrop-blur-xl pt-safe">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 font-bold text-xl hover:opacity-90 transition-opacity">
+          <Link
+            href="/"
+            className="flex items-center gap-3 font-bold text-xl hover:opacity-90 transition-opacity h-11 -ml-1 pl-1"
+          >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
             <span className="text-[#f0f0f0] font-semibold">Paytree</span>
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/pricing" className="text-[#999] hover:text-white transition-colors text-sm font-mono hidden sm:block">
+          <nav className="flex items-center gap-3 sm:gap-4">
+            <Link
+              href="/pricing"
+              className="text-[#999] hover:text-white transition-colors text-sm font-mono hidden sm:flex items-center min-h-11 px-2"
+            >
               Pricing
             </Link>
             {isLoggedIn ? (
@@ -38,7 +45,7 @@ export default async function HomePage() {
                 eventProps={{ variant: "dashboard" }}
                 location="header"
                 href="/dashboard"
-                className="bg-[#00ff88] text-black font-mono font-semibold px-4 py-2 rounded-xl text-sm"
+                className="bg-[#00ff88] text-black font-mono font-semibold px-4 rounded-xl text-sm inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
               >
                 Dashboard
               </TrackedLink>
@@ -48,7 +55,7 @@ export default async function HomePage() {
                   event="header_signin_click"
                   location="header"
                   href="/login"
-                  className="hidden sm:inline text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 py-1.5 rounded-lg hover:border-white/[0.25]"
+                  className="hidden sm:inline-flex items-center text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 rounded-lg hover:border-white/[0.25] min-h-11"
                 >
                   Sign in
                 </TrackedLink>
@@ -57,7 +64,7 @@ export default async function HomePage() {
                   eventProps={{ variant: "start" }}
                   location="header"
                   href="/start"
-                  className="bg-[#00ff88] text-black font-mono font-semibold px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap"
+                  className="bg-[#00ff88] text-black font-mono font-semibold px-3 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
                 >
                   <span className="sm:hidden">Start free →</span>
                   <span className="hidden sm:inline">Create page free →</span>

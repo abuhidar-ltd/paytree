@@ -46,8 +46,10 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
       style={{
         transform: visible ? "translateY(0)" : "translateY(120%)",
         opacity: visible ? 1 : 0,
-        transition: "transform 280ms cubic-bezier(0.22,1,0.36,1), opacity 200ms ease",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        // iOS-feel spring approximation via cubic-bezier — animating from
+        // off-screen, lands without overshoot. 320ms is the iOS sheet duration.
+        transition: "transform 320ms cubic-bezier(0.22,1,0.36,1), opacity 200ms ease",
+        paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)",
         paddingTop: 12,
         paddingLeft: 16,
         paddingRight: 16,
@@ -63,7 +65,7 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
           const variant = isLoggedIn ? "dashboard" : "start"
           trackEvent("homepage_sticky_cta_clicked", { variant })
         }}
-        className="pointer-events-auto flex w-full items-center justify-center bg-[#00ff88] text-black font-mono font-bold px-5 py-4 rounded-2xl text-base shadow-[0_8px_32px_rgba(0,255,136,0.35)] active:scale-[0.98] transition-transform"
+        className="pointer-events-auto flex w-full items-center justify-center bg-[#00ff88] text-black font-mono font-bold px-5 py-4 rounded-2xl text-base shadow-[0_8px_32px_rgba(0,255,136,0.35)] active:scale-[0.97] transition-transform duration-150"
         style={{ minHeight: 56 }}
       >
         {label}

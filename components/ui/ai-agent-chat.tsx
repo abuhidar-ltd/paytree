@@ -34,7 +34,12 @@ function SiriOrb({
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 420, damping: 26 }}
-      className="fixed bottom-6 right-6 z-50"
+      className="fixed right-6 z-50"
+      style={{
+        // Respect iOS home-indicator. Falls back to 24px on devices without
+        // a safe-area inset, matching the original bottom-6 position.
+        bottom: "max(env(safe-area-inset-bottom, 24px), 24px)",
+      }}
     >
       {/* Atmospheric outer glow — slow breathe */}
       <motion.div
@@ -346,6 +351,9 @@ export function AiAgentChat({ username, creatorName, accentColor = "#00ff88" }: 
                 background: "#0c0c0c",
                 border: "0.5px solid rgba(255,255,255,0.1)",
                 boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(255,255,255,0.06)",
+                // Sheet bottom respects iOS home indicator — adds inset
+                // padding inside so user content/input never sits under it.
+                paddingBottom: "env(safe-area-inset-bottom, 0px)",
               }}
             >
               {/* Header */}

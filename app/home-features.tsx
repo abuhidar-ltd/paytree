@@ -6,8 +6,8 @@ import { MiniGlobe } from "./home-mini-globe"
 
 export function HomeFeatures() {
   return (
-    <section id="features" className="py-24 sm:py-32 relative">
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-16">
+    <section id="features" className="py-16 sm:py-32 relative">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-16">
         {/* Badge + Headline */}
         <motion.div
           initial={{ opacity: 1, y: 20 }}
@@ -22,7 +22,7 @@ export function HomeFeatures() {
         </motion.div>
 
         <motion.h2
-          className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-12"
+          className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-8 sm:mb-12"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -32,10 +32,10 @@ export function HomeFeatures() {
         </motion.h2>
 
         {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: AI Sales Agent */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
@@ -94,7 +94,7 @@ export function HomeFeatures() {
 
           {/* Card 2: Globe Analytics */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
@@ -127,7 +127,7 @@ export function HomeFeatures() {
 
           {/* Card 3: Drop Countdown */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
             whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}

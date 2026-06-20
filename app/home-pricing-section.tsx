@@ -9,8 +9,8 @@ interface HomePricingSectionProps {
 
 export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
   return (
-    <section className="py-24 sm:py-32 relative">
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-16">
+    <section className="py-16 sm:py-32 relative">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-16">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 1, y: 20 }}
@@ -25,7 +25,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
         </motion.div>
 
         <motion.h2
-          className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-4"
+          className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#f0f0f0] mb-3 sm:mb-4"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -35,7 +35,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
         </motion.h2>
 
         <motion.p
-          className="text-[#888] text-lg mb-12"
+          className="text-[#888] text-base sm:text-lg mb-8 sm:mb-12"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
