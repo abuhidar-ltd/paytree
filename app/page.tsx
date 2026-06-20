@@ -21,9 +21,28 @@ export default async function HomePage() {
     // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky
     // mobile bar (HomeStickyCTA). No effect on desktop.
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden pb-32 sm:pb-0">
-      {/* Header — respects iOS safe-area-top (notch) and minimum 44px touch
-          targets on every interactive element. */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-[#030303] sm:bg-[rgba(3,3,3,0.85)] sm:backdrop-blur-xl pt-safe">
+      {/* Header — glass treatment on all viewports (mobile included). Solid
+          bg used to be a TikTok-WebView workaround for backdrop-blur quirks;
+          modern WebViews handle it. The top reflection line ties the bar to
+          the rest of the Obsidian Terminal design language. */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 pt-safe"
+        style={{
+          background: "rgba(3,3,3,0.55)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 24px rgba(0,0,0,0.4)",
+        }}
+      >
+        {/* Razor reflection — same gradient used on glass cards site-wide. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-0 h-px"
+          style={{
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 50%, transparent)",
+          }}
+        />
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link
             href="/"
