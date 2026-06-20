@@ -76,24 +76,38 @@ type Props = Record<string, AllowedValue>
  *
  * Event names use snake_case. Vercel Analytics dedupes by name, so be specific:
  * `hero_cta_click` not `cta_click`.
+ *
+ * Deferred to the next idle frame so it cannot block click responsiveness —
+ * Clarity was reporting INP > 1s, and synchronous enrichment + track() on
+ * every CTA was a measurable chunk of that. Fire-and-forget is correct here:
+ * the user has already navigated away by the time the event posts.
  */
 export function trackEvent(name: string, props: Props = {}): void {
   if (typeof window === "undefined") return
 
-  const inApp = detectInAppBrowser()
-  const attribution = readAttribution()
+  const run = () => {
+    const inApp = detectInAppBrowser()
+    const attribution = readAttribution()
 
-  const enriched: Props = {
-    ...props,
-    in_app_browser: inApp ?? "no",
-    ...Object.fromEntries(
-      Object.entries(attribution).filter(([, v]) => typeof v === "string") as [string, string][]
-    ),
+    const enriched: Props = {
+      ...props,
+      in_app_browser: inApp ?? "no",
+      ...Object.fromEntries(
+        Object.entries(attribution).filter(([, v]) => typeof v === "string") as [string, string][]
+      ),
+    }
+
+    try {
+      track(name, enriched)
+    } catch {
+      // Analytics disabled / blocked — don't break the user flow.
+    }
   }
 
-  try {
-    track(name, enriched)
-  } catch {
-    // Analytics disabled / blocked — don't break the user flow.
+  const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+  if (typeof ric === "function") {
+    ric(run, { timeout: 2000 })
+  } else {
+    setTimeout(run, 0)
   }
 }

@@ -13,8 +13,12 @@ interface HomeHeroProps {
 // framer-motion + motion.div wrappers for desktop-only floats was adding
 // ~50KB of JS that mobile users (and TikTok WebView users) never needed.
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
+  // svh (static viewport height) so the hero does not resize when the mobile
+  // URL bar shows/hides on scroll — dvh was a Clarity-confirmed CLS source.
+  // Clamping to 720px keeps the social-proof row inside the first viewport
+  // on tall devices.
   return (
-    <section className="min-h-[calc(100dvh-64px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
+    <section className="min-h-[min(calc(100svh-64px),720px)] flex items-start pt-16 sm:pt-20 lg:pt-24 pb-16 relative overflow-hidden">
       {/* Background gradient */}
       <div
         className="absolute inset-0 pointer-events-none"
