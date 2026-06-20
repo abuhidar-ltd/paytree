@@ -108,24 +108,109 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               )}
             </div>
 
-            {/* Savings callout — three-line math proof. Sits below the CTA so
-                it does not push the button off the first viewport on mobile.
-                Mono-spaced numbers + strikethrough on the Linktree line make
-                the comparison instantly scannable. */}
+            {/* Savings callout — proportional bar comparison. The Linktree bar
+                is literally 9% wide (their fee), the Paytree bar is full width.
+                The visual asymmetry sells harder than three lines of mono text.
+                Bars use scaleX keyframe so they grow in after the headline. */}
             <div
-              className="mt-7 sm:mt-8 border-t border-white/[0.06] pt-5 max-w-md"
+              className="mt-7 sm:mt-8 max-w-md"
               style={{ animation: "fadeIn 0.5s ease 0.32s both" }}
             >
-              <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">
-                Sell $10k →
+              {/* Header strip */}
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.06]">
+                <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#666]">
+                  Proof · on a $10k sale
+                </span>
+                <span className="text-[10px] font-mono text-[#00ff88] flex items-center gap-1.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-[#00ff88]"
+                    style={{ boxShadow: "0 0 6px rgba(0,255,136,0.8)" }}
+                  />
+                  Live math
+                </span>
               </div>
-              <div className="flex items-baseline justify-between text-sm font-mono">
-                <span className="text-[#888]">Linktree keeps</span>
-                <span className="text-red-400 line-through">$900</span>
+
+              {/* Linktree row — thin red fee bar */}
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs sm:text-sm font-mono text-[#888] flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-400/60" />
+                    Linktree fee (9%)
+                  </span>
+                  <span className="text-sm sm:text-base font-mono font-bold tabular-nums text-red-400 line-through decoration-[1.5px]">
+                    −$900
+                  </span>
+                </div>
+                <div className="relative h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full origin-left"
+                    style={{
+                      width: "9%",
+                      background: "linear-gradient(90deg, rgba(248,113,113,0.85), rgba(248,113,113,0.4))",
+                      boxShadow: "0 0 10px rgba(248,113,113,0.4)",
+                      animation: "barGrow 0.9s cubic-bezier(0.22,1,0.36,1) 0.6s both",
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] font-mono text-[#555] mt-1.5">
+                  lost to platform fees · every sale
+                </p>
               </div>
-              <div className="flex items-baseline justify-between text-sm font-mono mt-1.5">
-                <span className="text-[#d8d8d8]">You keep</span>
-                <span className="text-[#00ff88] font-bold">$10,000</span>
+
+              {/* Paytree row — full green keep bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs sm:text-sm font-mono text-[#d8d8d8] flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full bg-[#00ff88]"
+                      style={{ boxShadow: "0 0 6px rgba(0,255,136,0.6)" }}
+                    />
+                    You keep (0%)
+                  </span>
+                  <span className="text-base sm:text-lg font-mono font-bold tabular-nums text-[#00ff88]">
+                    $10,000
+                  </span>
+                </div>
+                <div className="relative h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full origin-left"
+                    style={{
+                      width: "100%",
+                      background: "linear-gradient(90deg, #00ff88, rgba(0,255,136,0.7))",
+                      boxShadow: "0 0 14px rgba(0,255,136,0.5)",
+                      animation: "barGrow 1.1s cubic-bezier(0.22,1,0.36,1) 0.85s both",
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] font-mono text-[#00ff88]/80 mt-1.5">
+                  every dollar stays in your pocket
+                </p>
+              </div>
+
+              {/* Conclusion banner — the punch line */}
+              <div
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[#00ff88]/[0.05] border border-[#00ff88]/[0.18]"
+                style={{
+                  animation: "fadeIn 0.5s ease 1.4s both",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                }}
+              >
+                <div
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-[#00ff88]/[0.12] border border-[#00ff88]/[0.3] flex items-center justify-center"
+                  style={{ boxShadow: "0 0 12px rgba(0,255,136,0.25)" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-[#e8e8e8] leading-tight">
+                    <span className="text-[#00ff88] font-bold font-mono">+$900</span> more in your pocket
+                  </p>
+                  <p className="text-[10px] font-mono text-[#666] mt-0.5">
+                    per every $10k sold · forever
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -185,6 +270,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
         @keyframes slideInRight {
           from { transform: translateX(40px); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes barGrow {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
         }
       `}</style>
     </section>
