@@ -16,6 +16,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { resolveUserPlan } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { BottomSheet } from "@/components/ui/bottom-sheet"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
 import { trackEvent } from "@/lib/analytics"
@@ -221,6 +222,9 @@ export default function DashboardPage() {
   const [editTab, setEditTab] = useState<"content" | "style" | "settings">("content")
   const [previewKey, setPreviewKey] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Mobile-only preview overlay. Desktop users get the always-on right panel,
+  // so this stays false there. Triggered by the Preview button in the top bar.
+  const [showMobilePreview, setShowMobilePreview] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
 
   const sensors = useSensors(
@@ -696,9 +700,22 @@ export default function DashboardPage() {
           @{profile?.username}
         </span>
         <div className="flex items-center gap-2 ml-auto">
+          {/* Preview — mobile only. Desktop already shows the always-on right
+              preview panel; on mobile this button opens a full-screen overlay. */}
+          {previewUrl && (
+            <button
+              onClick={() => setShowMobilePreview(true)}
+              className="lg:hidden flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
+              style={{ minHeight: 36 }}
+              aria-label="Open preview"
+            >
+              Preview
+            </button>
+          )}
           {profile?.username && (
             <Link href={`/${profile.username}`} target="_blank"
-              className="flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 py-1.5 rounded-lg hover:bg-white/[0.04]">
+              className="flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
+              style={{ minHeight: 36 }}>
               Open <ArrowUpRight size={12} />
             </Link>
           )}
@@ -708,7 +725,8 @@ export default function DashboardPage() {
               trackEvent("add_card_picker_opened", { source: "topbar" })
               setShowAddPicker(true)
             }}
-            className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 py-1.5 hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 hover:opacity-90 active:scale-[0.97] transition-all"
+            style={{ minHeight: 36 }}
             aria-label="Add card"
           >
             <Plus size={14} /> <span className="hidden sm:inline">Add card</span>
@@ -909,67 +927,69 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ─── Edit Panel ─── */}
+      {/* ─── Edit Panel — DESKTOP side panel (lg+) ─── */}
+      {/* Mobile uses BottomSheet primitive below; desktop keeps the slide-in
+          right rail because users have screen real-estate for both at once. */}
       <AnimatePresence>
         {selectedBlock && (
-          <>
-            {/* Desktop: side panel */}
-            <motion.div
-              initial={{ x: 360 }} animate={{ x: 0 }} exit={{ x: 360 }}
-              transition={{ type: "spring", stiffness: 350, damping: 32 }}
-              className="hidden lg:flex w-[360px] flex-col flex-shrink-0 fixed right-0 top-0 bottom-0 z-50"
-              style={{ background: "#0a0a0a", borderLeft: "1px solid rgba(255,255,255,0.06)", boxShadow: "inset 1px 0 0 rgba(255,255,255,0.04)" }}
-            >
-              <EditPanelContent
-                block={selectedBlock}
-                editTab={editTab}
-                setEditTab={setEditTab}
-                onUpdate={handleUpdateBlock}
-                onDelete={handleDeleteBlock}
-                onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
-                onAddReveal={handleAddReveal}
-                onRemoveReveal={handleRemoveReveal}
-                onEditReveal={handleEditReveal}
-                revealEditParent={revealParentBlock || null}
-                onExitRevealEdit={handleExitRevealEdit}
-              />
-            </motion.div>
-
-            {/* Mobile: bottom sheet */}
-            <motion.div
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 350, damping: 32 }}
-              className="lg:hidden fixed inset-x-0 bottom-0 z-[60] bg-[#0a0a0a] border-t border-white/[0.06] rounded-t-2xl max-h-[85vh] flex flex-col"
-            >
-              <div className="w-10 h-1 bg-white/[0.1] rounded-full mx-auto mt-2 mb-1" />
-              <EditPanelContent
-                block={selectedBlock}
-                editTab={editTab}
-                setEditTab={setEditTab}
-                onUpdate={handleUpdateBlock}
-                onDelete={handleDeleteBlock}
-                onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
-                onAddReveal={handleAddReveal}
-                onRemoveReveal={handleRemoveReveal}
-                onEditReveal={handleEditReveal}
-                revealEditParent={revealParentBlock || null}
-                onExitRevealEdit={handleExitRevealEdit}
-              />
-            </motion.div>
-          </>
+          <motion.div
+            initial={{ x: 360 }} animate={{ x: 0 }} exit={{ x: 360 }}
+            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            className="hidden lg:flex w-[360px] flex-col flex-shrink-0 fixed right-0 top-0 bottom-0 z-50"
+            style={{ background: "#0a0a0a", borderLeft: "1px solid rgba(255,255,255,0.06)", boxShadow: "inset 1px 0 0 rgba(255,255,255,0.04)" }}
+          >
+            <EditPanelContent
+              block={selectedBlock}
+              editTab={editTab}
+              setEditTab={setEditTab}
+              onUpdate={handleUpdateBlock}
+              onDelete={handleDeleteBlock}
+              onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
+              onAddReveal={handleAddReveal}
+              onRemoveReveal={handleRemoveReveal}
+              onEditReveal={handleEditReveal}
+              revealEditParent={revealParentBlock || null}
+              onExitRevealEdit={handleExitRevealEdit}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ─── Add Card Picker ─── */}
-      {/* Desktop: top-right popover. Mobile: bottom sheet so it doesn't fight the keyboard. */}
+      {/* ─── Edit Panel — MOBILE bottom sheet ─── */}
+      {/* Wrapper has lg:hidden so display:none on desktop removes the sheet
+          from the rendering tree (position:fixed children inherit that). */}
+      <div className="lg:hidden">
+        <BottomSheet
+          open={!!selectedBlock}
+          onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
+          maxHeight="85vh"
+        >
+          {selectedBlock && (
+            <EditPanelContent
+              block={selectedBlock}
+              editTab={editTab}
+              setEditTab={setEditTab}
+              onUpdate={handleUpdateBlock}
+              onDelete={handleDeleteBlock}
+              onClose={() => { setRevealEditParentId(null); setSelectedBlockId(null) }}
+              onAddReveal={handleAddReveal}
+              onRemoveReveal={handleRemoveReveal}
+              onEditReveal={handleEditReveal}
+              revealEditParent={revealParentBlock || null}
+              onExitRevealEdit={handleExitRevealEdit}
+            />
+          )}
+        </BottomSheet>
+      </div>
+
+      {/* ─── Add Card Picker — DESKTOP popover ─── */}
       <AnimatePresence>
         {showAddPicker && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40 lg:bg-transparent"
+              className="hidden lg:block fixed inset-0 z-40"
               onClick={() => setShowAddPicker(false)} />
 
-            {/* Desktop popover */}
             <motion.div
               initial={{ scale: 0.92, opacity: 0, y: -8 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -989,30 +1009,71 @@ export default function DashboardPage() {
                 onClose={() => setShowAddPicker(false)}
               />
             </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-            {/* Mobile bottom sheet */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 350, damping: 32 }}
-              className="lg:hidden fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl flex flex-col"
+      {/* ─── Add Card Picker — MOBILE full-height sheet ─── */}
+      <div className="lg:hidden">
+        <BottomSheet
+          open={showAddPicker}
+          onClose={() => setShowAddPicker(false)}
+          fullHeight
+        >
+          <AddBlockPicker
+            onSelect={handleAddBlock}
+            onPasteUrl={handlePasteAdd}
+            onClose={() => setShowAddPicker(false)}
+          />
+        </BottomSheet>
+      </div>
+
+      {/* ─── Mobile Preview Overlay — full screen iframe with back button ─── */}
+      <AnimatePresence>
+        {showMobilePreview && previewUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className="lg:hidden fixed inset-0 z-[80] flex flex-col bg-[#030303]"
+          >
+            {/* Top bar — Back + Refresh */}
+            <div
+              className="flex items-center justify-between px-4 border-b border-white/[0.06] flex-shrink-0"
               style={{
-                background: "#0f0f0f",
-                borderTop: "0.5px solid rgba(255,255,255,0.1)",
-                boxShadow: "0 -16px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06)",
-                maxHeight: "calc(100vh - 80px)",
-                paddingBottom: "env(safe-area-inset-bottom, 0px)",
+                height: 48,
+                paddingTop: "max(env(safe-area-inset-top, 0px), 0px)",
+                background: "#080808",
               }}
             >
-              <div className="w-10 h-1 bg-white/[0.12] rounded-full mx-auto mt-2 mb-1 flex-shrink-0" />
-              <AddBlockPicker
-                onSelect={handleAddBlock}
-                onPasteUrl={handlePasteAdd}
-                onClose={() => setShowAddPicker(false)}
-              />
-            </motion.div>
-          </>
+              <button
+                onClick={() => setShowMobilePreview(false)}
+                className="flex items-center gap-1.5 text-white text-sm font-mono active:scale-[0.97] transition-transform"
+                style={{ minHeight: 44, minWidth: 44 }}
+                aria-label="Close preview"
+              >
+                <ChevronRight size={18} className="rotate-180" />
+                Back
+              </button>
+              <span className="text-[#444] font-mono text-xs">Preview</span>
+              <button
+                onClick={refreshPreview}
+                className="text-[#888] text-xs font-mono active:scale-[0.97] transition-transform"
+                style={{ minHeight: 44, minWidth: 44 }}
+                aria-label="Refresh preview"
+              >
+                ↻
+              </button>
+            </div>
+            {/* Full-bleed iframe — no scaling, real mobile viewport. */}
+            <iframe
+              key={previewKey}
+              src={previewUrl}
+              className="flex-1 w-full border-0"
+              title="Preview"
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
