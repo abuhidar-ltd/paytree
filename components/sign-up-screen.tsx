@@ -40,7 +40,10 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
     trackEvent("signup_page_viewed", { ref: ref ?? null, path })
 
     const ua = navigator.userAgent
-    if (/musical_ly|TikTok|BytedanceWebview|aweme/i.test(ua)) {
+    const isTikTok = /musical_ly|MusicallyApp|TikTok|BytedanceWebview|bytedance|aweme|snssdk|xigua/i.test(ua)
+    // URL param override — lets you test the banner in any browser
+    const forceIAB = new URLSearchParams(window.location.search).get("iab") === "tiktok"
+    if (isTikTok || forceIAB) {
       setIsTikTokIAB(true)
     }
   }, [path])
