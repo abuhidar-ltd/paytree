@@ -123,19 +123,6 @@ export function HomeComparison() {
           ))}
         </motion.div>
 
-        {/* Savings callout */}
-        <motion.div
-          className="mt-6 flex flex-wrap items-center justify-center gap-3 text-center"
-          initial={{ opacity: 1, y: 12 }}
-          whileInView={{ y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 160, damping: 22 }}
-        >
-          <span className="text-sm font-mono text-[#999]">Sell $10k →</span>
-          <span className="text-sm font-mono text-red-400 line-through">Linktree keeps $900</span>
-          <span className="text-sm font-mono text-[#666]">·</span>
-          <span className="text-sm font-mono text-[#00ff88]">You keep all of it</span>
-        </motion.div>
       </div>
     </section>
   )
