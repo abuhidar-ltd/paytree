@@ -50,10 +50,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                Sell. Share. Get paid.
+                Sell, Share all links, & get paid.
               </span>
-              <span className="block mt-3 sm:mt-4 text-lg sm:text-2xl lg:text-3xl text-[#00ff88] font-semibold leading-snug">
-                All in 1 place.
+              <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl text-[#00ff88] font-semibold leading-snug">
+                All in one place, 0% platform comission. 
               </span>
             </h1>
 
