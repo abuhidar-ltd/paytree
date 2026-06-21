@@ -93,10 +93,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                     style={{ minHeight: 56 }}
                   >
-                    Start free now →
+                    Create your free page →
                   </Link>
                   <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
-                    Free · No card · 0% forever
+                    No Credit Card Required
                   </p>
                 </>
               )}

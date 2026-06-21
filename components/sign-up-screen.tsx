@@ -105,6 +105,7 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
         <div className="text-center">
           <Link href="/" className="inline-block">
             <h1 className="text-2xl sm:text-3xl font-bold kinetic-shimmer-accent">Paytree</h1>
+            <h3 className="text-sm sm:text-sm font-light text-[#00ff88]">Create your free page, No Credit card required.</h3> 
           </Link>
         </div>
 
