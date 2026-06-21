@@ -40,7 +40,7 @@ for (const vp of VIEWPORTS) {
 
     const findings: string[] = []
     for (const p of PAGES) {
-      await page.goto(`http://localhost:3001${p}`, { waitUntil: "domcontentloaded" })
+      await page.goto(`http://localhost:3000${p}`, { waitUntil: "domcontentloaded" })
       await page.waitForTimeout(p === "/" ? 1200 : 2500)
       const slug = p === "/" ? "landing" : p.slice(1).replace(/\//g, "-")
       await page.screenshot({

@@ -50,10 +50,10 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                Sell your physical &amp; digital products, and content.
+                Sell. Share. Get paid.
               </span>
               <span className="block mt-3 sm:mt-4 text-lg sm:text-2xl lg:text-3xl text-[#00ff88] font-semibold leading-snug">
-                0% commission. AI that sells for you 24/7.
+                All in 1 place.
               </span>
             </h1>
 

@@ -114,6 +114,54 @@ export default function LoginPage() {
           />
         </div>
 
+        {/* Trouble tip — for users in WebViews (TikTok, Instagram) where OAuth can fail */}
+        <div className="flex justify-center">
+          <a
+            href={typeof window !== "undefined" ? window.location.href : "/login"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full text-[11px] font-mono tracking-wide transition-all duration-300"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "0.5px solid rgba(255,255,255,0.08)",
+              color: "#555",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget
+              el.style.background = "rgba(0,255,136,0.04)"
+              el.style.borderColor = "rgba(0,255,136,0.2)"
+              el.style.color = "#00ff88"
+              el.style.boxShadow = "0 0 16px rgba(0,255,136,0.08)"
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget
+              el.style.background = "rgba(255,255,255,0.02)"
+              el.style.borderColor = "rgba(255,255,255,0.08)"
+              el.style.color = "#555"
+              el.style.boxShadow = "none"
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#333",
+                animation: "troublePulse 2.4s ease-in-out infinite",
+                flexShrink: 0,
+              }}
+              className="group-hover:!bg-[#00ff88]"
+            />
+            Having trouble signing up?
+            <span style={{ color: "#333" }}>·</span>
+            Open in browser?
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.4 }} className="group-hover:!opacity-100">
+              <path d="M1.5 8.5L8.5 1.5M8.5 1.5H4M8.5 1.5V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </div>
+
         {/* Additional Links */}
         <div className="text-center space-y-2 text-sm">
           <p className="text-gray-400">
