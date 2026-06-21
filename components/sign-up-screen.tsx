@@ -5,6 +5,7 @@ import { SignUp } from "@clerk/nextjs"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface SignUpScreenProps {
   /**
@@ -27,6 +28,7 @@ interface SignUpScreenProps {
 export function SignUpScreen({ path }: SignUpScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const seenStages = useRef<Set<string>>(new Set())
+  const [isTikTokIAB, setIsTikTokIAB] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -36,6 +38,11 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
     }
 
     trackEvent("signup_page_viewed", { ref: ref ?? null, path })
+
+    const ua = navigator.userAgent
+    if (/musical_ly|TikTok|BytedanceWebview|aweme/i.test(ua)) {
+      setIsTikTokIAB(true)
+    }
   }, [path])
 
   // Funnel tracking via DOM observation — Clerk has no lifecycle hooks.
@@ -97,6 +104,38 @@ export function SignUpScreen({ path }: SignUpScreenProps) {
             <h1 className="text-2xl sm:text-3xl font-bold kinetic-shimmer-accent">Paytree</h1>
           </Link>
         </div>
+
+        <AnimatePresence>
+          {isTikTokIAB && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              style={{
+                background: "rgba(245,158,11,0.06)",
+                border: "0.5px solid rgba(245,158,11,0.2)",
+                borderRadius: 12,
+                boxShadow: "inset 0 1px 0 rgba(245,158,11,0.08)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+              className="px-4 py-3 flex items-center gap-3"
+            >
+              <div
+                style={{
+                  position: "absolute", top: 0, left: 0, right: 0,
+                  height: 1, pointerEvents: "none",
+                  background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.2) 50%, transparent)",
+                }}
+              />
+              <span className="text-[#f59e0b] text-base leading-none flex-shrink-0">↗</span>
+              <p className="text-[#f59e0b]/80 text-xs leading-relaxed">
+                If the link doesn&apos;t open, please open it in your browser.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div ref={containerRef} className="flex justify-center">
           <SignUp
