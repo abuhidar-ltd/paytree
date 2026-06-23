@@ -1,21 +1,26 @@
 /**
  * Paytree Plan Definitions & Feature Gating
  *
- * Plans:
- *  - free:    No subscription (default)
- *  - starter: $7/mo or $59/yr
- *  - ultra:   $19/mo or $159/yr
+ * Tiers (canonical):
+ *  - free: $0
+ *  - pro:  $7/mo or $59/yr
+ *  - ultra: $19/mo or $159/yr
+ *
+ * Legacy DB compat:
+ *  Existing users may have `subscriptionPlan = "starter"` from the previous
+ *  pricing structure. Those users are treated as Pro — normalizePlanId maps
+ *  "starter" → "pro" so downstream code only ever sees PlanId.
  *
  * Subscription intervals: "monthly" | "yearly"
  *
- * Env vars (set in .env):
- *  STRIPE_STARTER_MONTHLY_PRICE_ID
- *  STRIPE_STARTER_YEARLY_PRICE_ID
+ * Env vars (Vercel — names kept as STARTER to avoid breaking the deployment):
+ *  STRIPE_STARTER_MONTHLY_PRICE_ID   (referenced by "pro" plan internally)
+ *  STRIPE_STARTER_YEARLY_PRICE_ID    (referenced by "pro" plan internally)
  *  STRIPE_ULTRA_MONTHLY_PRICE_ID
  *  STRIPE_ULTRA_YEARLY_PRICE_ID
  */
 
-export type PlanId = "free" | "starter" | "ultra"
+export type PlanId = "free" | "pro" | "ultra"
 export type BillingInterval = "monthly" | "yearly"
 
 export interface PlanDefinition {
@@ -33,15 +38,23 @@ export interface PlanDefinition {
   }
   canPublish: boolean
   platformFeePercent: number
-  hasAnalytics: boolean
-  hasAdvancedAnalytics: boolean
-  hasAiFeatures: boolean
+  hasAnalytics: boolean          // basic views + clicks
+  hasAdvancedAnalytics: boolean  // globe + country breakdown
+  hasAiFeatures: boolean         // AI sales agent
   hasScheduling: boolean
-  hasLockedLinks: boolean
+  hasLockedLinks: boolean        // vault / payment / password gates
   hasEmailExport: boolean
-  hasDrops: boolean
-  hasCustomStyle: boolean
+  hasDrops: boolean              // countdown / drop cards
+  hasCustomStyle: boolean        // cinematic hero + premium themes
   removeBranding: boolean
+}
+
+const UNLIMITED = {
+  links: -1,
+  modules: -1,
+  products: -1,
+  vaultItems: -1,
+  folders: -1,
 }
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
@@ -51,65 +64,54 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     monthly: 0,
     yearly: 0,
     features: [
-      "Publish your page",
-      "Unlimited basic links, text & images",
-      "Social links & YouTube embeds",
-      "Drop countdown cards",
-      "Vault & password gates",
-      "Sell products (5% fee)",
-      "Basic link analytics",
+      "Unlimited link cards",
+      "Product cards (sell anything)",
+      "Stripe Connect (receive payments)",
+      "0% platform fees",
+      "Basic analytics (views + clicks)",
+      "Custom accent color",
+      "Classic hero style",
     ],
-    limits: {
-      links: -1,
-      modules: -1,
-      products: -1,
-      vaultItems: -1,
-      folders: -1,
-    },
-    canPublish: true,
-    platformFeePercent: 5,
-    hasAnalytics: true,
-    hasAdvancedAnalytics: false,
-    hasAiFeatures: false,
-    hasScheduling: false,
-    hasLockedLinks: true,
-    hasEmailExport: false,
-    hasDrops: true,
-    hasCustomStyle: false,
-    removeBranding: false,
-  },
-  starter: {
-    id: "starter",
-    name: "Starter",
-    monthly: 700,    // $7
-    yearly: 5900,    // $59 (~$4.92/mo)
-    features: [
-      "Everything in Free",
-      "AI sales agent on your page",
-      "Sell products (0% fees)",
-      "Analytics dashboard",
-      "Email audience export",
-      "Custom styles & backgrounds",
-      "Scheduled visibility",
-    ],
-    limits: {
-      links: -1,
-      modules: -1,
-      products: -1,
-      vaultItems: -1,
-      folders: -1,
-    },
+    limits: UNLIMITED,
     canPublish: true,
     platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: false,
-    hasAiFeatures: true,
+    hasAiFeatures: false,
+    hasScheduling: false,
+    hasLockedLinks: false,
+    hasEmailExport: false,
+    hasDrops: false,
+    hasCustomStyle: false,
+    removeBranding: false,
+  },
+  pro: {
+    id: "pro",
+    name: "Pro",
+    monthly: 700,    // $7
+    yearly: 5900,    // $59 (~$4.92/mo)
+    features: [
+      "Everything in Free",
+      "Countdown / drop cards",
+      "Vault cards (email gating)",
+      "Globe analytics",
+      "Cinematic hero style",
+      "Full analytics dashboard",
+      "Email list export",
+      "Remove Paytree branding",
+    ],
+    limits: UNLIMITED,
+    canPublish: true,
+    platformFeePercent: 0,
+    hasAnalytics: true,
+    hasAdvancedAnalytics: true,
+    hasAiFeatures: false,
     hasScheduling: true,
     hasLockedLinks: true,
     hasEmailExport: true,
     hasDrops: true,
     hasCustomStyle: true,
-    removeBranding: false,
+    removeBranding: true,
   },
   ultra: {
     id: "ultra",
@@ -117,19 +119,12 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     monthly: 1900,   // $19
     yearly: 15900,   // $159 (~$13.25/mo)
     features: [
-      "Everything in Starter",
+      "Everything in Pro",
       "AI sales agent on your page",
-      "Globe analytics + advanced insights",
-      "Remove Paytree branding",
       "Priority support",
+      "Early access to new features",
     ],
-    limits: {
-      links: -1,
-      modules: -1,
-      products: -1,
-      vaultItems: -1,
-      folders: -1,
-    },
+    limits: UNLIMITED,
     canPublish: true,
     platformFeePercent: 0,
     hasAnalytics: true,
@@ -144,23 +139,30 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   },
 }
 
+// Backward-compat alias — existing imports of `starter` continue to work
+// and now resolve to the Pro plan definition.
+export const starter = PLANS.pro
+
 /**
- * Stripe price ID mapping
- * Set these in your .env file after creating prices in Stripe Dashboard
+ * Stripe price ID mapping.
+ * "pro" intentionally points at STRIPE_STARTER_* env vars — the Vercel
+ * env-var names are kept stable to avoid breaking the live deployment.
  */
 export function getStripePriceId(plan: PlanId, interval: BillingInterval): string | null {
-  const key = `STRIPE_${plan.toUpperCase()}_${interval.toUpperCase()}_PRICE_ID`
+  const envPlan = plan === "pro" ? "STARTER" : plan.toUpperCase()
+  const key = `STRIPE_${envPlan}_${interval.toUpperCase()}_PRICE_ID`
   return process.env[key] || null
 }
 
 /**
- * Map legacy DB values (e.g. "pro") to current PlanId.
+ * Map legacy DB values to the current PlanId.
+ * "starter" was the previous name for the paid base tier and is treated as Pro.
  */
 function normalizePlanId(raw: string | null | undefined): PlanId {
   if (!raw || raw === "free") return "free"
-  if (raw === "pro") return "ultra"
+  if (raw === "starter") return "pro"
+  if (raw === "pro") return "pro"
   if (raw === "ultra") return "ultra"
-  if (raw === "starter") return "starter"
   return "free"
 }
 
@@ -178,7 +180,7 @@ export function resolveUserPlan(user: {
   if (!status || status === "free" || status === "canceled") {
     if (status === "canceled" && user.subscriptionEndsAt) {
       if (new Date() < new Date(user.subscriptionEndsAt)) {
-        return normalizePlanId(user.subscriptionPlan) || "starter"
+        return normalizePlanId(user.subscriptionPlan) || "pro"
       }
     }
     return "free"
@@ -188,11 +190,11 @@ export function resolveUserPlan(user: {
     if (user.trialEndsAt && new Date() > new Date(user.trialEndsAt)) {
       return "free"
     }
-    return normalizePlanId(user.subscriptionPlan) || "starter"
+    return normalizePlanId(user.subscriptionPlan) || "pro"
   }
 
   if (status === "active" || status === "canceling") {
-    return normalizePlanId(user.subscriptionPlan) || "starter"
+    return normalizePlanId(user.subscriptionPlan) || "pro"
   }
 
   return "free"

@@ -7,9 +7,11 @@ import type { PlanId, BillingInterval } from "@/lib/plans"
 /**
  * POST /api/create-checkout-session
  *
- * Creates a Stripe checkout session for a Starter or Pro subscription.
+ * Creates a Stripe checkout session for a Pro or Ultra subscription.
  *
- * Body: { plan: "starter" | "ultra", interval: "monthly" | "yearly" }
+ * Body: { plan: "pro" | "ultra", interval: "monthly" | "yearly" }
+ * Legacy: "starter" is accepted and normalized to "pro" for back-compat with
+ * any cached client bundles still posting the old name.
  *
  * IMPORTANT: Does NOT publish the page — publishing happens via webhook.
  */
@@ -31,9 +33,10 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(stripeSecretKey)
 
-    // Parse plan + interval from body
+    // Parse plan + interval from body. Accept "pro" (canonical) or legacy
+    // "starter" — both route to the same Stripe price.
     const body = await req.json().catch(() => ({}))
-    const plan: PlanId = body.plan === "ultra" ? "ultra" : "starter"
+    const plan: PlanId = body.plan === "ultra" ? "ultra" : "pro"
     const interval: BillingInterval = body.interval === "yearly" ? "yearly" : "monthly"
 
     // Get user
@@ -64,10 +67,11 @@ export async function POST(req: Request) {
       )
     }
 
-    // Resolve Stripe price ID
+    // Resolve Stripe price ID — env var names stay STARTER_* for back-compat
+    // with the existing Vercel deployment; "pro" is the canonical plan name.
     const PRICE_IDS: Record<string, string | undefined> = {
-      starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
-      starter_yearly: process.env.STRIPE_STARTER_YEARLY_PRICE_ID,
+      pro_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
+      pro_yearly: process.env.STRIPE_STARTER_YEARLY_PRICE_ID,
       ultra_monthly: process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID,
       ultra_yearly: process.env.STRIPE_ULTRA_YEARLY_PRICE_ID,
     }

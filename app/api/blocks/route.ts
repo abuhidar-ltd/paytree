@@ -72,16 +72,21 @@ export async function POST(req: Request) {
     })
     const features = getUserFeatures(dbUser ?? {})
 
-    // Payment-locked cards and product selling require a paid plan
-    if (data.lockType === "payment" && features.limits.products === 0) {
+    // Pro-and-up features: drop cards, vault cards, and any lock type that
+    // gates a card behind email / password / payment. Product selling is
+    // available on every plan.
+    if ((data.type === "drop" || data.type === "vault") && !features.hasDrops) {
       return NextResponse.json(
-        { error: "Payment-locked cards require a Starter plan.", code: "UPGRADE_REQUIRED" },
+        {
+          error: `${data.type === "drop" ? "Drop" : "Vault"} cards require a Pro plan.`,
+          code: "UPGRADE_REQUIRED",
+        },
         { status: 403 }
       )
     }
-    if (data.type === "product" && features.limits.products === 0) {
+    if (data.lockType && data.lockType !== "none" && !features.hasLockedLinks) {
       return NextResponse.json(
-        { error: "Selling products requires a Starter plan.", code: "UPGRADE_REQUIRED" },
+        { error: "Locked cards require a Pro plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }

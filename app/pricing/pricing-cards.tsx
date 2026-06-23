@@ -13,49 +13,60 @@ interface PricingCardsProps {
 }
 
 const FREE_FEATURES = [
-  { text: "Publish your page", included: true },
-  { text: "Unlimited basic links", included: true },
-  { text: "Text, image & YouTube blocks", included: true },
-  { text: "Social links", included: true },
-  { text: "Drop countdown cards", included: true },
-  { text: "Vault & password gates", included: true },
-  { text: "Basic link analytics", included: true },
-  { text: "Sell products", included: false },
+  { text: "Unlimited link cards", included: true },
+  { text: "Product cards (sell anything)", included: true },
+  { text: "Stripe Connect — receive payments", included: true },
+  { text: "0% platform fees", included: true },
+  { text: "Basic analytics (views + clicks)", included: true },
+  { text: "Custom accent color", included: true },
+  { text: "Countdown / drop cards", included: false },
+  { text: "Vault cards (email gating)", included: false },
+  { text: "Globe analytics", included: false },
+  { text: "Cinematic hero style", included: false },
+  { text: "AI sales agent", included: false },
+  { text: "Remove Paytree branding", included: false },
 ]
 
-const STARTER_FEATURES = [
+const PRO_FEATURES = [
   { text: "Everything in Free", included: true },
-  { text: "Sell products (0% fees)", included: true },
-  { text: "Payment-locked cards", included: true },
-  { text: "Email audience export", included: true },
-  { text: "Custom styles & backgrounds", included: true },
-  { text: "Scheduled visibility", included: true },
-  { text: "No AI agent", included: false },
+  { text: "Countdown / drop cards", included: true },
+  { text: "Vault cards (email gating)", included: true },
+  { text: "Globe analytics", included: true },
+  { text: "Cinematic hero style", included: true },
+  { text: "Full analytics dashboard", included: true },
+  { text: "Email list export", included: true },
+  { text: "Remove Paytree branding", included: true },
+  { text: "AI sales agent", included: false },
 ]
 
 const ULTRA_FEATURES = [
-  { text: "Everything in Starter", included: true },
+  { text: "Everything in Pro", included: true },
   { text: "AI sales agent on your page", included: true },
-  { text: "Globe analytics + advanced insights", included: true },
-  { text: "Remove Paytree branding", included: true },
   { text: "Priority support", included: true },
+  { text: "Early access to new features", included: true },
 ]
+
+// Wire format sent to the checkout API. "pro" is the canonical name; the API
+// route + Stripe env vars still use STARTER_* for backward compat.
+type CheckoutPlan = "pro" | "ultra"
 
 export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCardsProps) {
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly")
-  const [loading, setLoading] = useState<string | null>(null)
+  const [loading, setLoading] = useState<CheckoutPlan | null>(null)
 
-  const normalizedPlan = currentPlan === "pro" ? "ultra" : currentPlan
+  // Legacy "starter" DB value → display as Pro.
+  const normalizedPlan =
+    currentPlan === "starter" ? "pro" : currentPlan
 
-  const starterPrice = interval === "monthly" ? "$7" : "$59"
-  const starterPer = interval === "monthly" ? "/mo" : "/yr"
-  const starterSave = interval === "yearly" ? "Save 30%" : null
+  const proPrice = interval === "monthly" ? "$7" : "$59"
+  const proPer = interval === "monthly" ? "/mo" : "/yr"
+  const proSave = interval === "yearly" ? "Save 30%" : null
 
   const ultraPrice = interval === "monthly" ? "$19" : "$159"
   const ultraPer = interval === "monthly" ? "/mo" : "/yr"
   const ultraSave = interval === "yearly" ? "Save 30%" : null
 
-  async function handleCheckout(plan: "starter" | "ultra") {
+  async function handleCheckout(plan: CheckoutPlan) {
     trackEvent("pricing_checkout_started", { plan, interval })
     setLoading(plan)
     try {
@@ -128,8 +139,12 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-4xl sm:text-5xl font-bold text-[#e0e0e0]">$0</span>
             <span className="text-lg text-[#888888]">/mo</span>
           </div>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Build and publish free</p>
-          <p className="text-xs text-[#444] mb-8">Publish your page, add drops, vault gates, and see analytics.</p>
+          <p className="text-sm text-[#555555] mb-2 font-semibold">Start building. No credit card.</p>
+          <p className="text-xs text-[#444] mb-4">Publish your page, sell products, and keep 100% of every sale.</p>
+          <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
+            <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
+            0% platform fees
+          </p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {FREE_FEATURES.map((f, i) => (
@@ -169,7 +184,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           )}
         </motion.div>
 
-        {/* Starter (highlighted) */}
+        {/* Pro (highlighted) */}
         <motion.div
           className="obsidian-card-accent p-5 sm:p-8 relative overflow-hidden flex flex-col"
           initial={{ y: 30 }}
@@ -185,24 +200,28 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           </div>
 
           <div className="mb-6">
-            <h3 className="text-xl font-bold text-white">Starter</h3>
-            {starterSave && (
+            <h3 className="text-xl font-bold text-white">Pro</h3>
+            {proSave && (
               <span className="text-xs font-bold bg-[rgba(0,255,136,0.1)] text-[#00ff88] px-2.5 py-1 rounded-full border border-[rgba(0,255,136,0.3)] ml-2">
-                {starterSave}
+                {proSave}
               </span>
             )}
           </div>
 
           <div className="flex items-baseline gap-1 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{starterPrice}</span>
-            <span className="text-lg text-[#888888]">{starterPer}</span>
+            <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{proPrice}</span>
+            <span className="text-lg text-[#888888]">{proPer}</span>
           </div>
           <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Sell and grow</p>
-          <p className="text-xs text-[#444] mb-8">Sell products, gate content behind payments, and export your audience.</p>
+          <p className="text-sm text-[#555555] mb-2 font-semibold">For creators who are serious.</p>
+          <p className="text-xs text-[#444] mb-4">Drops, vaults, globe analytics, and a fully cinematic page.</p>
+          <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
+            <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
+            0% platform fees
+          </p>
 
           <ul className="space-y-3 mb-8 flex-1">
-            {STARTER_FEATURES.map((f, i) => (
+            {PRO_FEATURES.map((f, i) => (
               <li key={i} className="flex items-start gap-3">
                 {f.included ? (
                   <svg className="w-5 h-5 text-[#00ff88] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +237,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             ))}
           </ul>
 
-          {isActive && normalizedPlan === "starter" ? (
+          {isActive && normalizedPlan === "pro" ? (
             <Button disabled variant="accent-solid" className="w-full min-h-[48px] font-bold">
               Current Plan
             </Button>
@@ -231,10 +250,10 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               <Button
                 variant="accent-solid"
                 className="w-full min-h-[48px] font-bold"
-                onClick={() => handleCheckout("starter")}
-                disabled={loading === "starter"}
+                onClick={() => handleCheckout("pro")}
+                disabled={loading === "pro"}
               >
-                {loading === "starter" ? "Loading…" : "Try free for 7 days →"}
+                {loading === "pro" ? "Loading…" : "Try free for 7 days →"}
               </Button>
               <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
             </>
@@ -242,7 +261,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <Link
               href="/start"
               className="block"
-              onClick={() => trackEvent("pricing_plan_selected", { plan: "starter", interval })}
+              onClick={() => trackEvent("pricing_plan_selected", { plan: "pro", interval })}
             >
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Try free for 7 days →
@@ -274,8 +293,12 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <span className="text-lg text-[#888888]">{ultraPer}</span>
           </div>
           <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Maximize revenue</p>
-          <p className="text-xs text-[#444] mb-8">Everything in Starter, plus AI that sells for you and globe analytics.</p>
+          <p className="text-sm text-[#555555] mb-2 font-semibold">For creators who want to dominate.</p>
+          <p className="text-xs text-[#444] mb-4">Everything in Pro, plus an AI sales agent that sells while you sleep.</p>
+          <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
+            <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
+            0% platform fees
+          </p>
 
           <ul className="space-y-3 mb-8 flex-1">
             {ULTRA_FEATURES.map((f, i) => (
@@ -298,7 +321,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             <Button disabled variant="accent-solid" className="w-full min-h-[48px] font-bold">
               Current Plan
             </Button>
-          ) : isActive && normalizedPlan === "starter" ? (
+          ) : isActive && normalizedPlan === "pro" ? (
             <Button
               variant="accent-solid"
               className="w-full min-h-[48px] font-bold"
@@ -332,6 +355,28 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
             </Link>
           )}
         </motion.div>
+      </div>
+
+      {/* Stripe processing fees disclosure — surfaces the one cost we don't control. */}
+      <div
+        style={{
+          textAlign: "center",
+          color: "#888",
+          fontSize: 12,
+          fontFamily: "var(--font-mono, ui-monospace, monospace)",
+          marginTop: 24,
+          padding: "12px 24px",
+          background: "rgba(255,255,255,0.02)",
+          borderRadius: 12,
+          border: "0.5px solid rgba(255,255,255,0.06)",
+          maxWidth: 720,
+          marginLeft: "auto",
+          marginRight: "auto",
+          lineHeight: 1.6,
+        }}
+      >
+        <span style={{ color: "#00ff88", fontWeight: 600 }}>0% platform fees on all plans.</span>
+        {" "}Stripe payment processing fees may apply (typically 2.9% + 30¢ per transaction — charged by Stripe, not Paytree).
       </div>
 
       {/* Comparison callout */}

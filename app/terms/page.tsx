@@ -46,8 +46,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-[#e0e0e0] mt-10 mb-4">4. Creator Payments &amp; Fees</h2>
           <ul className="list-disc pl-5 space-y-2 text-[#666] text-sm leading-relaxed">
-            <li><strong className="text-[#e0e0e0]">Free plan:</strong> Cannot publish a live page. No selling capabilities.</li>
-            <li><strong className="text-[#e0e0e0]">Starter and Ultra plans:</strong> 0% transaction fees from Paytree on every sale. Creators keep 100% of what their buyers pay, less Stripe&apos;s standard processing fees.</li>
+            <li><strong className="text-[#e0e0e0]">All plans (Free, Pro, Ultra):</strong> 0% platform fees from Paytree on every sale. Creators keep 100% of what their buyers pay, less Stripe&apos;s standard processing fees.</li>
             <li>All payments are processed securely by Stripe. Standard Stripe processing fees apply on all plans.</li>
             <li>Paytree is not responsible for disputes between creators and their buyers. Creators are responsible for fulfilling their products and services.</li>
           </ul>

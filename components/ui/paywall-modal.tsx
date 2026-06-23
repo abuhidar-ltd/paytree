@@ -43,7 +43,7 @@ export function PaywallModal({ isOpen, onClose, username }: PaywallModalProps) {
             Your Page is Ready!
           </h2>
           <p className="text-gray-300 leading-relaxed">
-            Everything looks great. To make it permanent and share your link with the world, upgrade to Starter.
+            Everything looks great. To make it permanent and share your link with the world, upgrade to Pro.
           </p>
         </div>
 

@@ -88,6 +88,10 @@ interface ProfileClientProps {
   removeBranding?: boolean
   isPreview?: boolean
   isOwner?: boolean
+  // Effective plan of the creator — used by drop/vault cards to render an
+  // owner-only "Upgrade to Pro" nudge on legacy data after the free-tier
+  // gating change.
+  creatorPlan?: "free" | "pro" | "ultra"
 }
 
 // ─── ProfileClient ────────────────────────────────────────────
@@ -105,6 +109,7 @@ export function ProfileClient({
   removeBranding = false,
   isPreview = false,
   isOwner = false,
+  creatorPlan,
 }: ProfileClientProps) {
   useApplyAccentColor(user.accentColor)
   useLoadFont(user.fontFamily)
@@ -205,6 +210,8 @@ export function ProfileClient({
               buttonStyle: buttonStyle || "glass",
               username: user.username,
               creatorStripeReady,
+              isOwner,
+              creatorPlan,
             }}
           />
         </div>
@@ -448,7 +455,15 @@ const FORCE_FULL_ALWAYS = new Set([
 
 function CardsGrid({ blocks, commonProps, onOpenCollection }: {
   blocks: Block[]
-  commonProps: { userId: string; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean }
+  commonProps: {
+    userId: string
+    accentColor: string
+    buttonStyle: string
+    username: string
+    creatorStripeReady: boolean
+    isOwner?: boolean
+    creatorPlan?: "free" | "pro" | "ultra"
+  }
   onOpenCollection?: (block: Block) => void
 }) {
   return (

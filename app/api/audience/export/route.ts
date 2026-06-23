@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     if (!features.hasEmailExport) {
       return NextResponse.json(
         {
-          error: "Upgrade to Starter to export emails",
+          error: "Upgrade to Pro to export emails",
           code: "UPGRADE_REQUIRED",
           upgrade: true,
         },

@@ -544,8 +544,8 @@ function GlobeCanvas({ points }: { points: GeoPoint[] }) {
   )
 }
 
-function AudienceGlobePanel({ points, isUltra, countryCount }: {
-  points: GeoPoint[]; isUltra: boolean; countryCount: number
+function AudienceGlobePanel({ points, hasGlobeAccess, countryCount }: {
+  points: GeoPoint[]; hasGlobeAccess: boolean; countryCount: number
 }) {
   const hasReal = points.length > 0
   const displayPoints = hasReal ? points : DEMO_POINTS
@@ -556,10 +556,10 @@ function AudienceGlobePanel({ points, isUltra, countryCount }: {
     <GlassCard className="h-full" padding="p-5">
       <SectionLabel right={
         <span className="text-[10px] font-mono text-[#00ff88]">
-          {isUltra ? `${countryCount} ${countryCount === 1 ? "country" : "countries"}` : "ULTRA"}
+          {hasGlobeAccess ? `${countryCount} ${countryCount === 1 ? "country" : "countries"}` : "PRO"}
         </span>
       }>
-        Audience globe · ultra
+        Audience globe · pro
       </SectionLabel>
       <div className="relative flex items-center justify-center" style={{ minHeight: 480 }}>
         <motion.div
@@ -567,12 +567,12 @@ function AudienceGlobePanel({ points, isUltra, countryCount }: {
           animate={{ opacity: show ? 1 : 0 }}
           transition={{ duration: 0.6 }}
           className="w-full"
-          style={{ filter: isUltra ? "none" : "blur(6px) brightness(0.55)" }}
+          style={{ filter: hasGlobeAccess ? "none" : "blur(6px) brightness(0.55)" }}
         >
           <GlobeCanvas points={displayPoints} />
         </motion.div>
 
-        {!isUltra && (
+        {!hasGlobeAccess && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3"
               style={{ background: "var(--accent-soft, #00ff881a)", border: "1px solid #00ff8833" }}>
@@ -580,18 +580,18 @@ function AudienceGlobePanel({ points, isUltra, countryCount }: {
             </div>
             <p className="text-sm font-medium text-white mb-1">See where your audience is</p>
             <p className="text-xs font-mono text-[#666] mb-4 max-w-[260px]">
-              Upgrade to Ultra to unlock the audience globe and country-level insights.
+              Upgrade to Pro to unlock the audience globe and country-level insights.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-xs hover:opacity-90 transition-opacity"
             >
-              <Sparkles size={12} /> Upgrade to Ultra
+              <Sparkles size={12} /> Upgrade to Pro
             </Link>
           </div>
         )}
 
-        {isUltra && !hasReal && (
+        {hasGlobeAccess && !hasReal && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-[#444]">
             No visits yet — showing sample locations
           </div>
@@ -854,7 +854,7 @@ export default function AnalyticsDashboard() {
     trialEndsAt: profile.trialEndsAt ? new Date(profile.trialEndsAt) : null,
     subscriptionEndsAt: profile.subscriptionEndsAt ? new Date(profile.subscriptionEndsAt) : null,
   }) : "free"
-  const isUltra = userPlan === "ultra"
+  const hasGlobeAccess = userPlan === "pro" || userPlan === "ultra"
 
   const funnelSteps = [
     { label: "Visited", value: overview?.totalViews ?? 0 },
@@ -959,7 +959,7 @@ export default function AnalyticsDashboard() {
           <motion.div variants={cardVariants}>
             <AudienceGlobePanel
               points={geoData?.points ?? []}
-              isUltra={isUltra}
+              hasGlobeAccess={hasGlobeAccess}
               countryCount={topCountries.length}
             />
           </motion.div>

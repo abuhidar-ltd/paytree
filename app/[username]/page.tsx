@@ -311,6 +311,7 @@ export default async function ProfilePage({
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
             removeBranding={userFeatures.removeBranding}
             isOwner={isOwner}
+            creatorPlan={userPlan}
           />
         </div>
       </div>

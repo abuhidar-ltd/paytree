@@ -96,7 +96,7 @@ export default async function PricingPage() {
                 a: "After 7 days you\u2019ll be billed at the rate you chose (monthly or annual). Cancel before the trial ends to avoid any charges.",
               },
               {
-                q: "Can I switch between Starter and Ultra?",
+                q: "Can I switch between Pro and Ultra?",
                 a: "Yes! You can upgrade or downgrade at any time. When upgrading, you\u2019ll be prorated for the remainder of your billing cycle.",
               },
               {

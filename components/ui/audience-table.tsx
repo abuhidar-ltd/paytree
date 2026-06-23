@@ -293,7 +293,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                 }}
               >
                 <Sparkles size={10} className="inline mr-1 text-[#00ff88]" />
-                Upgrade to Starter to export emails
+                Upgrade to Pro to export emails
               </div>
             )}
           </div>

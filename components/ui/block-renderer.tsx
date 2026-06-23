@@ -68,6 +68,12 @@ interface BaseBlockProps {
   userId: string
   username: string
   creatorStripeReady: boolean
+  // True when the viewer is the page owner. Used to show owner-only nudges
+  // (e.g. legacy drop/vault upgrade notice on the Free plan).
+  isOwner?: boolean
+  // Effective plan of the creator. Drop/vault cards check this to surface an
+  // upgrade nudge when a free-plan owner still has these legacy cards live.
+  creatorPlan?: "free" | "pro" | "ultra"
   onOpenCollection?: (block: Block) => void
 }
 
@@ -247,9 +253,29 @@ function formatRelativeTime(dateStr: string): string {
 const spring = { type: "spring" as const, stiffness: 400, damping: 30 }
 const gentleSpring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
+// Owner-only nudge shown on legacy drop / vault cards when the creator is on
+// the Free plan. The cards keep rendering so existing live links don't break,
+// but the owner is reminded the feature now requires Pro.
+function LegacyProBanner({ feature }: { feature: "drop" | "vault" }) {
+  return (
+    <NextLink
+      href="/pricing"
+      onClick={(e) => e.stopPropagation()}
+      className="block px-3 py-2 mb-2 rounded-xl text-[11px] font-mono no-underline"
+      style={{
+        background: "rgba(0,255,136,0.06)",
+        border: "0.5px solid rgba(0,255,136,0.2)",
+        color: "#00ff88",
+      }}
+    >
+      🔒 {feature === "drop" ? "Drop cards" : "Vault cards"} now require Pro · Upgrade to keep using this card →
+    </NextLink>
+  )
+}
+
 // ─── Main BlockRenderer ──────────────────────────────────────
 
-export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, onOpenCollection, isReveal = false }: BaseBlockProps & { block: Block; isReveal?: boolean }) {
+export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, isOwner = false, creatorPlan, onOpenCollection, isReveal = false }: BaseBlockProps & { block: Block; isReveal?: boolean }) {
   const cfg = (block.config || {}) as Record<string, unknown>
 
   useEffect(() => {
@@ -271,6 +297,8 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
           buttonStyle={buttonStyle}
           username={username}
           creatorStripeReady={creatorStripeReady}
+          isOwner={isOwner}
+          creatorPlan={creatorPlan}
           onOpenCollection={onOpenCollection}
         />
       </GlassShell>
@@ -283,7 +311,7 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
 
   const content = block.lockType && block.lockType !== "none"
     ? <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
-    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} onOpenCollection={onOpenCollection} />
+    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} isOwner={isOwner} creatorPlan={creatorPlan} onOpenCollection={onOpenCollection} />
 
   const animationClass =
     animation === "pulse" ? "animate-pulse"
@@ -350,10 +378,10 @@ function RevealedPayload({
 
 // ─── Block Type Router ───────────────────────────────────────
 
-function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: {
-  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; onOpenCollection?: (block: Block) => void
+function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, isOwner, creatorPlan, onOpenCollection }: {
+  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; isOwner?: boolean; creatorPlan?: "free" | "pro" | "ultra"; onOpenCollection?: (block: Block) => void
 }) {
-  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady, onOpenCollection }
+  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady, isOwner, creatorPlan, onOpenCollection }
 
   switch (block.type) {
     case "link":
@@ -648,7 +676,17 @@ function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, userna
 
 // ─── ProfileVaultCard ────────────────────────────────────────
 
-function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
+function ProfileVaultCard(props: BaseBlockProps) {
+  const showLegacyBanner = props.isOwner && props.creatorPlan === "free"
+  return (
+    <>
+      {showLegacyBanner && <LegacyProBanner feature="vault" />}
+      <ProfileVaultCardInner {...props} />
+    </>
+  )
+}
+
+function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const [step, setStep] = useState<"locked" | "email" | "code" | "unlocked">("locked")
   const [email, setEmail] = useState("")
@@ -844,7 +882,17 @@ function ProfileVaultCard({ block, userId, accentColor, buttonStyle, username, c
 
 // ─── ProfileDropCard ─────────────────────────────────────────
 
-function ProfileDropCard({ block, accentColor, userId, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
+function ProfileDropCard(props: BaseBlockProps) {
+  const showLegacyBanner = props.isOwner && props.creatorPlan === "free"
+  return (
+    <>
+      {showLegacyBanner && <LegacyProBanner feature="drop" />}
+      <ProfileDropCardInner {...props} />
+    </>
+  )
+}
+
+function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, username, creatorStripeReady, onOpenCollection }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const dropAt = (cfg.dropAt as string) || new Date().toISOString()
   const [now, setNow] = useState(Date.now())

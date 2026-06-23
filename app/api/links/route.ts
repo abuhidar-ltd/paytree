@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     // Check scheduling permission
     if ((scheduledFrom || scheduledTo) && !features.hasScheduling) {
       return NextResponse.json(
-        { error: 'Link scheduling requires a Starter or Ultra plan.', code: 'UPGRADE_REQUIRED' },
+        { error: 'Link scheduling requires a Pro plan.', code: 'UPGRADE_REQUIRED' },
         { status: 403 }
       )
     }

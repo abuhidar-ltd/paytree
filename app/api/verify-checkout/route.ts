@@ -63,15 +63,19 @@ export async function POST(req: Request) {
     let plan = meta.plan
     const interval = meta.interval || "monthly"
 
-    if (!plan || !["starter", "ultra"].includes(plan)) {
+    // Accept legacy "starter" alongside the canonical "pro". Anything else
+    // falls back to inferring the plan from the Stripe price ID.
+    if (!plan || !["pro", "starter", "ultra"].includes(plan)) {
       const priceId = sub.items?.data?.[0]?.price?.id
       if (priceId === process.env.STRIPE_ULTRA_MONTHLY_PRICE_ID ||
           priceId === process.env.STRIPE_ULTRA_YEARLY_PRICE_ID) {
         plan = "ultra"
       } else {
-        plan = "starter"
+        plan = "pro"
       }
     }
+    // Normalize legacy DB-stored "starter" so new rows write the canonical name.
+    if (plan === "starter") plan = "pro"
 
     let status: string
     let trialEndsAt: Date | null = null

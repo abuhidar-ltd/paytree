@@ -84,9 +84,9 @@ const stagger = {
 }
 
 const FEE_TABLE: { plan: PlanId; label: string; fee: string; monthly: string; canSell: boolean }[] = [
-  { plan: "free",    label: "Free",    fee: "—",  monthly: "$0",     canSell: false },
-  { plan: "starter", label: "Starter", fee: "0%", monthly: "$7/mo",  canSell: true },
-  { plan: "ultra",   label: "Ultra",   fee: "0%", monthly: "$19/mo", canSell: true },
+  { plan: "free",  label: "Free",  fee: "0%", monthly: "$0",     canSell: true },
+  { plan: "pro",   label: "Pro",   fee: "0%", monthly: "$7/mo",  canSell: true },
+  { plan: "ultra", label: "Ultra", fee: "0%", monthly: "$19/mo", canSell: true },
 ]
 
 export default function PaymentsPage() {
@@ -408,37 +408,20 @@ function ConnectionCard({
           })}
         </div>
 
-        {userPlan === "free" ? (
-          <>
-            <div className="mt-6 w-full max-w-[280px] rounded-xl px-4 py-3.5 text-center"
-              style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)" }}>
-              <p className="text-xs text-amber-400 font-mono">Upgrade to Starter or Ultra to accept payments</p>
-            </div>
-            <Link
-              href="/pricing"
-              className="mt-3 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
-            >
-              Upgrade now <ArrowUpRight size={14} />
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link
-              href="/api/stripe/connect"
-              onClick={() => trackEvent("stripe_connect_clicked", { source: "first_time" })}
-              className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
-            >
-              Connect Stripe <ArrowUpRight size={14} />
-            </Link>
-            <p className="text-[11px] font-mono text-[#444] mt-4 max-w-[360px]">
-              Stripe handles all verification and compliance. Your data is secure.
-            </p>
-            <div className="flex items-center justify-center gap-1.5 mt-2">
-              <Lock size={9} className="text-[#444]" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Powered by Stripe</span>
-            </div>
-          </>
-        )}
+        <Link
+          href="/api/stripe/connect"
+          onClick={() => trackEvent("stripe_connect_clicked", { source: "first_time" })}
+          className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
+        >
+          Connect Stripe <ArrowUpRight size={14} />
+        </Link>
+        <p className="text-[11px] font-mono text-[#444] mt-4 max-w-[360px]">
+          Stripe handles all verification and compliance. Your data is secure.
+        </p>
+        <div className="flex items-center justify-center gap-1.5 mt-2">
+          <Lock size={9} className="text-[#444]" />
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Powered by Stripe</span>
+        </div>
       </div>
     </GlassCard>
   )

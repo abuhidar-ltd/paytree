@@ -289,7 +289,7 @@ export default function SettingsPage() {
                     ? 'bg-red-500/10 border-red-500/20 text-red-400'
                     : 'bg-white/5 border-white/10 text-[#888]'
                 }`}>
-                  {isPro ? (profile?.subscriptionPlan === 'ultra' || profile?.subscriptionPlan === 'pro' ? '⭐ Ultra' : '⭐ Starter') : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
+                  {isPro ? (profile?.subscriptionPlan === 'ultra' ? '⭐ Ultra' : '⭐ Pro') : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
                 </span>
               </div>
             </div>

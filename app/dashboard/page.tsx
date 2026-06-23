@@ -28,6 +28,11 @@ import {
   Tv, Copy, Pencil, CopyPlus,
   LayoutGrid, Paintbrush, Settings, Menu, CreditCard, Sparkles,
 } from "lucide-react"
+import type { PlanId } from "@/lib/plans"
+
+// Card types that are only available on Pro+ plans. Free users can see them in
+// the picker but clicking opens an upgrade prompt instead of creating one.
+const PRO_GATED_TYPES = new Set(["drop", "vault"])
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -355,6 +360,24 @@ export default function DashboardPage() {
   // ─── Block operations ───
 
   const handleAddBlock = async (type: string) => {
+    // Plan-gate drop + vault cards. Free users see the option but get an
+    // upgrade prompt instead of creating the block.
+    if (userPlan === "free" && PRO_GATED_TYPES.has(type)) {
+      setShowAddPicker(false)
+      trackEvent("plan_gate_hit", { feature: type, source: "picker" })
+      toast(
+        type === "drop"
+          ? "Drop cards are a Pro feature ($7/mo)"
+          : "Vault cards are a Pro feature ($7/mo)",
+        {
+          action: {
+            label: "Upgrade to Pro →",
+            onClick: () => router.push("/pricing"),
+          },
+        }
+      )
+      return
+    }
     setShowAddPicker(false)
     try {
       const res = await fetch("/api/blocks", {
@@ -1009,6 +1032,7 @@ export default function DashboardPage() {
                 onSelect={handleAddBlock}
                 onPasteUrl={handlePasteAdd}
                 onClose={() => setShowAddPicker(false)}
+                userPlan={userPlan}
               />
             </motion.div>
           </>
@@ -1026,6 +1050,7 @@ export default function DashboardPage() {
             onSelect={handleAddBlock}
             onPasteUrl={handlePasteAdd}
             onClose={() => setShowAddPicker(false)}
+            userPlan={userPlan}
           />
         </BottomSheet>
       </div>
@@ -1491,11 +1516,13 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
 
 // ─── Add Block Picker ─────────────────────────────────────────
 
-function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
+function AddBlockPicker({ onSelect, onPasteUrl, onClose, userPlan }: {
   onSelect: (type: string) => void
   onPasteUrl: (url: string) => void
   onClose: () => void
+  userPlan: PlanId
 }) {
+  const isFree = userPlan === "free"
   const [search, setSearch] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -1562,30 +1589,38 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
       <div className="overflow-y-auto p-2 overscroll-contain">
         {filtered ? (
           filtered.map((item, idx) => (
-            <PickerItem key={`${item.id}-${idx}`} item={item} onSelect={() => onSelect(item.id)} />
+            <PickerItem key={`${item.id}-${idx}`} item={item} locked={isFree && PRO_GATED_TYPES.has(item.id)} onSelect={() => onSelect(item.id)} />
           ))
         ) : (
           <>
             {/* Quick type grid — bigger touch targets on mobile */}
             <div className="grid grid-cols-2 gap-2 p-1 mb-2">
-              {quickTypes.map((q) => (
-                <button key={q.id} onClick={() => onSelect(q.id)}
-                  className="flex items-center gap-2.5 px-3 h-14 lg:h-auto lg:py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors"
-                  style={glass.card}>
-                  <div className="w-9 h-9 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${TYPE_COLORS[q.id] || "#888"}12`, color: TYPE_COLORS[q.id] || "#888" }}>
-                    <q.icon size={16} />
-                  </div>
-                  <span className="text-sm text-[#e0e0e0] font-mono">{q.name}</span>
-                </button>
-              ))}
+              {quickTypes.map((q) => {
+                const locked = isFree && PRO_GATED_TYPES.has(q.id)
+                return (
+                  <button key={q.id} onClick={() => onSelect(q.id)}
+                    className="flex items-center gap-2.5 px-3 h-14 lg:h-auto lg:py-3 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors relative"
+                    style={glass.card}>
+                    <div className="w-9 h-9 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${TYPE_COLORS[q.id] || "#888"}12`, color: TYPE_COLORS[q.id] || "#888" }}>
+                      <q.icon size={16} />
+                    </div>
+                    <span className="text-sm text-[#e0e0e0] font-mono flex-1 text-left">{q.name}</span>
+                    {locked && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-[#00ff88] bg-[#00ff88]/[0.1] border border-[#00ff88]/30 rounded-full px-1.5 py-0.5">
+                        <Lock size={8} /> Pro
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
 
             {BLOCK_CATEGORIES.map((cat) => (
               <div key={cat.label} className="mb-2">
                 <p className="text-[9px] font-mono uppercase tracking-widest text-[#444] px-2 py-1.5">{cat.label}</p>
                 {cat.items.map((item, idx) => (
-                  <PickerItem key={`${cat.label}-${item.id}-${idx}`} item={item} onSelect={() => onSelect(item.id)} />
+                  <PickerItem key={`${cat.label}-${item.id}-${idx}`} item={item} locked={isFree && PRO_GATED_TYPES.has(item.id)} onSelect={() => onSelect(item.id)} />
                 ))}
               </div>
             ))}
@@ -1596,7 +1631,11 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose }: {
   )
 }
 
-function PickerItem({ item, onSelect }: { item: { id: string; name: string; icon: typeof LinkIcon; desc: string }; onSelect: () => void }) {
+function PickerItem({ item, onSelect, locked = false }: {
+  item: { id: string; name: string; icon: typeof LinkIcon; desc: string }
+  onSelect: () => void
+  locked?: boolean
+}) {
   return (
     <button onClick={onSelect}
       className="w-full flex items-center gap-3 px-3 h-14 lg:h-11 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-left group">
@@ -1608,7 +1647,13 @@ function PickerItem({ item, onSelect }: { item: { id: string; name: string; icon
         <p className="text-sm text-[#e0e0e0] leading-tight">{item.name}</p>
         <p className="text-[10px] text-[#555] font-mono truncate">{item.desc}</p>
       </div>
-      <ArrowUpRight size={14} className="text-[#333] group-hover:text-[#666] transition-colors flex-shrink-0" />
+      {locked ? (
+        <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-[#00ff88] bg-[#00ff88]/[0.1] border border-[#00ff88]/30 rounded-full px-1.5 py-0.5 flex-shrink-0">
+          <Lock size={8} /> Pro
+        </span>
+      ) : (
+        <ArrowUpRight size={14} className="text-[#333] group-hover:text-[#666] transition-colors flex-shrink-0" />
+      )}
     </button>
   )
 }
