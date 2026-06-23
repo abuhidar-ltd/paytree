@@ -104,7 +104,7 @@ export async function PATCH(req: Request) {
     const body = await req.json()
     
     // SECURITY: Explicitly reject attempts to modify protected fields
-    if ('pageStatus' in body || 'subscriptionStatus' in body || 'publishedAt' in body || 'clerkId' in body) {
+    if ('pageStatus' in body || 'subscriptionStatus' in body || 'publishedAt' in body) {
       return NextResponse.json(
         { error: "Cannot modify protected fields" },
         { status: 403 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display, Space_Mono } from "next/font/google";
+import { Inter, Space_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toast";
@@ -11,14 +11,6 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
   preload: true,
-});
-
-// Elegant display headings
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-  preload: false,
 });
 
 // Mono labels, numbers, terminal accents
@@ -103,7 +95,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${spaceMono.variable}`}>
       <head>
         <link rel="dns-prefetch" href="https://www.clarity.ms" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />

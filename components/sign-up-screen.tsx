@@ -10,16 +10,23 @@ import { trackEvent } from "@/lib/analytics"
 
 /**
  * Custom Better Auth signup screen. Used by both /start (canonical, TikTok-safe)
- * and /join (legacy alias). Both wrappers render without props.
+ * and /join (legacy alias). Callers pass initialIsTikTokIAB from the server
+ * page (detected via headers().get('user-agent')) so the warning banner is
+ * present in the initial HTML — a client useEffect alone is too late for
+ * bounce-prone TikTok traffic.
  */
-export function SignUpScreen() {
+interface SignUpScreenProps {
+  initialIsTikTokIAB?: boolean
+}
+
+export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) {
   const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [isTikTokIAB, setIsTikTokIAB] = useState(false)
+  const [isTikTokIAB, setIsTikTokIAB] = useState(initialIsTikTokIAB)
   const fired = useRef<Set<string>>(new Set())
 
   function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {

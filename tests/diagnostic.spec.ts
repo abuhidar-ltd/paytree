@@ -326,25 +326,17 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     await collectErrors(page, "tiktok-iab")
 
     const start = Date.now()
-    await page.goto(BASE, { waitUntil: "domcontentloaded" })
+    // Go directly to /start so the SSR header-based detection has the TikTok UA.
+    await page.goto(`${BASE}/start`, { waitUntil: "domcontentloaded" })
     const tFull = Date.now() - start
-
-    await page.screenshot({ path: path.join(OUT_DIR, "tiktok-iab-home.png"), fullPage: false })
-
-    // Click CTA in IAB
-    const cta = page.locator('a[href="/start"]').first()
-    await cta.click({ timeout: 5000 }).catch((e) => log({ severity: "critical", area: "tiktok-cta", msg: `IAB CTA click failed: ${e.message}` }))
-    await page.waitForURL(/\/start/, { timeout: 10_000 }).catch(() => {
-      log({ severity: "high", area: "tiktok-cta", msg: `IAB CTA didn't navigate. URL=${page.url()}` })
-    })
 
     await page.screenshot({ path: path.join(OUT_DIR, "tiktok-iab-start.png"), fullPage: false })
 
-    // Look for the IAB warning banner
+    // Banner should now be in the initial HTML (server-detected), not deferred to useEffect.
     const iabBanner = await page.locator("text=/open it in your browser/i").count()
     console.log("TikTok IAB banner shown:", iabBanner)
     if (iabBanner === 0) {
-      log({ severity: "medium", area: "tiktok-iab", msg: "TikTok IAB warning banner not detected on /start" })
+      log({ severity: "high", area: "tiktok-iab", msg: "TikTok IAB warning banner not detected on /start even with SSR detection" })
     }
 
     console.log(`TikTok IAB load: ${tFull}ms`)
