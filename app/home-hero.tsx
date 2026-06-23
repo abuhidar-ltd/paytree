@@ -33,26 +33,17 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
           {/* Left column — CSS animated, no JS dependency */}
           <div className="flex-[3] max-w-2xl">
 
-            {/* Badge */}
-            <span
-              className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full"
-              style={{ animation: "fadeIn 0.4s ease 0.05s both" }}
-            >
-              ✦ Linktree alternative · 0% fees
-            </span>
-
-            {/* Headline — Math angle. White line states the problem in dollar
-                terms (the hook), green line is the resolution. TikTok finance
-                audience reads dollars first, brand second — this lands in <3s. */}
+            {/* Headline — rhetorical hook above, value-prop resolution below. */}
             <h1
               className="mt-5 sm:mt-8 font-bold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                Linktree takes 9% of every sale.
+                why give up 9% of your sales to platforms
               </span>
-              <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl text-[#00ff88] font-semibold leading-snug">
-                Paytree takes 0%. Keep what you earn.
+              <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl font-semibold leading-snug">
+                <span className="text-[#00ff88]">with paytree you sell, share all your links &amp; get paid from your professional page</span>{" "}
+                <span className="text-white">with 0% platform fees</span>
               </span>
             </h1>
 
@@ -94,7 +85,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   >
                     Create your free page →
                   </Link>
-                  <p className="mt-2.5 text-[11px] font-mono text-[#00ff88] font-semibold text-center">
+                  <p className="mt-2.5 text-sm font-mono text-[#00ff88] font-semibold text-center">
                     No Credit Card Required
                   </p>
                 </>
