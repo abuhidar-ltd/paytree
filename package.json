@@ -37,7 +37,6 @@
     "lucide-react": "^0.561.0",
     "motion": "^12.40.0",
     "next": "16.0.10",
-    "next-auth": "^5.0.0-beta.30",
     "node-vibrant": "^4.0.3",
     "pg": "^8.20.0",
     "prisma": "^7.3.0",

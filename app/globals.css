@@ -1325,25 +1325,3 @@ select {
   100% { background-position: 0% 50%; }
 }
 
-/* ============================================
-   CLERK — collapse name/username rows reliably
-   ============================================
-   Clerk v6 changed class names; the appearance.elements config alone no
-   longer hides First/Last/Username. data-localization-key is stable. */
-
-.cl-formFieldRow:has([data-localization-key="formFieldLabel__firstName"]),
-.cl-formFieldRow:has([data-localization-key="formFieldLabel__lastName"]),
-.cl-formFieldRow:has([data-localization-key="formFieldLabel__username"]),
-.cl-formField:has([data-localization-key="formFieldLabel__firstName"]),
-.cl-formField:has([data-localization-key="formFieldLabel__lastName"]),
-.cl-formField:has([data-localization-key="formFieldLabel__username"]) {
-  display: none !important;
-}
-
-/* Clerk's footer signin link — we render our own paragraph, hide theirs */
-.cl-footer,
-.cl-footerAction,
-.cl-internal-1eqcyez,
-.cl-card > .cl-footer {
-  display: none !important;
-}

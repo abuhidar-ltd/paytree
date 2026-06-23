@@ -38,22 +38,21 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="inline-flex items-center gap-2 bg-[#00ff88]/[0.08] border border-[#00ff88]/[0.15] text-[#00ff88] text-xs font-mono px-3 py-1.5 rounded-full"
               style={{ animation: "fadeIn 0.4s ease 0.05s both" }}
             >
-              ✦ 0% fees · Linktree alternative
+              ✦ Linktree alternative · 0% fees
             </span>
 
-            {/* Headline — two-part. White lead is the dominant headline (the
-                product promise). Green payoff sits below as a supporting line
-                at a smaller weight — eye lands on white first, gets reinforced
-                by green. Subhead removed; the green line replaces it. */}
+            {/* Headline — Math angle. White line states the problem in dollar
+                terms (the hook), green line is the resolution. TikTok finance
+                audience reads dollars first, brand second — this lands in <3s. */}
             <h1
               className="mt-5 sm:mt-8 font-bold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                Sell, Share all links, & get paid.
+                Linktree takes 9% of every sale.
               </span>
               <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl text-[#00ff88] font-semibold leading-snug">
-                All in one place, 0% platform comission. 
+                Paytree takes 0%. Keep what you earn.
               </span>
             </h1>
 
