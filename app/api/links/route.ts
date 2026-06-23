@@ -2,7 +2,7 @@
 // public profile or dashboard; this route is preserved only for any external
 // integrations still pointing at it.
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { getUserFeatures, isLimitReached } from "@/lib/plans"

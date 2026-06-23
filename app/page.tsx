@@ -1,6 +1,7 @@
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
 import { HomeHero } from "./home-hero"
 import { HomeMarquee } from "./home-marquee"
 import { HomeStickyCTA } from "./home-sticky-cta"
@@ -13,9 +14,9 @@ const HomeShowcase = dynamic(() => import("./home-showcase").then(m => m.HomeSho
 const HomePricingSection = dynamic(() => import("./home-pricing-section").then(m => m.HomePricingSection), { ssr: true })
 
 export default async function HomePage() {
-  // JWT-only check — no DB hit. Cold-start was killing TTFB on TikTok WebView.
-  const { userId } = await auth().catch(() => ({ userId: null as string | null }))
-  const isLoggedIn = !!userId
+  // Session check via Better Auth — cookie-cached, single DB hit on miss.
+  const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
+  const isLoggedIn = !!session
 
   return (
     // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky

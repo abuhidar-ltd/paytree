@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useUser, SignOutButton } from "@clerk/nextjs"
+import { useSession, signOut } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -17,7 +17,9 @@ interface SubscriptionInfo {
 }
 
 export default function SettingsPage() {
-  const { user, isLoaded } = useUser()
+  const { data: session, isPending } = useSession()
+  const user = session?.user
+  const isLoaded = !isPending
   const router = useRouter()
   
   const [profile, setProfile] = useState<any>(null)
@@ -226,11 +228,17 @@ export default function SettingsPage() {
             >
               Settings
             </Link>
-            <SignOutButton redirectUrl="/">
-              <Button variant="ghost" size="sm" className="text-[#444] hover:text-red-400 min-h-[44px]">
-                Logout
-              </Button>
-            </SignOutButton>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[#444] hover:text-red-400 min-h-[44px]"
+              onClick={async () => {
+                await signOut()
+                router.push("/")
+              }}
+            >
+              Logout
+            </Button>
           </nav>
         </div>
       </header>
@@ -259,7 +267,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                 <span className="text-[#444] text-xs font-mono uppercase tracking-wider">Email:</span>
-                <span className="text-[#e0e0e0] text-sm font-mono break-all">{user?.primaryEmailAddress?.emailAddress}</span>
+                <span className="text-[#e0e0e0] text-sm font-mono break-all">{user?.email}</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                 <span className="text-[#444] text-xs font-mono uppercase tracking-wider">Subscription:</span>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 
 // Common referrer patterns
 const REFERRER_PATTERNS: Record<string, { name: string; color: string }> = {

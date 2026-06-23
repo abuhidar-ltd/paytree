@@ -4,5 +4,5 @@ import { SignUpScreen } from "@/components/sign-up-screen"
 // safety filter blocks hard navigations to common auth keywords (/join,
 // /signup, /register). /start is a neutral word and isn't flagged.
 export default function StartPage() {
-  return <SignUpScreen path="/start" />
+  return <SignUpScreen />
 }

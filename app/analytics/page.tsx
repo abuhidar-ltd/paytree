@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useSession } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
@@ -31,7 +31,9 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
-  const { user, isLoaded } = useUser()
+  const { data: session, isPending } = useSession()
+  const user = session?.user
+  const isLoaded = !isPending
   const router = useRouter()
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)

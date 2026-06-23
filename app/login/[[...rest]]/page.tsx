@@ -1,22 +1,34 @@
 "use client"
 
-import { SignIn, useUser } from "@clerk/nextjs"
-import { PremiumBackground } from "@/components/backgrounds/premium-background"
-import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { PremiumBackground } from "@/components/backgrounds/premium-background"
+import { signIn, useSession } from "@/lib/auth-client"
 import { trackEvent } from "@/lib/analytics"
 
 export default function LoginPage() {
-  const { user, isLoaded } = useUser()
   const router = useRouter()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const seenStages = useRef<Set<string>>(new Set())
+  const { data: session, isPending } = useSession()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const fired = useRef<Set<string>>(new Set())
+
+  function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {
+    if (fired.current.has(stage)) return
+    fired.current.add(stage)
+    trackEvent(stage, props)
+  }
 
   useEffect(() => {
-    if (isLoaded && user) {
-      // Idempotent — guards against repeat firings if Clerk re-renders before
-      // the router transition lands.
+    trackEvent("login_page_viewed")
+    fireOnce("signin_form_mounted")
+  }, [])
+
+  useEffect(() => {
+    if (!isPending && session) {
       try {
         if (!sessionStorage.getItem("paytree_login_completed")) {
           sessionStorage.setItem("paytree_login_completed", "1")
@@ -25,148 +37,140 @@ export default function LoginPage() {
       } catch {
         trackEvent("login_completed")
       }
-      router.push('/dashboard')
+      router.push("/dashboard")
     }
-  }, [isLoaded, user, router])
+  }, [isPending, session, router])
 
-  useEffect(() => {
-    trackEvent("login_page_viewed")
-  }, [])
-
-  // Mirror of /join funnel observation — see app/join page for explanation.
-  useEffect(() => {
-    const root = containerRef.current
-    if (!root) return
-    function fireOnce(stage: string) {
-      if (seenStages.current.has(stage)) return
-      seenStages.current.add(stage)
-      trackEvent(stage)
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email || !password) {
+      setError("Please fill in all fields")
+      return
     }
-    const obs = new MutationObserver(() => {
-      if (root.querySelector(".cl-rootBox")) fireOnce("signin_form_mounted")
-      if (root.querySelector(".cl-formFieldInput")) fireOnce("signin_form_fields_visible")
-      if (root.querySelector(".cl-formButtonPrimary")) fireOnce("signin_submit_visible")
-    })
-    obs.observe(root, { childList: true, subtree: true })
-    return () => obs.disconnect()
-  }, [])
 
-  if (isLoaded && user) {
-    return null
+    fireOnce("signin_submit_clicked")
+    setLoading(true)
+    setError("")
+
+    try {
+      const { error: authError } = await signIn.email({
+        email,
+        password,
+        callbackURL: "/dashboard",
+      })
+
+      if (authError) {
+        const msg = authError.message || "Sign in failed"
+        setError(msg)
+        trackEvent(`signin_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+        return
+      }
+
+      router.push("/dashboard")
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
+      setError(msg)
+      trackEvent(`signin_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+    } finally {
+      setLoading(false)
+    }
   }
+
+  if (!isPending && session) return null
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
 
       <div className="relative z-10 w-full max-w-md space-y-6">
-        {/* Logo/Brand */}
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl sm:text-4xl font-bold kinetic-shimmer-accent">
-              Paytree
-            </h1>
+            <h1 className="text-3xl sm:text-4xl font-bold kinetic-shimmer-accent">Paytree</h1>
           </Link>
           <p className="text-sm sm:text-base text-gray-400 mt-2">Sign in to your account</p>
         </div>
 
-        {/* Clerk Sign In Component */}
-        <div ref={containerRef} className="flex justify-center">
-          <SignIn
-            appearance={{
-              variables: {
-                colorBackground: "#0a0a0a",
-                colorText: "#f0f0f0",
-                colorTextSecondary: "#888",
-                colorInputBackground: "rgba(255,255,255,0.04)",
-                colorInputText: "#f0f0f0",
-                colorPrimary: "#00ff88",
-                colorTextOnPrimaryBackground: "#030303",
-                colorNeutral: "#ffffff",
-                borderRadius: "12px",
-                fontFamily: "'Inter', system-ui, sans-serif",
-              },
-              elements: {
-                rootBox: "w-full",
-                card: "bg-[#0a0a0a] border border-white/[0.08] shadow-2xl",
-                headerTitle: "text-white",
-                headerSubtitle: "text-[#888]",
-                socialButtonsBlockButton:
-                  "bg-white/[0.03] border border-white/[0.08] hover:border-white/20 text-[#e0e0e0]",
-                socialButtonsBlockButtonText: "text-[#e0e0e0]",
-                dividerLine: "bg-white/[0.06]",
-                dividerText: "text-[#555]",
-                formFieldLabel: "text-[#888] font-mono uppercase tracking-wider text-[10px]",
-                formFieldInput:
-                  "bg-white/[0.03] border border-white/[0.08] text-[#f0f0f0] placeholder:text-[#444] focus:border-[#00ff88]/30",
-                formButtonPrimary:
-                  "bg-[#00ff88] text-black font-mono font-semibold hover:opacity-90 normal-case",
-                footerActionLink: "text-[#00ff88] hover:text-[#00ff88]/80",
-                identityPreviewText: "text-[#e0e0e0]",
-                identityPreviewEditButton: "text-[#00ff88]",
-                footer: "hidden",
-              },
-            }}
-            routing="path"
-            path="/login"
-            signUpUrl="/start"
-            fallbackRedirectUrl="/dashboard"
-          />
-        </div>
+        <form
+          onSubmit={handleSignIn}
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "0.5px solid rgba(255,255,255,0.08)",
+            borderRadius: 16,
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+            position: "relative",
+            overflow: "hidden",
+            padding: "24px",
+          }}
+          className="flex flex-col gap-3"
+        >
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0,
+            height: 1, pointerEvents: "none",
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)",
+          }} />
 
-        {/* Trouble tip — for users in WebViews (TikTok, Instagram) where OAuth can fail */}
-        <div className="flex justify-center">
-          <a
-            href={typeof window !== "undefined" ? window.location.href : "/login"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full text-[11px] font-mono tracking-wide transition-all duration-300"
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onFocus={() => fireOnce("signin_email_focused")}
+            autoComplete="email"
+            disabled={loading}
+            style={inputStyle}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => fireOnce("signin_password_focused")}
+            autoComplete="current-password"
+            disabled={loading}
+            style={inputStyle}
+          />
+
+          {error && (
+            <div style={{
+              color: "#ff5555",
+              fontSize: 13,
+              textAlign: "center",
+              padding: "8px",
+              background: "rgba(255,85,85,0.08)",
+              borderRadius: 8,
+              border: "0.5px solid rgba(255,85,85,0.2)",
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
             style={{
-              background: "rgba(255,255,255,0.02)",
-              border: "0.5px solid rgba(255,255,255,0.08)",
-              color: "#555",
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget
-              el.style.background = "rgba(0,255,136,0.04)"
-              el.style.borderColor = "rgba(0,255,136,0.2)"
-              el.style.color = "#00ff88"
-              el.style.boxShadow = "0 0 16px rgba(0,255,136,0.08)"
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget
-              el.style.background = "rgba(255,255,255,0.02)"
-              el.style.borderColor = "rgba(255,255,255,0.08)"
-              el.style.color = "#555"
-              el.style.boxShadow = "none"
+              background: loading ? "rgba(0,255,136,0.5)" : "#00ff88",
+              color: "#000",
+              fontWeight: 700,
+              fontFamily: "var(--font-mono, monospace)",
+              fontSize: 15,
+              padding: "16px",
+              borderRadius: 12,
+              border: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              marginTop: 4,
+              width: "100%",
+              transition: "opacity 0.15s",
             }}
           >
-            <span
-              style={{
-                display: "inline-block",
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#333",
-                animation: "troublePulse 2.4s ease-in-out infinite",
-                flexShrink: 0,
-              }}
-              className="group-hover:!bg-[#00ff88]"
-            />
-            Having trouble signing up?
-            <span style={{ color: "#333" }}>·</span>
-            Open in browser?
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.4 }} className="group-hover:!opacity-100">
-              <path d="M1.5 8.5L8.5 1.5M8.5 1.5H4M8.5 1.5V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
-        </div>
+            {loading ? "Signing in..." : "Sign in →"}
+          </button>
+        </form>
 
-        {/* Additional Links */}
         <div className="text-center space-y-2 text-sm">
           <p className="text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link href="/start" className="text-blue-400 hover:text-blue-300 font-semibold">
+            <Link href="/start" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
               Sign up for free
             </Link>
           </p>
@@ -183,4 +187,24 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.04)",
+  border: "0.5px solid rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  padding: "14px 16px",
+  color: "#f0f0f0",
+  fontSize: 15,
+  outline: "none",
+  width: "100%",
+  fontFamily: "inherit",
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40)
 }

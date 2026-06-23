@@ -13,7 +13,6 @@ import { prisma } from "../lib/prisma"
 
 const TEST_USERNAME = "opustest"
 const TEST_EMAIL = "opus-test@paytree.io"
-const TEST_CLERK_ID = "user_opus_test_synthetic"
 const ACCENT = "#00ff88"
 
 const HERO_IMAGE = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=80&fm=jpg"
@@ -28,7 +27,6 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { username: TEST_USERNAME },
     create: {
-      clerkId: TEST_CLERK_ID,
       email: TEST_EMAIL,
       username: TEST_USERNAME,
       name: "Karim Al-Rashid",

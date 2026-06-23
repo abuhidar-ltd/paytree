@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 import { redirect } from "next/navigation"
 import { OnboardingFlow } from "./onboarding-flow"
 

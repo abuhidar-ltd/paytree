@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display, Space_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -104,45 +103,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      signInUrl="/login"
-      signUpUrl="/start"
-    >
-      <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
-        <head>
-          {/*
-            Preconnect to the third-party origins that absolutely fire on every
-            page (Clerk auth + Vercel Analytics + Clarity). Saves ~150ms of
-            DNS+TLS on slow 3G, which moves LCP straight down.
-          */}
-          <link rel="preconnect" href="https://clerk.paytree.to" crossOrigin="" />
-          <link rel="dns-prefetch" href="https://www.clarity.ms" />
-          <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
-        </head>
-        <body className={`${inter.className} antialiased bg-[#030303]`}>
-          {children}
-          <Toaster />
-          {/*
-            All analytics scripts deferred until the browser is idle. None of
-            them are needed for first paint — every byte they cost before
-            interactive directly hurts LCP and INP.
-          */}
-          <Analytics />
-          <Script
-            id="microsoft-clarity"
-            strategy="lazyOnload"
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                })(window, document, "clarity", "script", "x8ply674rn");
-              `,
-            }}
-          />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${spaceMono.variable}`}>
+      <head>
+        <link rel="dns-prefetch" href="https://www.clarity.ms" />
+        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
+      </head>
+      <body className={`${inter.className} antialiased bg-[#030303]`}>
+        {children}
+        <Toaster />
+        {/*
+          All analytics scripts deferred until the browser is idle. None of
+          them are needed for first paint — every byte they cost before
+          interactive directly hurts LCP and INP.
+        */}
+        <Analytics />
+        <Script
+          id="microsoft-clarity"
+          strategy="lazyOnload"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window, document, "clarity", "script", "x8ply674rn");
+            `,
+          }}
+        />
+      </body>
+    </html>
   );
 }

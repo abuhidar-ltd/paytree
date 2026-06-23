@@ -2,7 +2,7 @@
 // public profile or dashboard; this route is preserved only for any external
 // integrations still pointing at it.
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
@@ -24,18 +24,9 @@ const createModuleSchema = z.object({
 // GET - List all modules for the authenticated user
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: { id: true },
-    })
-
+    const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const modules = await prisma.module.findMany({
@@ -56,24 +47,9 @@ export async function GET() {
 // POST - Create a new module
 export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: {
-        id: true,
-        subscriptionStatus: true,
-        subscriptionPlan: true,
-        trialEndsAt: true,
-        subscriptionEndsAt: true,
-      },
-    })
-
+    const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()

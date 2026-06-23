@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
@@ -24,21 +24,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { id } = await params
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: { id: true },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
 
     // Check if module belongs to user
     const existingModule = await prisma.module.findFirst({
@@ -86,21 +77,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { id } = await params
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: { id: true },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
 
     // Check if module belongs to user
     const existingModule = await prisma.module.findFirst({

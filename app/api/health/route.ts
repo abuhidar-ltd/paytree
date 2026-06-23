@@ -10,7 +10,7 @@ export async function GET() {
     status: "checking...",
     database: { status: "unknown" },
     stripe: { status: "unknown" },
-    clerk: { status: "unknown" },
+    auth: { status: "unknown" },
     env: { status: "unknown" },
   };
 
@@ -52,22 +52,22 @@ export async function GET() {
       };
     }
 
-    // Check Clerk configuration
-    const clerkConfig = {
-      publishableKey: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-      secretKey: !!process.env.CLERK_SECRET_KEY,
+    // Check Better Auth configuration
+    const authConfig = {
+      secret: !!process.env.BETTER_AUTH_SECRET,
+      baseUrl: !!(process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL),
     };
-    
-    const clerkMissing = Object.entries(clerkConfig)
+
+    const authMissing = Object.entries(authConfig)
       .filter(([_, value]) => !value)
       .map(([key]) => key);
-    
-    if (clerkMissing.length === 0) {
-      checks.clerk = { status: "✅ configured" };
+
+    if (authMissing.length === 0) {
+      checks.auth = { status: "✅ configured" };
     } else {
-      checks.clerk = { 
-        status: "❌ incomplete", 
-        missing: clerkMissing 
+      checks.auth = {
+        status: "❌ incomplete",
+        missing: authMissing
       };
     }
 
@@ -78,10 +78,10 @@ export async function GET() {
     };
 
     // Overall status
-    const hasErrors = 
-      checks.database.status.includes("❌") || 
-      checks.stripe.status.includes("❌") || 
-      checks.clerk.status.includes("❌");
+    const hasErrors =
+      checks.database.status.includes("❌") ||
+      checks.stripe.status.includes("❌") ||
+      checks.auth.status.includes("❌");
     
     const hasWarnings = 
       checks.stripe.status.includes("⚠️");

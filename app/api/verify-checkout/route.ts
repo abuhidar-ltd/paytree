@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import Stripe from "stripe"
 

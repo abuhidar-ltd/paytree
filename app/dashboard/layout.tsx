@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { unstable_noStore as noStore } from "next/cache"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 
 export default async function DashboardLayout({
   children,

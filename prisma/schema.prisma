@@ -9,12 +9,11 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(cuid())
-  clerkId  String? @unique // Clerk user ID for authentication
-  email    String  @unique
-  password String? // Optional for backward compatibility, will be removed
-  name     String?
-  username String  @unique
+  id            String  @id @default(cuid())
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  name          String?
+  username      String  @unique
   bio      String?  @db.Text
   image    String?  @db.Text
 
@@ -72,6 +71,9 @@ model User {
   // Onboarding
   onboarded Boolean @default(false)
 
+  // Branding toggle (Ultra plan removes "Made with Paytree" footer)
+  removeBranding Boolean @default(false)
+
   // AI Agent
   aiAgentEnabled  Boolean @default(true)
   aiChatSessions  Int     @default(0)
@@ -101,8 +103,59 @@ model User {
   referralsGiven    Referral[] @relation("ReferrerReferrals")
   referralsReceived Referral[] @relation("ReferredReferrals")
 
+  // Better Auth relations
+  sessions Session[]
+  accounts Account[]
+
   @@index([username])
   @@index([email])
+}
+
+// ===== BETTER AUTH =====
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 model Link {

@@ -2,7 +2,7 @@
 // Product table on the public profile. Route preserved for legacy integrations
 // and Stripe webhooks that still reference Product/Purchase rows.
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -21,18 +21,9 @@ const createProductSchema = z.object({
 // GET - List all products for the authenticated user
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: { id: true },
-    })
-
+    const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const products = await prisma.product.findMany({
@@ -73,18 +64,9 @@ export async function GET() {
 // POST - Create a new product
 export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId },
-      select: { id: true, subscriptionStatus: true },
-    })
-
+    const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Only Pro users can create products

@@ -2,7 +2,7 @@
 // is no longer queried by the public profile; route preserved for legacy
 // integrations.
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 

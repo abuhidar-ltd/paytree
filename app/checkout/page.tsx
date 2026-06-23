@@ -1,14 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useSession } from "@/lib/auth-client"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 
 export default function CheckoutPage() {
-  const { user, isLoaded } = useUser()
+  const { data: session, isPending } = useSession()
+  const user = session?.user
+  const isLoaded = !isPending
   const router = useRouter()
   const searchParams = useSearchParams()
   const plan = searchParams.get("plan") || "monthly"

@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/clerk-auth"
+import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { PricingCards } from "./pricing-cards"

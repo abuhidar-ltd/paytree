@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useSession } from "@/lib/auth-client"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
@@ -205,7 +205,9 @@ const TYPE_COLORS: Record<string, string> = {
 // ─── Dashboard Page ───────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { user: clerkUser, isLoaded } = useUser()
+  const { data: session, isPending } = useSession()
+  const authUser = session?.user
+  const isLoaded = !isPending
   const router = useRouter()
   const pathname = usePathname()
 
@@ -234,8 +236,8 @@ export default function DashboardPage() {
 
   // ─── Auth redirect ───
   useEffect(() => {
-    if (isLoaded && !clerkUser) router.push("/login")
-  }, [isLoaded, clerkUser, router])
+    if (isLoaded && !authUser) router.push("/login")
+  }, [isLoaded, authUser, router])
 
   // ─── Load data ───
   useEffect(() => {
@@ -268,8 +270,8 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
-    if (clerkUser) load()
-  }, [clerkUser])
+    if (authUser) load()
+  }, [authUser])
 
   // Sync accent color CSS var for dashboard (affects BlockRenderer cards in preview)
   useEffect(() => {
