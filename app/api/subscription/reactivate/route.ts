@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       {
         cancel_at_period_end: false,
       }
-    ) as any
+    ) as Stripe.Subscription & { current_period_end?: number | null }
 
     console.log(`[REACTIVATE] Subscription reactivated successfully`)
 
@@ -62,10 +62,10 @@ export async function POST(req: Request) {
       message: "Subscription reactivated successfully",
     })
 
-  } catch (error: any) {
-    console.error("[REACTIVATE] Error reactivating subscription:", error.message)
+  } catch (error: unknown) {
+    console.error("[REACTIVATE] Error reactivating subscription:", (error as Error).message)
     return NextResponse.json(
-      { error: error.message || "Failed to reactivate subscription" },
+      { error: (error as Error).message || "Failed to reactivate subscription" },
       { status: 500 }
     )
   }

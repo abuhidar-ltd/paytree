@@ -51,8 +51,8 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
-  } catch (error: any) {
-    console.error("[STRIPE WEBHOOK] ❌ Error reading request:", error.message)
+  } catch (error: unknown) {
+    console.error("[STRIPE WEBHOOK] ❌ Error reading request:", (error as Error).message)
     return NextResponse.json(
       { error: "Failed to read request" }, 
       { status: 400 }
@@ -81,10 +81,10 @@ export async function POST(req: Request) {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
       console.log("[STRIPE WEBHOOK] ✅ Signature verified!")
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.error("[STRIPE WEBHOOK] ❌ Signature verification failed!")
-    console.error("[STRIPE WEBHOOK] Error:", err.message)
+    console.error("[STRIPE WEBHOOK] Error:", (err as Error).message)
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return NextResponse.json(
       { error: "Webhook signature verification failed" }, 
@@ -146,15 +146,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ received: true, processed: event.type })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.error("[STRIPE WEBHOOK] ❌ Error processing event!")
-    console.error("[STRIPE WEBHOOK] Error:", error.message)
-    console.error("[STRIPE WEBHOOK] Stack:", error.stack)
+    console.error("[STRIPE WEBHOOK] Error:", (error as Error).message)
+    console.error("[STRIPE WEBHOOK] Stack:", (error as Error).stack)
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     
     return NextResponse.json(
-      { error: "Webhook handler failed", details: error.message }, 
+      { error: "Webhook handler failed", details: (error as Error).message }, 
       { status: 500 }
     )
   }
@@ -359,7 +359,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   console.log("[STRIPE WEBHOOK] 🔍 Fetching subscription details from Stripe...")
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription & { current_period_end?: number | null }
 
   // Resolve user — try userId first, then stripeCustomerId, then email
   let resolvedUser: { id: string } | null = null
@@ -506,7 +506,10 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
  * Handle subscription deletion (canceled or expired)
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const sub = subscription as any
+  const sub = subscription as Stripe.Subscription & {
+    metadata?: Record<string, string>
+    current_period_end?: number | null
+  }
   const userId = sub.metadata?.userId
   
   console.log("[STRIPE WEBHOOK] 📋 Subscription deletion details:")
@@ -550,15 +553,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * Handle successful payment (recurring)
  */
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  const inv = invoice as any
+  const inv = invoice as Stripe.Invoice & { subscription?: string | null }
   if (!inv.subscription) {
     console.log("[STRIPE WEBHOOK] ℹ️  Invoice has no subscription, skipping...")
     return
   }
-  
+
   console.log("[STRIPE WEBHOOK] 💰 Payment succeeded for subscription:", inv.subscription)
-  
-  const subscription = await stripe.subscriptions.retrieve(inv.subscription as string) as any
+
+  const subscription = await stripe.subscriptions.retrieve(inv.subscription) as Stripe.Subscription
   const userId = subscription.metadata?.userId
   
   if (!userId) {
@@ -583,15 +586,15 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
  * Handle failed payment
  */
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const inv = invoice as any
+  const inv = invoice as Stripe.Invoice & { subscription?: string | null }
   if (!inv.subscription) {
     console.log("[STRIPE WEBHOOK] ℹ️  Invoice has no subscription, skipping...")
     return
   }
-  
+
   console.log("[STRIPE WEBHOOK] ⚠️  Payment failed for subscription:", inv.subscription)
-  
-  const subscription = await stripe.subscriptions.retrieve(inv.subscription as string) as any
+
+  const subscription = await stripe.subscriptions.retrieve(inv.subscription) as Stripe.Subscription
   
   // Find user
   const user = await prisma.user.findFirst({
@@ -612,7 +615,12 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
  * Update user's subscription status based on Stripe subscription
  */
 async function updateUserSubscription(userId: string, subscription: Stripe.Subscription) {
-  const sub = subscription as any
+  const sub = subscription as Stripe.Subscription & {
+    metadata?: Record<string, string>
+    trial_end?: number | null
+    current_period_end?: number | null
+    cancel_at?: number | null
+  }
   let status: string
   let trialEndsAt: Date | null = null
   let subscriptionEndsAt: Date | null = null
@@ -797,8 +805,8 @@ async function handleProductPurchase(session: Stripe.Checkout.Session) {
       `,
     }).catch(() => {})
 
-  } catch (error: any) {
-    console.error("[STRIPE WEBHOOK] ❌ Error completing product purchase:", error.message)
+  } catch (error: unknown) {
+    console.error("[STRIPE WEBHOOK] ❌ Error completing product purchase:", (error as Error).message)
   }
 }
 

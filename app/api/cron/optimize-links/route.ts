@@ -42,8 +42,8 @@ export async function GET(req: Request) {
           optimized++
           console.log(`[cron/optimize] ${user.username}: ${count} links reordered`)
         }
-      } catch (error: any) {
-        console.error(`[cron/optimize] Failed for ${user.username}:`, error.message)
+      } catch (error: unknown) {
+        console.error(`[cron/optimize] Failed for ${user.username}:`, (error as Error).message)
       }
     }
 
@@ -53,8 +53,8 @@ export async function GET(req: Request) {
       optimizedUsers: optimized,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
-    console.error("[cron/optimize] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[cron/optimize] Error:", (error as Error).message)
     return NextResponse.json({ error: "Cron job failed" }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import {
@@ -214,12 +215,12 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
           <p className="text-xs font-mono text-[#666] max-w-[320px] mb-5 leading-relaxed">
             Add a vault card to your page to start capturing emails from visitors.
           </p>
-          <a
+          <Link
             href="/dashboard"
             className="inline-flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-xs hover:opacity-90 transition-opacity"
           >
             Add vault card <ArrowRight size={12} />
-          </a>
+          </Link>
         </motion.div>
       </div>
     )

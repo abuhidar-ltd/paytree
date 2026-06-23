@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, type ReactNode } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
 import {
@@ -91,7 +92,7 @@ function fmt(n: number): string {
 function useCountUp(target: number, duration = 1100): number {
   const [value, setValue] = useState(0)
   useEffect(() => {
-    if (!target) { setValue(0); return }
+    if (!target) { setTimeout(() => setValue(0), 0); return }
     let start: number | null = null
     let frame: number
     const tick = (t: number) => {
@@ -581,12 +582,12 @@ function AudienceGlobePanel({ points, isUltra, countryCount }: {
             <p className="text-xs font-mono text-[#666] mb-4 max-w-[260px]">
               Upgrade to Ultra to unlock the audience globe and country-level insights.
             </p>
-            <a
+            <Link
               href="/pricing"
               className="inline-flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2 text-xs hover:opacity-90 transition-opacity"
             >
               <Sparkles size={12} /> Upgrade to Ultra
-            </a>
+            </Link>
           </div>
         )}
 
@@ -823,7 +824,7 @@ export default function AnalyticsDashboard() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
+    setTimeout(() => setLoading(true), 0)
     Promise.allSettled([
       fetch("/api/analytics/overview"),
       fetch(`/api/analytics/views?period=${period}`),

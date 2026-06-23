@@ -87,8 +87,8 @@ export async function POST(req: Request) {
     if (customerId) {
       try {
         await stripe.customers.retrieve(customerId)
-      } catch (error: any) {
-        if (error.code === "resource_missing") {
+      } catch (error: unknown) {
+        if ((error as { code?: string }).code === "resource_missing") {
           customerId = null
         } else {
           throw error
@@ -146,16 +146,17 @@ export async function POST(req: Request) {
       url: checkoutSession.url,
       sessionId: checkoutSession.id,
     })
-  } catch (error: any) {
-    console.error("[checkout] Error:", error.message)
+  } catch (error: unknown) {
+    const e = error as { message?: string; type?: string; code?: string }
+    console.error("[checkout] Error:", e.message)
 
-    let errorMessage = error.message || "Failed to create checkout session"
-    if (error.type === "StripeInvalidRequestError") {
-      errorMessage = `Stripe configuration error: ${error.message}`
+    let errorMessage = e.message || "Failed to create checkout session"
+    if (e.type === "StripeInvalidRequestError") {
+      errorMessage = `Stripe configuration error: ${e.message}`
     }
 
     return NextResponse.json(
-      { error: errorMessage, type: error.type, code: error.code },
+      { error: errorMessage, type: e.type, code: e.code },
       { status: 500 }
     )
   }

@@ -105,7 +105,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   const [cornerRadius, setCornerRadius] = useState(initialProfile.cornerRadius || "xl")
   const [aiBioOpen, setAiBioOpen] = useState(false)
 
-  const userPlan = resolveUserPlan(profile as any)
+  const userPlan = resolveUserPlan(profile)
   const isPro = userPlan !== "free"
   const isPublished = profile.pageStatus === "published"
   const accent = profile.accentColor || "#00ff88"
@@ -211,7 +211,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
   const saveProfile = async () => {
     setSaving(true)
     try {
-      const { id, email, username, subscriptionStatus, pageStatus, publishedAt, clerkId, ...editableFields } = profile as any
+      const { id, email, username, subscriptionStatus, pageStatus, publishedAt, ...editableFields } = profile as unknown as Record<string, unknown>
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

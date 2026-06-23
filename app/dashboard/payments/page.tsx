@@ -358,13 +358,13 @@ function ConnectionCard({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
-          <a
+          <Link
             href="/api/stripe/connect"
             onClick={() => trackEvent("stripe_connect_clicked", { source: "continue_setup" })}
             className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity"
           >
             Continue setup <ArrowUpRight size={12} />
-          </a>
+          </Link>
           <button
             onClick={onDisconnect}
             disabled={disconnecting}
@@ -414,22 +414,22 @@ function ConnectionCard({
               style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)" }}>
               <p className="text-xs text-amber-400 font-mono">Upgrade to Starter or Ultra to accept payments</p>
             </div>
-            <a
+            <Link
               href="/pricing"
               className="mt-3 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
             >
               Upgrade now <ArrowUpRight size={14} />
-            </a>
+            </Link>
           </>
         ) : (
           <>
-            <a
+            <Link
               href="/api/stripe/connect"
               onClick={() => trackEvent("stripe_connect_clicked", { source: "first_time" })}
               className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
             >
               Connect Stripe <ArrowUpRight size={14} />
-            </a>
+            </Link>
             <p className="text-[11px] font-mono text-[#444] mt-4 max-w-[360px]">
               Stripe handles all verification and compliance. Your data is secure.
             </p>

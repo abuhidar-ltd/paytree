@@ -64,9 +64,11 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
   const [scheduleEnabled, setScheduleEnabled] = useState(!!block.scheduleStart)
 
   useEffect(() => {
-    setLocalTitle(block.title)
-    setLockEnabled(!!block.lockType && block.lockType !== "none")
-    setScheduleEnabled(!!block.scheduleStart)
+    setTimeout(() => {
+      setLocalTitle(block.title)
+      setLockEnabled(!!block.lockType && block.lockType !== "none")
+      setScheduleEnabled(!!block.scheduleStart)
+    }, 0)
   }, [block.id, block.title, block.lockType, block.scheduleStart])
 
   function handleTitleBlur() {

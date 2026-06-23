@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
  * Health check endpoint - verifies all configurations
  */
 export async function GET() {
-  const checks: any = {
+  const checks: Record<string, unknown> & {
+    database: { status: string; error?: string }
+    stripe: { status: string; missing?: string[]; hint?: string | null; priceId?: string }
+    auth: { status: string; missing?: string[] }
+  } = {
     timestamp: new Date().toISOString(),
     status: "checking...",
     database: { status: "unknown" },
@@ -19,10 +23,10 @@ export async function GET() {
     try {
       await prisma.$queryRaw`SELECT 1`;
       checks.database = { status: "✅ connected" };
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       checks.database = { 
         status: "❌ error", 
-        error: dbError.message 
+        error: (dbError as Error).message 
       };
     }
 
@@ -97,10 +101,10 @@ export async function GET() {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       status: "❌ error",
-      error: error.message,
+      error: (error as Error).message,
       checks
     }, { status: 500 });
   }

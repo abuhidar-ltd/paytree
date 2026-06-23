@@ -11,6 +11,7 @@
  */
 import { test, expect } from "@playwright/test"
 import path from "path"
+import { readFileSync } from "fs"
 
 const BASE     = "http://localhost:3000"
 const USERNAME = "mohammadabuhidar"
@@ -227,7 +228,6 @@ test.describe("Design Page Fixes — Preview Page Verification", () => {
     await page.screenshot({ path: SS("t7-studio-auth-wall"), fullPage: false })
 
     // Verify the studio source has the correct iframe config
-    const { readFileSync } = require("fs")
     const studioSrc = readFileSync(
       "/Users/mbp/coding/paytree/app/dashboard/studio/studio-editor.tsx",
       "utf-8"

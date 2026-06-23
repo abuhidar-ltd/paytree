@@ -27,8 +27,8 @@ export async function GET() {
     })
 
     return NextResponse.json(history)
-  } catch (error: any) {
-    console.error("[ai/bio-history] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/bio-history] Error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to fetch bio history" }, { status: 500 })
   }
 }

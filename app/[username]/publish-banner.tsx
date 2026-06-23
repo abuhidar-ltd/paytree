@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { toast } from "sonner"
 
 interface PublishBannerProps {
@@ -70,12 +71,12 @@ export function PublishBanner({ username }: PublishBannerProps) {
             )}
           </button>
           
-          <a
+          <Link
             href="/dashboard/studio"
             className="bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono rounded-xl px-4 py-2.5 text-sm hover:border-white/20 transition-colors"
           >
             Edit
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -45,13 +45,17 @@ export function PodcastModule({ config, span = 2 }: PodcastModuleProps) {
 
   useEffect(() => {
     if (!config.rssUrl) {
-      setError("missing rss")
-      setLoading(false)
+      setTimeout(() => {
+        setError("missing rss")
+        setLoading(false)
+      }, 0)
       return
     }
     let cancelled = false
-    setLoading(true)
-    setError(null)
+    setTimeout(() => {
+      setLoading(true)
+      setError(null)
+    }, 0)
     fetch(`/api/social/podcast?rssUrl=${encodeURIComponent(config.rssUrl)}`)
       .then(async (res) => {
         const json = await res.json()

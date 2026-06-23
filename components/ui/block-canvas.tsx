@@ -228,13 +228,13 @@ function CanvasBlockCard({ block, isSelected, onSelect, onResize }: CanvasBlockC
 }
 
 function BlockPreview({ block }: { block: Block }) {
-  const cfg = (block.config || {}) as Record<string, any>
+  const cfg = (block.config || {}) as Record<string, unknown>
 
   switch (block.type) {
     case "link":
       return (
         <div className="flex items-center gap-3 pl-6">
-          <span className="text-lg">{cfg.icon || "🔗"}</span>
+          <span className="text-lg">{(cfg.icon as string | undefined) || "🔗"}</span>
           <span className="text-sm text-[#e0e0e0] font-mono truncate flex-1">{block.title}</span>
           <span className="text-[#444]">→</span>
         </div>
@@ -290,7 +290,7 @@ function BlockPreview({ block }: { block: Block }) {
           <ShoppingBag className="w-4 h-4 text-blue-400/80" />
           <div>
             <p className="text-sm text-[#e0e0e0] font-mono truncate">{block.title}</p>
-            {cfg.price && (
+            {!!cfg.price && (
               <p className="text-[10px] text-[#00ff88] font-mono">${(Number(cfg.price) / 100).toFixed(2)}</p>
             )}
           </div>
@@ -326,7 +326,7 @@ function BlockPreview({ block }: { block: Block }) {
     case "stats":
       return (
         <div className="flex flex-col items-center justify-center pl-6">
-          <span className="text-2xl font-bold text-white font-mono">{cfg.value || "—"}</span>
+          <span className="text-2xl font-bold text-white font-mono">{(cfg.value as string | undefined) || "—"}</span>
           <span className="text-[10px] text-[#444] font-mono uppercase tracking-wider">{block.title}</span>
         </div>
       )
@@ -369,7 +369,7 @@ function BlockPreview({ block }: { block: Block }) {
       return (
         <div className="flex items-center gap-2 pl-6">
           <Tag className="w-4 h-4 text-[#00ff88]/80" />
-          <span className="text-sm text-[#00ff88] font-mono truncate">{cfg.code || "CODE"}</span>
+          <span className="text-sm text-[#00ff88] font-mono truncate">{(cfg.code as string | undefined) || "CODE"}</span>
         </div>
       )
 

@@ -40,7 +40,7 @@ export async function POST(
       )
     }
 
-    const cfg = (block.config as Record<string, any>) || {}
+    const cfg = (block.config as Record<string, unknown>) || {}
     const price = cfg.price as number | undefined
 
     if (!price || price <= 0) {

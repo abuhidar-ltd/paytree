@@ -75,8 +75,8 @@ export async function GET() {
       followups: suggestions,
       totalAudience: recentCaptures.length,
     })
-  } catch (error: any) {
-    console.error("[ai/email-followups] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/email-followups] Error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to fetch follow-ups" }, { status: 500 })
   }
 }
@@ -121,8 +121,8 @@ export async function POST(req: Request) {
       message: `Follow-up to ${email} has been queued.`,
       note: "V1: Emails are stored for review. Automated sending coming soon.",
     })
-  } catch (error: any) {
-    console.error("[ai/email-followups] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/email-followups] Error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to queue follow-up" }, { status: 500 })
   }
 }

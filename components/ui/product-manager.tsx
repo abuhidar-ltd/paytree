@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { GlassBrick } from "./obsidian-card"
 import { toast } from "sonner"
@@ -117,9 +118,9 @@ export function ProductManager({ products, onProductsChange, isPro }: ProductMan
         <p className="text-[#888888] mb-6 max-w-sm mx-auto">
           Sell products, services, and content directly from your Paytree with 0% fees.
         </p>
-        <a href="/upgrade" className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold">
+        <Link href="/upgrade" className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold">
           Upgrade
-        </a>
+        </Link>
       </GlassBrick>
     )
   }

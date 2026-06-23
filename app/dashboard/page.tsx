@@ -1270,6 +1270,15 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
   const Icon = TYPE_ICONS[block.type] || LinkIcon
   const color = TYPE_COLORS[block.type] || "#e0e0e0"
 
+  // Ticking clock for drop countdowns — keeps Date.now() out of render and lets
+  // the lint rule "no impure during render" pass.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (block.type !== "drop") return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [block.type])
+
   switch (block.type) {
     case "link": {
       const meta = block.url ? getURLMeta(block.url) : null
@@ -1334,7 +1343,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
 
     case "drop": {
       const dropAt = (cfg.dropAt as string) || ""
-      const diff = dropAt ? new Date(dropAt).getTime() - Date.now() : 0
+      const diff = dropAt ? new Date(dropAt).getTime() - now : 0
       const isLive = diff <= 0
       const status = isLive ? "LIVE" : "SCHEDULED"
       const showCountdown = dropAt && diff > 0
@@ -1732,7 +1741,7 @@ function FaqItemsEditor({
   const [items, setItems] = useState<FaqItemLocal[]>(seed)
 
   // Resync when switching to a different block
-  useEffect(() => { setItems(seed()) }, [block.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setTimeout(() => setItems(seed()), 0) }, [block.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const commit = (next: FaqItemLocal[]) => {
     onUpdate(block.id, {
@@ -1748,7 +1757,7 @@ function FaqItemsEditor({
   const addItem = () => {
     const next = [
       ...items,
-      { _id: `${block.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, question: "", answer: "" },
+      { _id: `${block.id}-${crypto.randomUUID()}`, question: "", answer: "" },
     ]
     setItems(next)
     // Don't commit empty rows — wait until user types
@@ -1757,7 +1766,7 @@ function FaqItemsEditor({
   const removeItem = (id: string) => {
     const next = items.filter((i) => i._id !== id)
     // Always keep at least one editable row
-    const safe = next.length > 0 ? next : [{ _id: `${block.id}-empty-${Date.now()}`, question: "", answer: "" }]
+    const safe = next.length > 0 ? next : [{ _id: `${block.id}-empty-${crypto.randomUUID()}`, question: "", answer: "" }]
     setItems(safe)
     commit(safe)
   }

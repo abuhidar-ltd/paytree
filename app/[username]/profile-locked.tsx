@@ -25,7 +25,7 @@ export function ProfileLocked({ username }: ProfileLockedProps) {
             Profile Not Published
           </h1>
           <p className="text-[#888888] text-lg mb-8 leading-relaxed">
-            <span className="text-[#00ff88] font-semibold">@{username}</span> hasn't published their terminal yet.
+            <span className="text-[#00ff88] font-semibold">@{username}</span> hasn&apos;t published their terminal yet.
           </p>
 
           {/* Divider */}

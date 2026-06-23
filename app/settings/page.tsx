@@ -16,13 +16,22 @@ interface SubscriptionInfo {
   cancelAtPeriodEnd?: boolean
 }
 
+interface SettingsProfile {
+  username?: string
+  subscriptionPlan?: string
+  subscriptionStatus?: string
+  subscriptionEndsAt?: string
+  stripeAccountStatus?: string
+  [key: string]: unknown
+}
+
 export default function SettingsPage() {
   const { data: session, isPending } = useSession()
   const user = session?.user
   const isLoaded = !isPending
   const router = useRouter()
   
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<SettingsProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [canceling, setCanceling] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -299,7 +308,7 @@ export default function SettingsPage() {
                       Your subscription is set to cancel at the end of your billing period.
                       {profile?.subscriptionEndsAt && (
                         <>
-                          {" "}You'll keep access until{" "}
+                          {" "}You&apos;ll keep access until{" "}
                           <span className="font-semibold text-[#e0e0e0]">
                             {new Date(profile.subscriptionEndsAt).toLocaleDateString()}
                           </span>
@@ -319,7 +328,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-[#e0e0e0] text-sm">
-                    Cancel your subscription at any time. You'll keep access until the end of your current billing period.
+                    Cancel your subscription at any time. You&apos;ll keep access until the end of your current billing period.
                   </p>
                   
                   <Button
@@ -394,15 +403,15 @@ export default function SettingsPage() {
                   <span className="text-yellow-400 text-sm font-mono font-semibold">Onboarding Pending</span>
                 </div>
                 <p className="text-[#888] text-sm">
-                  Your Stripe account is created but onboarding isn't complete yet. Finish setup to start accepting payments.
+                  Your Stripe account is created but onboarding isn&apos;t complete yet. Finish setup to start accepting payments.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <a
+                  <Link
                     href="/api/stripe/connect"
                     className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
                   >
                     Continue Onboarding →
-                  </a>
+                  </Link>
                   <button
                     onClick={() => setConfirmDisconnect(true)}
                     disabled={disconnecting}
@@ -422,12 +431,12 @@ export default function SettingsPage() {
                     <span className="text-[#00ff88]">0% platform fees</span> on every paid plan · Stripe processing fees apply
                   </p>
                 </div>
-                <a
+                <Link
                   href="/api/stripe/connect"
                   className="block w-full text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
                 >
                   Connect Stripe →
-                </a>
+                </Link>
               </div>
             )}
           </div>
@@ -465,7 +474,7 @@ export default function SettingsPage() {
                     <li>Permanently remove your account</li>
                   </ul>
                   <p className="text-sm text-red-400 font-mono">
-                    Type "DELETE" to confirm:
+                    Type &quot;DELETE&quot; to confirm:
                   </p>
                 </div>
                 

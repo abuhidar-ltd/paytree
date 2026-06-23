@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const newOrder = (lastModule?.order ?? -1) + 1
 
-    const module = await prisma.module.create({
+    const moduleItem = await prisma.module.create({
       data: {
         userId: user.id,
         type: validatedData.type,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(module, { status: 201 })
+    return NextResponse.json(moduleItem, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

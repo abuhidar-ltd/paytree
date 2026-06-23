@@ -43,8 +43,8 @@ export async function POST() {
       message: `Optimized ${count} links based on engagement rules.`,
       optimizedCount: count,
     })
-  } catch (error: any) {
-    console.error("[ai/optimize-links] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/optimize-links] Error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to optimize links" }, { status: 500 })
   }
 }

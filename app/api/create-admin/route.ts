@@ -75,10 +75,10 @@ export async function POST(req: Request) {
         status: "Pro (Yearly)",
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating admin user:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to create admin user" },
+      { error: (error as Error).message || "Failed to create admin user" },
       { status: 500 }
     )
   }

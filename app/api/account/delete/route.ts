@@ -50,8 +50,8 @@ export async function POST(req: Request) {
         console.log(`[DELETE ACCOUNT] Canceling Stripe subscription: ${user.stripeSubscriptionId}`)
         await stripe.subscriptions.cancel(user.stripeSubscriptionId)
         console.log(`[DELETE ACCOUNT] ✅ Stripe subscription canceled`)
-      } catch (stripeError: any) {
-        console.error(`[DELETE ACCOUNT] ⚠️  Failed to cancel Stripe subscription:`, stripeError.message)
+      } catch (stripeError: unknown) {
+        console.error(`[DELETE ACCOUNT] ⚠️  Failed to cancel Stripe subscription:`, (stripeError as Error).message)
       }
     }
 
@@ -61,8 +61,8 @@ export async function POST(req: Request) {
         console.log(`[DELETE ACCOUNT] Deleting Stripe customer: ${user.stripeCustomerId}`)
         await stripe.customers.del(user.stripeCustomerId)
         console.log(`[DELETE ACCOUNT] ✅ Stripe customer deleted`)
-      } catch (stripeError: any) {
-        console.error(`[DELETE ACCOUNT] ⚠️  Failed to delete Stripe customer:`, stripeError.message)
+      } catch (stripeError: unknown) {
+        console.error(`[DELETE ACCOUNT] ⚠️  Failed to delete Stripe customer:`, (stripeError as Error).message)
       }
     }
 
@@ -80,14 +80,14 @@ export async function POST(req: Request) {
       message: "Account deleted successfully",
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    console.error("[DELETE ACCOUNT] ❌ Error deleting account:", error.message)
-    console.error("[DELETE ACCOUNT] Stack:", error.stack)
+    console.error("[DELETE ACCOUNT] ❌ Error deleting account:", (error as Error).message)
+    console.error("[DELETE ACCOUNT] Stack:", (error as Error).stack)
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     return NextResponse.json(
-      { error: error.message || "Failed to delete account" },
+      { error: (error as Error).message || "Failed to delete account" },
       { status: 500 }
     )
   }

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { LiveStatusPill } from "@/components/ui/live-status-pill"
 import { SocialIcon } from "@/components/social-icon"
@@ -237,9 +238,9 @@ export function ProfileClient({
       {/* ─── Branding ─── */}
       {!removeBranding && !isOwner && !isPreview && (
         <div className="text-center py-10">
-          <a href="/" className="inline-flex items-center gap-2 text-[#444] hover:text-[#666] transition-colors text-xs font-mono">
+          <Link href="/" className="inline-flex items-center gap-2 text-[#444] hover:text-[#666] transition-colors text-xs font-mono">
             Made with Paytree · paytree.to
-          </a>
+          </Link>
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { getUserFeatures } from "@/lib/plans"
@@ -190,7 +191,7 @@ export async function GET() {
           userId: currentUser.id,
           type: i.type,
           message: i.message,
-          metadata: data as any,
+          metadata: data as unknown as Prisma.InputJsonValue,
         })),
       })
     }
@@ -206,8 +207,8 @@ export async function GET() {
       insights: allInsights,
       analyticsSnapshot: data,
     })
-  } catch (error: any) {
-    console.error("[ai/insights] Error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/insights] Error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to generate insights" }, { status: 500 })
   }
 }
@@ -233,8 +234,8 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error("[ai/insights] Dismiss error:", error.message)
+  } catch (error: unknown) {
+    console.error("[ai/insights] Dismiss error:", (error as Error).message)
     return NextResponse.json({ error: "Failed to dismiss" }, { status: 500 })
   }
 }

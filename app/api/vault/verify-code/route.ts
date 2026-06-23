@@ -105,12 +105,12 @@ export async function POST(req: Request) {
       })
       if (block) {
         itemTitle = block.title
-        const cfg = (block.config as Record<string, any>) || {}
+        const cfg = (block.config as Record<string, unknown>) || {}
         contentPayload = {
-          url: block.url || cfg.url || undefined,
-          downloadUrl: cfg.downloadUrl || undefined,
-          downloadName: cfg.downloadName || undefined,
-          vaultContent: cfg.content || undefined,
+          url: block.url || (cfg.url as string | undefined) || undefined,
+          downloadUrl: (cfg.downloadUrl as string | undefined) || undefined,
+          downloadName: (cfg.downloadName as string | undefined) || undefined,
+          vaultContent: (cfg.content as string | undefined) || undefined,
         }
       }
     } else {

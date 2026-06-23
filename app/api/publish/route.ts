@@ -58,7 +58,7 @@ export async function POST() {
       permanentUrl: `/${updatedUser.username}`,
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Publish error:", error)
     return NextResponse.json(
       { error: "Failed to publish", code: "PUBLISH_FAILED" },

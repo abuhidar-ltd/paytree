@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, type ReactNode } from "react"
+import NextLink from "next/link"
 import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion"
 import { toast } from "sonner"
 import { LiveStatusPill } from "./live-status-pill"
@@ -1112,7 +1113,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
   useEffect(() => {
     if (mode === "video") return
     const channelId = cfg.channelId as string
-    if (!channelId) { setFallback(true); return }
+    if (!channelId) { setTimeout(() => setFallback(true), 0); return }
     fetch(`/api/social/youtube?channelId=${encodeURIComponent(channelId)}`)
       .then(async (r) => {
         let json: Record<string, unknown> = {}
@@ -1324,13 +1325,13 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
             style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)" }}
           >
             <p className="text-xs text-[#888] font-mono mb-1.5">Set up payments to sell this product</p>
-            <a
+            <NextLink
               href="/dashboard/payments"
               className="inline-flex items-center gap-1 text-xs font-mono font-semibold hover:opacity-80 transition-opacity"
               style={{ color: "var(--accent, #00ff88)" }}
             >
               Go to Payments →
-            </a>
+            </NextLink>
           </div>
         ) : (
           <button onClick={handleBuy} disabled={loading}
@@ -1351,7 +1352,7 @@ function PodcastBlock({ block, cfg }: { block: Block; cfg: Record<string, unknow
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!cfg.rssUrl) { setError(true); return }
+    if (!cfg.rssUrl) { setTimeout(() => setError(true), 0); return }
     fetch(`/api/social/podcast?rssUrl=${encodeURIComponent(cfg.rssUrl as string)}`)
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then(setData)

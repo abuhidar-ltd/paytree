@@ -219,7 +219,7 @@ export function isSubscriptionActive(user: {
   trialEndsAt?: Date | null
   subscriptionEndsAt?: Date | null
 }): boolean {
-  const plan = resolveUserPlan(user as any)
+  const plan = resolveUserPlan(user)
   return plan !== "free"
 }
 

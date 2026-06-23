@@ -99,11 +99,11 @@ export async function POST(req: Request) {
       accessUntil: accessUntilDate.toISOString(),
     })
 
-  } catch (error: any) {
-    console.error("[CANCEL] Error canceling subscription:", error.message)
+  } catch (error: unknown) {
+    console.error("[CANCEL] Error canceling subscription:", (error as Error).message)
     console.error("[CANCEL] Full error:", error)
     return NextResponse.json(
-      { error: error.message || "Failed to cancel subscription" },
+      { error: (error as Error).message || "Failed to cancel subscription" },
       { status: 500 }
     )
   }

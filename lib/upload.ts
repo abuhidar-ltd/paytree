@@ -145,7 +145,7 @@ export async function extractColorsFromImage(imageUrl: string) {
   try {
     // Import node-vibrant dynamically
     const vibrantModule = await import("node-vibrant")
-    // @ts-ignore - Dynamic import typing issue
+    // @ts-expect-error - Dynamic import typing issue
     const Vibrant = vibrantModule.default || vibrantModule
     const palette = await Vibrant.from(imageUrl).getPalette()
 

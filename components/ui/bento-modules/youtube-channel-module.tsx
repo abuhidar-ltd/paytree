@@ -47,13 +47,17 @@ export function YoutubeChannelModule({ config, span = 2 }: YoutubeChannelModuleP
 
   useEffect(() => {
     if (!config.channelId) {
-      setError("missing channel")
-      setLoading(false)
+      setTimeout(() => {
+        setError("missing channel")
+        setLoading(false)
+      }, 0)
       return
     }
     let cancelled = false
-    setLoading(true)
-    setError(null)
+    setTimeout(() => {
+      setLoading(true)
+      setError(null)
+    }, 0)
     fetch(`/api/social/youtube?channelId=${encodeURIComponent(config.channelId)}`)
       .then(async (res) => {
         const json = await res.json()

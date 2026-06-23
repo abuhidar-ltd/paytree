@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Button } from "./button"
 
 interface PaywallModalProps {
@@ -81,13 +82,13 @@ export function PaywallModal({ isOpen, onClose, username }: PaywallModalProps) {
         {/* Actions */}
         <div className="space-y-3">
           {/* Primary CTA - Link to upgrade page */}
-          <a href="/upgrade">
+          <Link href="/upgrade">
             <Button
               className="w-full h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg font-bold rounded-xl shadow-lg shadow-green-500/30"
             >
               🚀 Upgrade & Publish
             </Button>
-          </a>
+          </Link>
 
           {/* Secondary */}
           <Button

@@ -137,7 +137,7 @@ export default function CheckoutPage() {
                 <div>
                   <div className="font-semibold text-green-400 mb-1">7-Day Free Trial</div>
                   <div className="text-sm text-gray-300">
-                    You won't be charged until your trial ends. Cancel anytime during the trial at no cost.
+                    You won&apos;t be charged until your trial ends. Cancel anytime during the trial at no cost.
                   </div>
                 </div>
               </div>
