@@ -39,11 +39,16 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                why give up 9% of your sales to platforms
+                Stop paying platform fees.
               </span>
-              <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl font-semibold leading-snug">
-                <span className="text-[#00ff88]">with paytree you sell, share all your links &amp; get paid from your professional page</span>{" "}
-                <span className="text-white">with 0% platform fees</span>
+              <span className="block mt-3 sm:mt-4 text-base sm:text-lg lg:text-xl font-medium text-white">
+                All your business in one professional page.
+              </span>
+              <span className="block mt-3 sm:mt-4 text-xl sm:text-3xl lg:text-4xl font-semibold leading-snug text-[#00ff88]">
+                Sell products, services, and content.<br />Share every link. Get paid instantly.
+              </span>
+              <span className="block mt-3 sm:mt-4 text-lg sm:text-xl lg:text-2xl font-semibold text-[#00ff88]">
+                0% platform commission.
               </span>
             </h1>
 
