@@ -65,7 +65,7 @@ export default async function HomePage() {
                 eventProps={{ variant: "dashboard" }}
                 location="header"
                 href="/dashboard"
-                className="bg-[#00ff88] text-black font-mono font-semibold px-4 rounded-xl text-sm inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
+                className="bg-[#00ff88] text-black font-mono font-semibold px-4 rounded-xl text-sm hidden sm:inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
               >
                 Dashboard
               </TrackedLink>
@@ -84,7 +84,7 @@ export default async function HomePage() {
                   eventProps={{ variant: "start" }}
                   location="header"
                   href="/start"
-                  className="bg-[#00ff88] text-black font-mono font-semibold px-3 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
+                  className="bg-[#00ff88] text-black font-mono font-semibold px-3 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap hidden sm:inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
                 >
                   <span className="sm:hidden">Start free →</span>
                   <span className="hidden sm:inline">Create page free →</span>
