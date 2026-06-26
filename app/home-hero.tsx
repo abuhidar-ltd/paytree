@@ -38,13 +38,13 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-5 sm:mt-8 font-bold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[30px] leading-[1.05] sm:text-4xl lg:text-5xl text-[#f0f0f0]">
+              <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
                 Stop paying platform fees.
               </span>
-              <span className="block mt-3 sm:mt-4 text-lg sm:text-xl lg:text-2xl font-medium text-white">
+              <span className="block mt-3 sm:mt-4 text-base sm:text-lg lg:text-xl font-medium text-white">
                 All your business in one professional page.
               </span>
-              <span className="block mt-3 sm:mt-4 text-2xl sm:text-4xl lg:text-5xl font-semibold leading-snug text-[#00ff88]">
+              <span className="block mt-3 sm:mt-4 text-2xl sm:text-3xl lg:text-[40px] font-semibold leading-[1.15] text-[#00ff88]">
                 Sell products, services, and content.<br />Share every link. Get paid instantly.
               </span>
               <span className="block mt-3 sm:mt-4 text-lg sm:text-xl lg:text-2xl font-semibold text-white">
