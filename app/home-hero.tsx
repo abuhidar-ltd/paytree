@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { ShoppingBag, Link2, Zap, Percent } from "lucide-react"
 import { PhoneMockup } from "./home-phone-mockup"
 import { trackEvent } from "@/lib/analytics"
 
@@ -33,24 +34,58 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
           {/* Left column — CSS animated, no JS dependency */}
           <div className="flex-[3] max-w-2xl">
 
-            {/* Headline — rhetorical hook above, value-prop resolution below. */}
+            {/* Headline — large neon-green hook, white resolution line. */}
             <h1
               className="mt-5 sm:mt-8 font-bold tracking-tight"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
-              <span className="block text-[34px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#f0f0f0]">
-                Stop paying platform fees.
+              <span className="block text-[38px] leading-[1.05] sm:text-5xl lg:text-6xl text-[#00ff88]">
+                Your entire business
               </span>
-              <span className="block mt-3 sm:mt-4 text-base sm:text-lg lg:text-xl font-medium text-white">
-                All your business in one professional page.
-              </span>
-              <span className="block mt-3 sm:mt-4 text-2xl sm:text-3xl lg:text-[40px] font-semibold leading-[1.15] text-[#00ff88]">
-                Sell products, services, and content.<br />Share every link. Get paid instantly.
-              </span>
-              <span className="block mt-3 sm:mt-4 text-lg sm:text-xl lg:text-2xl font-semibold text-white">
-                0% platform commission.
+              <span className="block mt-1 text-xl sm:text-2xl lg:text-3xl font-semibold text-white">
+                in one place
               </span>
             </h1>
+
+            {/* Green accent divider — ties the headline to the feature list. */}
+            <div
+              aria-hidden
+              className="mt-4 h-px w-full max-w-xs"
+              style={{
+                background: "linear-gradient(90deg, rgba(0,255,136,0.6), transparent)",
+                animation: "fadeIn 0.5s ease 0.18s both",
+              }}
+            />
+
+            {/* Feature rows — green glass icon box + mixed-emphasis copy. */}
+            <ul
+              className="mt-6 sm:mt-7 space-y-3 sm:space-y-3.5 max-w-md"
+              style={{ animation: "slideUp 0.5s ease 0.15s both" }}
+            >
+              {[
+                { Icon: ShoppingBag, lead: "Sell", rest: "products, services and content" },
+                { Icon: Link2, lead: "Share", rest: "all your links" },
+                { Icon: Zap, lead: "Get paid", rest: "instantly" },
+                { Icon: Percent, lead: "0%", rest: "platform commission" },
+              ].map(({ Icon, lead, rest }) => (
+                <li key={lead} className="flex items-center gap-3.5">
+                  <span
+                    className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: "rgba(0,255,136,0.06)",
+                      border: "0.5px solid rgba(0,255,136,0.25)",
+                      boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 16px rgba(0,255,136,0.12)",
+                    }}
+                  >
+                    <Icon size={20} strokeWidth={2.25} className="text-[#00ff88]" />
+                  </span>
+                  <p className="text-base sm:text-lg font-semibold leading-snug">
+                    <span className="text-[#00ff88]">{lead}</span>{" "}
+                    <span className="text-white">{rest}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
 
             {/* CTA — visible above the fold on mobile. Lives at ~360px from top
                 so the entire button + microcopy is inside the first viewport
