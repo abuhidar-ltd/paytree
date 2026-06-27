@@ -12,6 +12,9 @@ const PROTECTED_PREFIXES = [
   "/upgrade",
   "/analytics",
   "/checkout",
+  // Early login gate only. Real admin authorization (ADMIN_EMAILS allowlist) is
+  // enforced server-side in lib/admin.ts via requireAdmin() in the layout/pages.
+  "/admin",
 ]
 
 function isProtected(pathname: string): boolean {
