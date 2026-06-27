@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import crypto from "crypto"
 import { Resend } from "resend"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 const sendCodeSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -15,6 +16,17 @@ const sendCodeSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    // Strict limit: this endpoint sends email. Protects against email bombing
+    // and Resend cost abuse.
+    const ip = getClientIp(req)
+    const limit = rateLimit(`vault-send:${ip}`, 5, 10 * 60 * 1000)
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "Too many code requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      )
+    }
+
     const body = await req.json()
     const { email, linkId, blockId, ownerId } = sendCodeSchema.parse(body)
 

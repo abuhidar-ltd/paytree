@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getUserFeatures } from "@/lib/plans"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
   try {
@@ -8,6 +9,24 @@ export async function POST(req: Request) {
 
     if (!username || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+    }
+
+    // Rate limit: this endpoint makes a paid Anthropic call per request.
+    // Cap per IP (across all creators) and per IP+creator to blunt token abuse.
+    const ip = getClientIp(req)
+    const ipLimit = rateLimit(`ai-agent-ip:${ip}`, 30, 5 * 60 * 1000)
+    if (!ipLimit.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfter) } }
+      )
+    }
+    const userLimit = rateLimit(`ai-agent-user:${ip}:${username}`, 20, 5 * 60 * 1000)
+    if (!userLimit.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(userLimit.retryAfter) } }
+      )
     }
 
     const user = await prisma.user.findUnique({

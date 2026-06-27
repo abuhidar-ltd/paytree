@@ -16,6 +16,17 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
+// Escape HTML entities so user-controlled values cannot inject markup into the
+// email body. Kept local — only this route needs it.
+function escapeHtml(value: unknown): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
@@ -61,12 +72,12 @@ export async function POST(req: Request) {
           <div style="color:#888;font-size:13px;margin-bottom:32px;">New contact form message</div>
           <div style="background:#111;border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:24px;margin-bottom:24px;">
             <div style="color:#444;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">From</div>
-            <div style="color:#e0e0e0;font-size:14px;margin-bottom:16px;">${name} &lt;${email}&gt;</div>
+            <div style="color:#e0e0e0;font-size:14px;margin-bottom:16px;">${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</div>
             <div style="color:#444;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Message</div>
-            <div style="color:#e0e0e0;font-size:14px;line-height:1.6;white-space:pre-wrap;">${message}</div>
+            <div style="color:#e0e0e0;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</div>
           </div>
           <div style="color:#444;font-size:12px;line-height:1.6;">
-            Reply directly to ${email} to respond.
+            Reply directly to ${escapeHtml(email)} to respond.
           </div>
         </div>
       `,
