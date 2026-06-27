@@ -67,12 +67,22 @@ export async function POST(req: Request) {
     console.log("[STRIPE WEBHOOK] 🔑 Webhook secret present:", !!webhookSecret)
     
     if (!webhookSecret) {
+      // Fail closed in production: never process an unsigned event. A missing
+      // secret here would otherwise let anyone POST a forged Stripe event.
+      if (process.env.NODE_ENV === "production") {
+        console.error("[STRIPE WEBHOOK] ❌ STRIPE_WEBHOOK_SECRET is not set — refusing to process unsigned event in production")
+        return NextResponse.json(
+          { error: "Webhook secret not configured" },
+          { status: 500 }
+        )
+      }
+
       console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       console.warn("[STRIPE WEBHOOK] ⚠️  WARNING: No STRIPE_WEBHOOK_SECRET set!")
       console.warn("[STRIPE WEBHOOK] ⚠️  Signature verification DISABLED (insecure!)")
       console.warn("[STRIPE WEBHOOK] ⚠️  Set STRIPE_WEBHOOK_SECRET in production!")
       console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-      
+
       // Parse without verification (development only)
       event = JSON.parse(body) as Stripe.Event
     } else {
