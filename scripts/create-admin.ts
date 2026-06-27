@@ -3,11 +3,18 @@ import { prisma } from "../lib/prisma"
 import { auth } from "../lib/auth"
 
 async function createAdminUser() {
-  try {
-    const email = "admin@paytree.com"
-    const username = "admin"
-    const password = "admin123"
+  const email = process.env.ADMIN_EMAIL
+  const password = process.env.ADMIN_PASSWORD
+  const username = process.env.ADMIN_USERNAME || "admin"
 
+  if (!email || !password) {
+    console.error("❌ ADMIN_EMAIL and ADMIN_PASSWORD must be set in the environment.")
+    console.error("   Example: ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='<strong-password>' npm run seed:admin")
+    process.exitCode = 1
+    return
+  }
+
+  try {
     const existingUser = await prisma.user.findUnique({
       where: { email },
     })
@@ -25,7 +32,6 @@ async function createAdminUser() {
       console.log("✅ Updated existing admin user to Pro status")
       console.log("Email:", email)
       console.log("Username:", updated.username)
-      console.log("Password: admin123")
       return
     }
 
@@ -56,9 +62,8 @@ async function createAdminUser() {
     console.log("✅ Admin user created successfully!")
     console.log("Email:", email)
     console.log("Username:", adminUser.username)
-    console.log("Password: admin123")
     console.log("Status: Pro (Yearly)")
-    console.log("\nYou can now login with these credentials")
+    console.log("\nLog in using the credentials you provided via ADMIN_EMAIL / ADMIN_PASSWORD.")
   } catch (error) {
     console.error("Error creating admin user:", error)
   } finally {
