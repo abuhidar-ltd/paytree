@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "i.ytimg.com" },
       { protocol: "https", hostname: "media.giphy.com" },
       { protocol: "https", hostname: "picsum.photos" },
-      { protocol: "https", hostname: "**" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
     formats: ["image/avif", "image/webp"],
   },

@@ -1,4 +1,118 @@
 import { NextRequest, NextResponse } from "next/server"
+import { lookup } from "dns/promises"
+
+export const runtime = "nodejs"
+
+// ─── SSRF guard ──────────────────────────────────────────────────────────────
+// Block requests to loopback, private, link-local, and reserved ranges so a
+// user-supplied feed URL cannot reach internal services or cloud metadata
+// endpoints (e.g. 169.254.169.254).
+
+function isBlockedIPv4(ip: string): boolean {
+  const parts = ip.split(".")
+  if (parts.length !== 4) return true
+  const o = parts.map((p) => Number(p))
+  if (o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true
+  const [a, b] = o
+  if (a === 0) return true                          // 0.0.0.0/8
+  if (a === 10) return true                         // 10.0.0.0/8
+  if (a === 127) return true                        // 127.0.0.0/8 loopback
+  if (a === 169 && b === 254) return true           // 169.254.0.0/16 link-local + metadata
+  if (a === 172 && b >= 16 && b <= 31) return true  // 172.16.0.0/12
+  if (a === 192 && b === 168) return true           // 192.168.0.0/16
+  if (a === 100 && b >= 64 && b <= 127) return true // 100.64.0.0/10 CGNAT
+  return false
+}
+
+function isBlockedIPv6(ip: string): boolean {
+  const addr = ip.toLowerCase()
+  if (addr === "::" || addr === "::1") return true                // unspecified / loopback
+  if (/^fe[89ab]/.test(addr)) return true                         // fe80::/10 link-local
+  if (/^f[cd]/.test(addr)) return true                            // fc00::/7 unique-local
+  const mapped = addr.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/) // IPv4-mapped
+  if (mapped) return isBlockedIPv4(mapped[1])
+  return false
+}
+
+// Validates a user-supplied URL is safe to fetch server-side. Throws on any
+// blocked URL; returns the parsed URL when safe.
+async function assertPublicUrl(raw: string): Promise<URL> {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error("blocked")
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("blocked")
+  if (url.username || url.password) throw new Error("blocked") // reject credentials
+
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "")
+  if (
+    !host ||
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    throw new Error("blocked")
+  }
+
+  // Resolve the host and reject if ANY resolved address is private/reserved.
+  // Catches IP literals and hostnames that point at internal addresses.
+  let addresses: { address: string; family: number }[]
+  try {
+    addresses = await lookup(host, { all: true })
+  } catch {
+    throw new Error("blocked") // unresolvable → refuse
+  }
+  for (const { address, family } of addresses) {
+    if (family === 4 ? isBlockedIPv4(address) : isBlockedIPv6(address)) {
+      throw new Error("blocked")
+    }
+  }
+
+  return url
+}
+
+// Fetch a feed while following redirects MANUALLY so every hop is re-validated
+// against the SSRF guard. fetch's automatic redirect would otherwise bypass it.
+// Throws Error("blocked") on a disallowed target, a bad Location, or too many
+// hops; lets genuine network/abort errors propagate.
+async function fetchWithSafeRedirects(start: URL, signal: AbortSignal): Promise<Response> {
+  const MAX_REDIRECTS = 3
+  let current = start
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    const response = await fetch(current, {
+      headers: {
+        "User-Agent": "Paytree RSS Fetcher/1.0",
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
+      },
+      redirect: "manual",
+      signal,
+      next: { revalidate: 300 }, // Cache for 5 minutes
+    })
+
+    // Not a 3xx → this is the final response.
+    if (response.status < 300 || response.status >= 400) return response
+
+    const location = response.headers.get("location")
+    if (!location) return response // redirect without a target → let caller handle status
+
+    // Resolve relative redirects against the current (already-validated) URL,
+    // then re-validate the target before following it.
+    let next: URL
+    try {
+      next = new URL(location, current)
+    } catch {
+      throw new Error("blocked")
+    }
+    current = await assertPublicUrl(next.toString())
+  }
+
+  // More than MAX_REDIRECTS hops → refuse.
+  throw new Error("blocked")
+}
 
 interface RSSItem {
   title: string
@@ -112,21 +226,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "URL parameter is required" }, { status: 400 })
     }
     
-    // Validate URL
+    // Validate URL against SSRF (protocol, credentials, private/internal hosts)
+    let safeUrl: URL
     try {
-      new URL(url)
+      safeUrl = await assertPublicUrl(url)
     } catch {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid or blocked URL" }, { status: 400 })
     }
-    
-    // Fetch the RSS feed
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Paytree RSS Fetcher/1.0",
-        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
-      },
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    })
+
+    // Fetch the feed with a timeout, re-validating every redirect hop against
+    // the SSRF guard (fetch's automatic redirects are disabled inside).
+    let response: Response
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    try {
+      response = await fetchWithSafeRedirects(safeUrl, controller.signal)
+    } catch (err) {
+      if (err instanceof Error && err.message === "blocked") {
+        return NextResponse.json({ error: "Invalid or blocked URL" }, { status: 400 })
+      }
+      throw err // network/abort errors → outer catch → generic 500
+    } finally {
+      clearTimeout(timeout)
+    }
     
     if (!response.ok) {
       return NextResponse.json(
