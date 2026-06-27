@@ -24,11 +24,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Require explicit server-side confirmation — do not rely on the client's
+    // typed-DELETE check alone.
+    let confirmation: unknown
+    try {
+      const body = await req.json()
+      confirmation = body?.confirmation
+    } catch {
+      confirmation = undefined
+    }
+    if (confirmation !== "DELETE") {
+      return NextResponse.json(
+        { error: 'Confirmation required. Send { "confirmation": "DELETE" }.' },
+        { status: 400 }
+      )
+    }
+
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.log(`[DELETE ACCOUNT] Starting account deletion for user: ${currentUser.id}`)
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-    // Get user's full data
+    // Get user's full data. Stripe IDs are used for best-effort cleanup AFTER
+    // the database deletion succeeds.
     const user = await prisma.user.findUnique({
       where: { id: currentUser.id },
       select: {
@@ -44,7 +61,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Step 1: Cancel Stripe subscription immediately (if exists)
+    // Step 1: Database deletion FIRST. Remove referral rows that would otherwise
+    // block the delete (their FK relations have no cascade), then delete the
+    // user — Session/Account/Link/Block/Click/etc. cascade via FK.
+    await prisma.referral.deleteMany({
+      where: { OR: [{ referrerId: user.id }, { referredId: user.id }] },
+    })
+    console.log(`[DELETE ACCOUNT] Deleting user and cascading dependents...`)
+    await prisma.user.delete({ where: { id: user.id } })
+    console.log(`[DELETE ACCOUNT] ✅ Deleted user record`)
+
+    // Step 2: Best-effort Stripe cleanup — only AFTER the DB user is gone, so a
+    // failed DB delete can never leave a canceled subscription on a live account.
     if (user.stripeSubscriptionId) {
       try {
         console.log(`[DELETE ACCOUNT] Canceling Stripe subscription: ${user.stripeSubscriptionId}`)
@@ -54,8 +82,6 @@ export async function POST(req: Request) {
         console.error(`[DELETE ACCOUNT] ⚠️  Failed to cancel Stripe subscription:`, (stripeError as Error).message)
       }
     }
-
-    // Step 2: Delete user's Stripe customer (if exists)
     if (user.stripeCustomerId) {
       try {
         console.log(`[DELETE ACCOUNT] Deleting Stripe customer: ${user.stripeCustomerId}`)
@@ -65,11 +91,6 @@ export async function POST(req: Request) {
         console.error(`[DELETE ACCOUNT] ⚠️  Failed to delete Stripe customer:`, (stripeError as Error).message)
       }
     }
-
-    // Step 3: Delete user — Session, Account, Click, View, etc. cascade via FK
-    console.log(`[DELETE ACCOUNT] Deleting user and cascading dependents...`)
-    await prisma.user.delete({ where: { id: user.id } })
-    console.log(`[DELETE ACCOUNT] ✅ Deleted user record`)
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.log(`[DELETE ACCOUNT] ✅ Account deletion complete: ${user.username}`)
@@ -87,7 +108,7 @@ export async function POST(req: Request) {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
     return NextResponse.json(
-      { error: (error as Error).message || "Failed to delete account" },
+      { error: "Failed to delete account" },
       { status: 500 }
     )
   }
