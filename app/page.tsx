@@ -3,6 +3,7 @@ import dynamic from "next/dynamic"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { HomeHero } from "./home-hero"
+import { HomePageView } from "./home-page-view"
 import { HomeMarquee } from "./home-marquee"
 import { HomeStickyCTA } from "./home-sticky-cta"
 import { TrackedLink } from "@/components/tracked-link"
@@ -22,6 +23,8 @@ export default async function HomePage() {
     // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky
     // mobile bar (HomeStickyCTA). No effect on desktop.
     <div className="min-h-screen bg-[#030303] text-white relative overflow-x-hidden pb-32 sm:pb-0">
+      {/* Fires homepage_view once on load — render-only, no UI */}
+      <HomePageView />
       {/* Header — glass treatment on all viewports (mobile included). Solid
           bg used to be a TikTok-WebView workaround for backdrop-blur quirks;
           modern WebViews handle it. The top reflection line ties the bar to
@@ -61,7 +64,7 @@ export default async function HomePage() {
             </Link>
             {isLoggedIn ? (
               <TrackedLink
-                event="header_cta_click"
+                event="homepage_cta_clicked"
                 eventProps={{ variant: "dashboard" }}
                 location="header"
                 href="/dashboard"
@@ -80,7 +83,7 @@ export default async function HomePage() {
                   Sign in
                 </TrackedLink>
                 <TrackedLink
-                  event="header_cta_click"
+                  event="homepage_cta_clicked"
                   eventProps={{ variant: "start" }}
                   location="header"
                   href="/start"

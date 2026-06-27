@@ -77,16 +77,17 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
       if (authError) {
         const msg = authError.message || "Sign up failed"
         setError(msg)
-        trackEvent(`signup_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+        trackEvent("signup_failed", { reason: msg.slice(0, 80) })
         return
       }
 
-      trackEvent("signup_completed")
+      // Fires only after Better Auth confirms the account was created.
+      fireOnce("signup_account_created")
       router.push("/onboarding")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent(`signup_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+      trackEvent("signup_failed", { reason: msg.slice(0, 80) })
     } finally {
       setLoading(false)
     }
@@ -251,12 +252,4 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   width: "100%",
   fontFamily: "inherit",
-}
-
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 40)
 }

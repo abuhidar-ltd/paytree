@@ -99,20 +99,11 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   const [step, setStep] = useState(-1)
   const [direction, setDirection] = useState(1)
 
-  // Fire onboarding_started once per session. Clerk lands users on
-  // /onboarding after signup so this doubles as the post-signup landing event,
-  // and we fire signup_completed once (session-gated) so re-entries don't
-  // inflate it.
+  // Fire onboarding_started once when onboarding mounts. Account-creation
+  // success is tracked separately as signup_account_created in the signup
+  // screen (single source of truth), so it is intentionally NOT fired here.
   useEffect(() => {
     trackEvent("onboarding_started")
-    try {
-      if (!sessionStorage.getItem("paytree_signup_completed_fired")) {
-        sessionStorage.setItem("paytree_signup_completed_fired", "1")
-        trackEvent("signup_completed")
-      }
-    } catch {
-      // sessionStorage blocked — skip the dedupe rather than double-fire
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -63,7 +63,7 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
         href={href}
         onClick={() => {
           const variant = isLoggedIn ? "dashboard" : "start"
-          trackEvent("homepage_sticky_cta_clicked", { variant })
+          trackEvent("homepage_cta_clicked", { variant, location: "sticky" })
         }}
         className="pointer-events-auto flex w-full items-center justify-center bg-[#00ff88] text-black font-mono font-bold px-5 py-4 rounded-2xl text-base shadow-[0_8px_32px_rgba(0,255,136,0.35)] active:scale-[0.97] transition-transform duration-150"
         style={{ minHeight: 56 }}

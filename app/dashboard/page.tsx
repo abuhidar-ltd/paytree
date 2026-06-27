@@ -233,6 +233,7 @@ export default function DashboardPage() {
   // so this stays false there. Triggered by the Preview button in the top bar.
   const [showMobilePreview, setShowMobilePreview] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
+  const viewTrackedRef = useRef(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -293,8 +294,13 @@ export default function DashboardPage() {
     )
   }, [])
 
-  // First-visit telemetry — fires once ever per browser.
+  // View telemetry — dashboard_viewed once per mount (ref-guarded against
+  // rerenders / React strict double-invoke); dashboard_first_visit once ever
+  // per browser via localStorage.
   useEffect(() => {
+    if (viewTrackedRef.current) return
+    viewTrackedRef.current = true
+    trackEvent("dashboard_viewed")
     try {
       const KEY = "paytree_dashboard_first_visit_fired"
       if (!window.localStorage.getItem(KEY)) {

@@ -98,7 +98,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 <Link
                   href="/dashboard"
                   onClick={() => {
-                    trackEvent("homepage_hero_cta_clicked", { variant: "dashboard" })
+                    trackEvent("homepage_cta_clicked", { variant: "dashboard", location: "hero" })
                   }}
                   className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center"
                   style={{ minHeight: 56 }}
@@ -118,7 +118,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   <Link
                     href="/start"
                     onClick={() => {
-                      trackEvent("homepage_hero_cta_clicked", { variant: "start" })
+                      trackEvent("homepage_cta_clicked", { variant: "start", location: "hero" })
                     }}
                     className="flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-xl text-base shadow-[0_0_40px_rgba(0,255,136,0.35)] items-center justify-center gap-2"
                     style={{ minHeight: 56 }}
