@@ -60,3 +60,15 @@ export function money(cents: number): string {
 export function fmtDate(d: Date | null | undefined): string {
   return d ? new Date(d).toISOString().slice(0, 10) : "—"
 }
+
+export function fmtDateTime(d: Date | null | undefined): string {
+  return d ? new Date(d).toISOString().slice(0, 16).replace("T", " ") : "—"
+}
+
+// Show only enough of an external/Stripe identifier to be recognizable, never
+// the full value. e.g. "cus_ABC…6f3z". Read-only display aid, not a secret.
+export function maskId(id: string | null | undefined): string {
+  if (!id) return "—"
+  if (id.length <= 8) return id
+  return `${id.slice(0, 4)}…${id.slice(-4)}`
+}
