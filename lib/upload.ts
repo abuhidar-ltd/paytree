@@ -2,16 +2,26 @@ import { put } from "@vercel/blob"
 
 const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 const MAX_BACKGROUND_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
+
+// iPhone cameras default to HEIC/HEIF. Most browsers can't render those, so
+// we accept the upload (so iOS users aren't blocked) and rely on the user's
+// device to convert via the canvas-based preprocessor on the client when
+// possible. Vercel Blob stores the bytes as-is.
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
 ]
 
-// Check if Vercel Blob is configured
+// Only allow base64 fallback in dev. In production, storing multi-MB base64
+// data URLs in user.image bloats the database and slows every profile fetch.
 const hasVercelBlob = !!process.env.BLOB_READ_WRITE_TOKEN
+const isProduction = process.env.NODE_ENV === "production"
+const allowBase64Fallback = !isProduction && !hasVercelBlob
 
 export interface UploadResult {
   url: string
@@ -63,19 +73,18 @@ export async function validateImage(
   file: File,
   maxSize: number
 ): Promise<UploadError | null> {
-  // Check file type
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return {
-      error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(", ")}`,
+      error: `Unsupported file type (${file.type || "unknown"}). Use JPG, PNG, WebP, GIF, or HEIC.`,
       code: "INVALID_TYPE",
     }
   }
 
-  // Check file size
   if (file.size > maxSize) {
-    const maxSizeMB = maxSize / 1024 / 1024
+    const maxSizeMB = Math.round(maxSize / 1024 / 1024)
+    const actualMB = (file.size / 1024 / 1024).toFixed(1)
     return {
-      error: `File too large. Maximum size: ${maxSizeMB}MB`,
+      error: `File is ${actualMB}MB — max is ${maxSizeMB}MB. Try a smaller image.`,
       code: "FILE_TOO_LARGE",
     }
   }
@@ -93,14 +102,51 @@ export async function validateImage(
   return null
 }
 
-// Convert file to base64 data URL for local development
 async function fileToDataURL(file: File): Promise<string> {
-  // Convert File to Buffer for server-side processing
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
-  const base64 = buffer.toString('base64')
+  const base64 = buffer.toString("base64")
   const mimeType = file.type
   return `data:${mimeType};base64,${base64}`
+}
+
+// Sanitize the original filename's extension. Strip path separators, take only
+// alphanumerics, lowercase, cap to 5 chars. Falls back to "bin" if anything
+// suspicious is found — Vercel Blob is fine with any extension.
+function safeExtension(name: string): string {
+  const dot = name.lastIndexOf(".")
+  if (dot < 0) return "bin"
+  const raw = name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "")
+  return raw.slice(0, 5) || "bin"
+}
+
+async function uploadToStorage(
+  file: File,
+  filenamePrefix: string,
+  userId: string
+): Promise<UploadResult | UploadError> {
+  if (hasVercelBlob) {
+    // addRandomSuffix:true keeps re-uploads from colliding when Date.now()
+    // resolution isn't fine enough (back-to-back retries land in the same ms).
+    const filename = `${filenamePrefix}-${userId}-${Date.now()}.${safeExtension(file.name)}`
+    const blob = await put(filename, file, {
+      access: "public",
+      addRandomSuffix: true,
+    })
+    return { url: blob.url, size: file.size, contentType: file.type }
+  }
+
+  if (allowBase64Fallback) {
+    console.log("[upload] Vercel Blob not configured — using base64 fallback (dev only)")
+    const dataUrl = await fileToDataURL(file)
+    return { url: dataUrl, size: file.size, contentType: file.type }
+  }
+
+  // Production with no Blob token — fail loudly rather than silently bloating the DB.
+  return {
+    error: "Image storage isn't configured. Contact support.",
+    code: "STORAGE_NOT_CONFIGURED",
+  }
 }
 
 export async function uploadProfileImage(
@@ -108,37 +154,13 @@ export async function uploadProfileImage(
   userId: string
 ): Promise<UploadResult | UploadError> {
   try {
-    // Validate
     const validationError = await validateImage(file, MAX_PROFILE_IMAGE_SIZE)
     if (validationError) return validationError
-
-    // Use Vercel Blob if configured, otherwise use base64
-    if (hasVercelBlob) {
-      const filename = `profile-${userId}-${Date.now()}.${file.name.split(".").pop()}`
-      const blob = await put(filename, file, {
-        access: "public",
-        addRandomSuffix: false,
-      })
-
-      return {
-        url: blob.url,
-        size: file.size,
-        contentType: file.type,
-      }
-    } else {
-      // Fallback to base64 for local development
-      console.log("📦 Using base64 storage (Vercel Blob not configured)")
-      const dataUrl = await fileToDataURL(file)
-      return {
-        url: dataUrl,
-        size: file.size,
-        contentType: file.type,
-      }
-    }
+    return await uploadToStorage(file, "profile", userId)
   } catch (error) {
-    console.error("Upload error:", error)
+    console.error("Profile upload error:", error)
     return {
-      error: "Failed to upload image",
+      error: error instanceof Error ? error.message : "Failed to upload image",
       code: "UPLOAD_FAILED",
     }
   }
@@ -149,37 +171,13 @@ export async function uploadBackgroundImage(
   userId: string
 ): Promise<UploadResult | UploadError> {
   try {
-    // Validate
     const validationError = await validateImage(file, MAX_BACKGROUND_IMAGE_SIZE)
     if (validationError) return validationError
-
-    // Use Vercel Blob if configured, otherwise use base64
-    if (hasVercelBlob) {
-      const filename = `background-${userId}-${Date.now()}.${file.name.split(".").pop()}`
-      const blob = await put(filename, file, {
-        access: "public",
-        addRandomSuffix: false,
-      })
-
-      return {
-        url: blob.url,
-        size: file.size,
-        contentType: file.type,
-      }
-    } else {
-      // Fallback to base64 for local development
-      console.log("📦 Using base64 storage (Vercel Blob not configured)")
-      const dataUrl = await fileToDataURL(file)
-      return {
-        url: dataUrl,
-        size: file.size,
-        contentType: file.type,
-      }
-    }
+    return await uploadToStorage(file, "background", userId)
   } catch (error) {
-    console.error("Upload error:", error)
+    console.error("Background upload error:", error)
     return {
-      error: "Failed to upload image",
+      error: error instanceof Error ? error.message : "Failed to upload image",
       code: "UPLOAD_FAILED",
     }
   }
@@ -188,7 +186,6 @@ export async function uploadBackgroundImage(
 // Helper to extract colors from image URL (client-side)
 export async function extractColorsFromImage(imageUrl: string) {
   try {
-    // Import node-vibrant dynamically
     const vibrantModule = await import("node-vibrant")
     // @ts-expect-error - Dynamic import typing issue
     const Vibrant = vibrantModule.default || vibrantModule

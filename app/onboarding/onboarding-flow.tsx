@@ -112,6 +112,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   const [username, setUsername] = useState(user.username)
   const [bio, setBio] = useState("")
   const [image, setImage] = useState<string | null>(user.image)
+  const [imageUploading, setImageUploading] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -329,8 +330,18 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // ─── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
     if (!file) return
+
+    // Client-side fast-fail so users see the error before bytes go over the wire.
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(`File is ${(file.size / 1024 / 1024).toFixed(1)}MB — max is 5MB.`)
+      input.value = ""
+      return
+    }
+
+    setImageUploading(true)
     const formData = new FormData()
     formData.append("file", file)
     try {
@@ -338,14 +349,18 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         method: "POST",
         body: formData,
       })
-      if (res.ok) {
-        const { url } = await res.json()
-        setImage(url)
+      const data = await res.json().catch(() => ({} as { url?: string; error?: string }))
+      if (res.ok && data.url) {
+        setImage(data.url)
       } else {
-        toast.error("Image upload failed. Please try again.")
+        toast.error(data.error || "Image upload failed. Please try again.")
       }
     } catch {
-      toast.error("Image upload failed. Please try again.")
+      toast.error("Network error during upload. Please try again.")
+    } finally {
+      setImageUploading(false)
+      // Reset so picking the same file again re-fires onChange.
+      input.value = ""
     }
   }
 
@@ -457,7 +472,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       <div className="flex items-center gap-5">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-white/20 hover:border-[#00ff88]/40 transition-colors flex-shrink-0 group"
+          disabled={imageUploading}
+          className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-white/20 hover:border-[#00ff88]/40 transition-colors flex-shrink-0 group disabled:opacity-60"
         >
           {image ? (
             <img src={image} alt="" className="w-full h-full object-cover" />
@@ -469,7 +485,16 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               </span>
             </div>
           )}
-          {image && (
+          {imageUploading && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <motion.div
+                className="w-5 h-5 rounded-full border-2 border-t-transparent border-[#00ff88]"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+              />
+            </div>
+          )}
+          {image && !imageUploading && (
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <span className="text-xs font-mono text-white">Change</span>
             </div>
@@ -478,13 +503,13 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif"
           className="hidden"
           onChange={handleImageUpload}
         />
         <div className="text-sm text-[#555]">
           <div className="text-[#e0e0e0] font-medium mb-0.5">Profile photo</div>
-          <div>Click to upload. JPG, PNG, WebP. Max 5MB.</div>
+          <div>JPG, PNG, WebP, HEIC. Max 5MB.</div>
         </div>
       </div>
 
