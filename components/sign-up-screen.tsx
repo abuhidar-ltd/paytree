@@ -19,11 +19,14 @@ interface SignUpScreenProps {
   initialIsTikTokIAB?: boolean
 }
 
+const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
+
 export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) {
   const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
@@ -37,7 +40,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
   }
 
   async function handleGoogle() {
-    if (googleLoading) return
+    if (googleLoading || loading) return
     setGoogleLoading(true)
     setError("")
     fireOnce("signup_google_clicked")
@@ -109,6 +112,8 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     }
   }
 
+  const disabled = loading || googleLoading
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
@@ -174,21 +179,25 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
             background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)",
           }} />
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading || googleLoading}
-            style={googleButtonStyle(loading || googleLoading)}
-          >
-            <GoogleIcon />
-            {googleLoading ? "Connecting..." : "Continue with Google"}
-          </button>
+          {GOOGLE_LOGIN_ENABLED && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={disabled}
+                style={googleButtonStyle(disabled)}
+              >
+                <GoogleIcon />
+                {googleLoading ? "Connecting..." : "Continue with Google"}
+              </button>
 
-          <div style={dividerWrapStyle}>
-            <div style={dividerLineStyle} />
-            <span style={dividerTextStyle}>or</span>
-            <div style={dividerLineStyle} />
-          </div>
+              <div style={dividerWrapStyle}>
+                <div style={dividerLineStyle} />
+                <span style={dividerTextStyle}>or</span>
+                <div style={dividerLineStyle} />
+              </div>
+            </>
+          )}
 
           <input
             type="text"
@@ -197,7 +206,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
             onChange={(e) => setName(e.target.value)}
             onFocus={() => fireOnce("signup_name_focused")}
             autoComplete="name"
-            disabled={loading}
+            disabled={disabled}
             style={inputStyle}
           />
 
@@ -208,20 +217,30 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
             onChange={(e) => setEmail(e.target.value)}
             onFocus={() => fireOnce("signup_email_focused")}
             autoComplete="email"
-            disabled={loading}
+            disabled={disabled}
             style={inputStyle}
           />
 
-          <input
-            type="password"
-            placeholder="Password (min 8 characters)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => fireOnce("signup_password_focused")}
-            autoComplete="new-password"
-            disabled={loading}
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password (min 8 characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => fireOnce("signup_password_focused")}
+              autoComplete="new-password"
+              disabled={disabled}
+              style={{ ...inputStyle, paddingRight: 56 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              style={passwordToggleStyle}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
 
           {error && (
             <div style={{
@@ -239,7 +258,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={disabled}
             style={{
               background: loading ? "rgba(0,255,136,0.5)" : "#00ff88",
               color: "#000",
@@ -322,6 +341,21 @@ const dividerTextStyle: React.CSSProperties = {
   color: "#444",
   fontSize: 12,
   fontFamily: "var(--font-mono, monospace)",
+}
+
+const passwordToggleStyle: React.CSSProperties = {
+  position: "absolute",
+  right: 10,
+  top: "50%",
+  transform: "translateY(-50%)",
+  background: "transparent",
+  border: "none",
+  color: "#888",
+  fontSize: 12,
+  fontFamily: "monospace",
+  padding: "8px 10px",
+  cursor: "pointer",
+  minHeight: 36,
 }
 
 function GoogleIcon() {

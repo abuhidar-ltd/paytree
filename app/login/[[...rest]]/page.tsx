@@ -7,11 +7,17 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { signIn, useSession } from "@/lib/auth-client"
 import { trackEvent } from "@/lib/analytics"
 
+// Render the Google button only when the env flag is set. lib/auth.ts ALSO
+// gates on the Google secret keys, so without both we can never show a
+// broken OAuth flow.
+const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
+
 export default function LoginPage() {
   const router = useRouter()
   const { data: session, isPending } = useSession()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
@@ -23,13 +29,16 @@ export default function LoginPage() {
     trackEvent(stage, props)
   }
 
+  // Sign-in (not sign-up): existing users go to /dashboard. Sending them to
+  // /onboarding would loop them back through the welcome flow they already
+  // completed.
   async function handleGoogle() {
-    if (googleLoading) return
+    if (googleLoading || loading) return
     setGoogleLoading(true)
     setError("")
     fireOnce("signin_google_clicked")
     try {
-      await signIn.social({ provider: "google", callbackURL: "/onboarding" })
+      await signIn.social({ provider: "google", callbackURL: "/dashboard" })
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
       setError(msg)
@@ -94,6 +103,8 @@ export default function LoginPage() {
 
   if (!isPending && session) return null
 
+  const disabled = loading || googleLoading
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
       <PremiumBackground />
@@ -125,21 +136,25 @@ export default function LoginPage() {
             background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)",
           }} />
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading || googleLoading}
-            style={googleButtonStyle(loading || googleLoading)}
-          >
-            <GoogleIcon />
-            {googleLoading ? "Connecting..." : "Continue with Google"}
-          </button>
+          {GOOGLE_LOGIN_ENABLED && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={disabled}
+                style={googleButtonStyle(disabled)}
+              >
+                <GoogleIcon />
+                {googleLoading ? "Connecting..." : "Continue with Google"}
+              </button>
 
-          <div style={dividerWrapStyle}>
-            <div style={dividerLineStyle} />
-            <span style={dividerTextStyle}>or</span>
-            <div style={dividerLineStyle} />
-          </div>
+              <div style={dividerWrapStyle}>
+                <div style={dividerLineStyle} />
+                <span style={dividerTextStyle}>or</span>
+                <div style={dividerLineStyle} />
+              </div>
+            </>
+          )}
 
           <input
             type="email"
@@ -148,20 +163,30 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             onFocus={() => fireOnce("signin_email_focused")}
             autoComplete="email"
-            disabled={loading}
+            disabled={disabled}
             style={inputStyle}
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => fireOnce("signin_password_focused")}
-            autoComplete="current-password"
-            disabled={loading}
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => fireOnce("signin_password_focused")}
+              autoComplete="current-password"
+              disabled={disabled}
+              style={{ ...inputStyle, paddingRight: 56 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              style={passwordToggleStyle}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
 
           {error && (
             <div style={{
@@ -179,7 +204,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={disabled}
             style={{
               background: loading ? "rgba(0,255,136,0.5)" : "#00ff88",
               color: "#000",
@@ -269,6 +294,21 @@ const dividerTextStyle: React.CSSProperties = {
   color: "#444",
   fontSize: 12,
   fontFamily: "var(--font-mono, monospace)",
+}
+
+const passwordToggleStyle: React.CSSProperties = {
+  position: "absolute",
+  right: 10,
+  top: "50%",
+  transform: "translateY(-50%)",
+  background: "transparent",
+  border: "none",
+  color: "#888",
+  fontSize: 12,
+  fontFamily: "monospace",
+  padding: "8px 10px",
+  cursor: "pointer",
+  minHeight: 36,
 }
 
 function GoogleIcon() {

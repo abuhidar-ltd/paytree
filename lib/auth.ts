@@ -2,6 +2,10 @@ import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "@/lib/prisma"
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+const hasGoogleOAuth = !!(googleClientId && googleClientSecret)
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
@@ -13,12 +17,20 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     minPasswordLength: 8,
   },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
+  // Register Google only when both credentials are present. Missing creds
+  // would otherwise crash Better Auth at boot via the `as string` cast in
+  // origin's earlier version. The signup/login pages further gate the button
+  // behind NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED so users never see a broken flow.
+  ...(hasGoogleOAuth
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
+          },
+        },
+      }
+    : {}),
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // 1 day
