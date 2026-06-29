@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { LiveStatusPill } from "./live-status-pill"
 import { trackEvent } from "@/lib/analytics"
 import { glass, glassReflection } from "@/lib/glass"
-import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag } from "lucide-react"
+import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag, MessageCircle } from "lucide-react"
 
 // ─── Interfaces ───────────────────────────────────────────────
 
@@ -444,9 +444,64 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
       return <DiscountCodeBlock block={block} cfg={cfg} />
     case "social_link":
       return null
+    case "whatsapp":
+      return <ProfileWhatsAppCard {...baseProps} />
     default:
       return null
   }
+}
+
+// ─── ProfileWhatsAppCard ─────────────────────────────────────
+// Opens wa.me/<phone>?text=<encoded message>. wa.me redirects to the right
+// scheme on iOS, Android, and desktop. MENA-critical: WhatsApp is the
+// default contact channel for most Arab creators.
+
+function ProfileWhatsAppCard({ block, accentColor, buttonStyle }: BaseBlockProps) {
+  const cfg = (block.config || {}) as Record<string, unknown>
+  const rawPhone = (cfg.phone as string) || ""
+  const phone = rawPhone.replace(/[^\d]/g, "") // wa.me requires digits only
+  const message = (cfg.message as string) || ""
+
+  const url = phone
+    ? `https://wa.me/${phone}${message ? `?text=${encodeURIComponent(message)}` : ""}`
+    : null
+
+  const handleClick = () => {
+    if (!url) return
+    trackBlockClick(block.id)
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  const { base, hover } = getButtonCardStyles(buttonStyle, accentColor)
+  const titleColor = (base.color as string) || "#fff"
+
+  return (
+    <motion.div
+      className="flex items-center gap-3 px-4 cursor-pointer group"
+      style={{ ...base, height: 60, opacity: url ? 1 : 0.6 }}
+      whileHover={url ? hover : undefined}
+      whileTap={url ? { scale: 0.98 } : undefined}
+      transition={spring}
+      onClick={handleClick}
+      aria-disabled={!url}
+    >
+      <div
+        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "rgba(37,211,102,0.15)", color: "#25D366" }}
+      >
+        <MessageCircle size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate" style={{ color: titleColor }}>
+          {block.title && block.title !== "Untitled" ? block.title : "Chat on WhatsApp"}
+        </p>
+        <p className="text-[11px] font-mono truncate" style={{ color: titleColor, opacity: 0.5 }}>
+          {url ? "WhatsApp" : "Phone number missing"}
+        </p>
+      </div>
+      <ArrowUpRight size={14} className="opacity-50 group-hover:opacity-80 transition-opacity flex-shrink-0" style={{ color: titleColor }} />
+    </motion.div>
+  )
 }
 
 // ─── ProfileLinkCard ─────────────────────────────────────────

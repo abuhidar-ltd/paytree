@@ -25,7 +25,7 @@ import {
   Search, Folder, Link as LinkIcon, Lock, Timer, Youtube, ShoppingBag,
   Music, Mic, Radio, Share2, BarChart2, Image, AlignLeft, HelpCircle,
   Mail, Tag, Trash2, Star, MoreHorizontal,
-  Tv, Copy, Pencil, CopyPlus,
+  Tv, Copy, Pencil, CopyPlus, MessageCircle,
   LayoutGrid, Paintbrush, Settings, Menu, CreditCard, Sparkles,
 } from "lucide-react"
 import type { PlanId } from "@/lib/plans"
@@ -170,6 +170,7 @@ const BLOCK_CATEGORIES = [
     label: "Social",
     items: [
       { id: "social_link", name: "Social Link", icon: Share2, desc: "Platform profile" },
+      { id: "whatsapp", name: "WhatsApp", icon: MessageCircle, desc: "Chat on WhatsApp" },
     ],
   },
   {
@@ -194,6 +195,7 @@ const TYPE_ICONS: Record<string, typeof LinkIcon> = {
   link: LinkIcon, collection: Folder, vault: Lock, drop: Timer,
   youtube: Youtube, spotify: Music, podcast: Mic, twitch: Tv,
   product: ShoppingBag, discount_code: Tag, social_link: Share2,
+  whatsapp: MessageCircle,
   text: AlignLeft, image: Image, faq: HelpCircle, contact_form: Mail,
   stats: BarChart2, live_status: Radio,
 }
@@ -202,9 +204,9 @@ const TYPE_COLORS: Record<string, string> = {
   link: "#e0e0e0", collection: "#e0e0e0", vault: "#f59e0b",
   drop: "#00ff88", youtube: "#ff0000", spotify: "#1DB954",
   podcast: "#f59e0b", twitch: "#9146FF", product: "#3b82f6",
-  discount_code: "#f59e0b", social_link: "#e0e0e0", text: "#888",
-  image: "#888", faq: "#888", contact_form: "#888", stats: "#00ff88",
-  live_status: "#ef4444",
+  discount_code: "#f59e0b", social_link: "#e0e0e0", whatsapp: "#25D366",
+  text: "#888", image: "#888", faq: "#888", contact_form: "#888",
+  stats: "#00ff88", live_status: "#ef4444",
 }
 
 // ─── Dashboard Page ───────────────────────────────────────────
@@ -902,21 +904,18 @@ export default function DashboardPage() {
           </SortableContext>
         </DndContext>
 
-        {displayBlocks.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4">
-              <Plus size={24} className="text-[#444]" />
-            </div>
-            <p className="text-sm text-[#666] font-mono mb-3">No cards yet</p>
-            <button onClick={() => {
-                trackEvent("add_card_picker_opened", { source: "empty_state" })
-                setShowAddPicker(true)
-              }}
-              className="bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-xl px-4 py-2 hover:opacity-90 transition-opacity">
-              Add your first card
-            </button>
-          </motion.div>
+        {displayBlocks.length === 0 && !collectionViewId && (
+          <EmptyDashboardState
+            displayName={profile?.username ? `@${profile.username}` : "creator"}
+            onSuggest={(type) => {
+              trackEvent("empty_state_suggestion_clicked", { type })
+              handleAddBlock(type)
+            }}
+            onOpenPicker={() => {
+              trackEvent("add_card_picker_opened", { source: "empty_state" })
+              setShowAddPicker(true)
+            }}
+          />
         )}
       </div>
 
@@ -1505,6 +1504,22 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
       )
     }
 
+    case "whatsapp": {
+      const phone = (cfg.phone as string) || ""
+      return (
+        <div className="px-4 py-3 flex items-center gap-3" style={{ minHeight: 64 }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "rgba(37,211,102,0.12)", color: "#25D366" }}>
+            <MessageCircle size={16} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">{block.title === "Untitled" ? "WhatsApp" : block.title}</p>
+            <p className="text-[10px] font-mono text-[#444] truncate">{phone || "Set phone in CONTENT tab"}</p>
+          </div>
+        </div>
+      )
+    }
+
     default:
       return (
         <div className="px-4 py-3 flex items-center gap-3" style={{ minHeight: 56 }}>
@@ -2075,6 +2090,27 @@ function ContentTab({ block, onUpdate, onAddReveal, onRemoveReveal, onEditReveal
         </FieldGroup>
       )}
 
+      {block.type === "whatsapp" && (
+        <>
+          <FieldGroup label="Phone number (with country code)">
+            <GlassInput
+              defaultValue={(cfg.phone as string) || ""}
+              onBlur={(e) => updateConfig("phone", e.target.value.replace(/[^\d+]/g, ""))}
+              placeholder="+962791234567"
+              inputMode="tel"
+            />
+          </FieldGroup>
+          <FieldGroup label="Pre-filled message (optional)">
+            <GlassTextarea
+              defaultValue={(cfg.message as string) || ""}
+              onBlur={(e) => updateConfig("message", e.target.value)}
+              rows={2}
+              placeholder="Hi! I'm interested in..."
+            />
+          </FieldGroup>
+        </>
+      )}
+
       {block.type === "text" && (
         <>
           <FieldGroup label="Style">
@@ -2558,6 +2594,103 @@ function DashboardSkeleton() {
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Empty Dashboard State ────────────────────────────────────
+// Shown when a user has zero blocks. Replaces the bare "No cards yet"
+// placeholder with a welcome + tap-to-create suggestion grid. The order is
+// hand-picked to match the highest-converting first cards across niches
+// (link / WhatsApp for MENA, YouTube / Instagram for creators).
+
+function EmptyDashboardState({ displayName, onSuggest, onOpenPicker }: {
+  displayName: string
+  onSuggest: (type: string) => void
+  onOpenPicker: () => void
+}) {
+  const suggestions = [
+    { type: "link",        icon: LinkIcon,       label: "Add a link",        sub: "Any URL" },
+    { type: "whatsapp",    icon: MessageCircle,  label: "WhatsApp chat",     sub: "Chat one-click" },
+    { type: "youtube",     icon: Youtube,        label: "YouTube",           sub: "Latest video" },
+    { type: "social_link", icon: Share2,         label: "Social link",       sub: "Instagram, TikTok…" },
+    { type: "product",     icon: ShoppingBag,    label: "Sell a product",    sub: "0% platform fees" },
+    { type: "stats",       icon: BarChart2,      label: "Stat card",         sub: "87% win rate" },
+  ]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 280, damping: 28 }}
+      className="max-w-[640px] mx-auto pt-6 pb-16"
+    >
+      <div className="text-center mb-7">
+        <div
+          className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4"
+          style={{
+            background: "rgba(0,255,136,0.08)",
+            border: "0.5px solid rgba(0,255,136,0.2)",
+            boxShadow: "0 0 24px rgba(0,255,136,0.12), inset 0 1px 0 rgba(0,255,136,0.08)",
+          }}
+        >
+          <Sparkles size={20} className="text-[#00ff88]" />
+        </div>
+        <h2 className="text-2xl font-bold text-white">
+          Welcome to Paytree, <span className="text-[#00ff88]">{displayName}</span>
+        </h2>
+        <p className="text-sm text-[#888] font-mono mt-2">
+          Pick a card to start. Most pages need 3–5.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        {suggestions.map((s, i) => {
+          const color = TYPE_COLORS[s.type] || "#e0e0e0"
+          return (
+            <motion.button
+              key={s.type}
+              type="button"
+              onClick={() => onSuggest(s.type)}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + i * 0.04, type: "spring", stiffness: 300, damping: 26 }}
+              whileHover={{ y: -1, background: "rgba(255,255,255,0.05)" }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-3 px-3.5 py-3.5 rounded-2xl text-left"
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "0.5px solid rgba(255,255,255,0.08)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                minHeight: 64,
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${color}18`, color }}
+              >
+                <s.icon size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#f0f0f0] truncate">{s.label}</div>
+                <div className="text-[11px] font-mono text-[#555] truncate">{s.sub}</div>
+              </div>
+              <Plus size={14} className="text-[#444] flex-shrink-0" />
+            </motion.button>
+          )
+        })}
+      </div>
+
+      <div className="text-center mt-7">
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className="text-xs font-mono text-[#888] hover:text-white transition-colors underline decoration-white/20 hover:decoration-white/40 underline-offset-4 px-3 py-2 rounded-lg"
+          style={{ minHeight: 36 }}
+        >
+          Browse all card types →
+        </button>
+      </div>
+    </motion.div>
   )
 }
 
