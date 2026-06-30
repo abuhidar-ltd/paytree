@@ -1,4 +1,12 @@
-import { put } from "@vercel/blob"
+import {
+  put,
+  BlobAccessError,
+  BlobStoreNotFoundError,
+  BlobStoreSuspendedError,
+  BlobServiceNotAvailable,
+  BlobServiceRateLimited,
+  BlobFileTooLargeError,
+} from "@vercel/blob"
 
 const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 const MAX_BACKGROUND_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -129,11 +137,22 @@ async function uploadToStorage(
     // addRandomSuffix:true keeps re-uploads from colliding when Date.now()
     // resolution isn't fine enough (back-to-back retries land in the same ms).
     const filename = `${filenamePrefix}-${userId}-${Date.now()}.${safeExtension(file.name)}`
-    const blob = await put(filename, file, {
-      access: "public",
-      addRandomSuffix: true,
-    })
-    return { url: blob.url, size: file.size, contentType: file.type }
+    try {
+      const blob = await put(filename, file, {
+        access: "public",
+        addRandomSuffix: true,
+      })
+      return { url: blob.url, size: file.size, contentType: file.type }
+    } catch (err) {
+      // Translate Blob SDK errors into specific codes so the API route can
+      // log the actual cause. The June 2026 outage was a `BlobAccessError`
+      // ("Cannot use public access on a private store") that surfaced as a
+      // generic "Upload failed" in the UI — the explicit code below makes
+      // that case impossible to misdiagnose next time.
+      const mapped = mapBlobError(err)
+      console.error("[upload] put() threw:", mapped.code, mapped.error, err)
+      return mapped
+    }
   }
 
   if (allowBase64Fallback) {
@@ -146,6 +165,52 @@ async function uploadToStorage(
   return {
     error: "Image storage isn't configured. Contact support.",
     code: "STORAGE_NOT_CONFIGURED",
+  }
+}
+
+function mapBlobError(err: unknown): UploadError {
+  if (err instanceof BlobAccessError) {
+    // Most common cause: the Blob store is provisioned with private access
+    // but we're requesting access:"public" (or vice versa). The fix is on
+    // the Vercel dashboard side, not in code.
+    return {
+      error: "Image storage rejected the request (access mismatch). The team has been notified.",
+      code: "STORAGE_ACCESS_DENIED",
+    }
+  }
+  if (err instanceof BlobStoreNotFoundError) {
+    return {
+      error: "Image storage is missing. Contact support.",
+      code: "STORAGE_NOT_FOUND",
+    }
+  }
+  if (err instanceof BlobStoreSuspendedError) {
+    return {
+      error: "Image storage is suspended. Contact support.",
+      code: "STORAGE_SUSPENDED",
+    }
+  }
+  if (err instanceof BlobServiceNotAvailable) {
+    return {
+      error: "Image storage is temporarily unavailable. Try again in a minute.",
+      code: "STORAGE_UNAVAILABLE",
+    }
+  }
+  if (err instanceof BlobServiceRateLimited) {
+    return {
+      error: "Too many uploads right now. Try again in a moment.",
+      code: "STORAGE_RATE_LIMITED",
+    }
+  }
+  if (err instanceof BlobFileTooLargeError) {
+    return {
+      error: "Image is larger than what our storage allows.",
+      code: "FILE_TOO_LARGE",
+    }
+  }
+  return {
+    error: err instanceof Error ? err.message : "Failed to upload image",
+    code: "UPLOAD_FAILED",
   }
 }
 

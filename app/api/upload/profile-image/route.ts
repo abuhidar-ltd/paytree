@@ -3,6 +3,25 @@ import { getCurrentUser } from "@/lib/get-user"
 import { uploadProfileImage } from "@/lib/upload"
 import { prisma } from "@/lib/prisma"
 
+function statusForUploadCode(code: string): number {
+  switch (code) {
+    case "INVALID_TYPE":
+    case "FILE_TOO_LARGE":
+    case "INVALID_IMAGE":
+      return 400
+    case "STORAGE_RATE_LIMITED":
+      return 429
+    case "STORAGE_NOT_CONFIGURED":
+    case "STORAGE_NOT_FOUND":
+    case "STORAGE_SUSPENDED":
+    case "STORAGE_ACCESS_DENIED":
+    case "STORAGE_UNAVAILABLE":
+      return 503
+    default:
+      return 500
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser()
@@ -24,12 +43,10 @@ export async function POST(req: Request) {
     const result = await uploadProfileImage(file, user.id)
 
     if ("error" in result) {
-      // Map validation/storage errors to 4xx/5xx so the client can branch on status.
-      const status =
-        result.code === "INVALID_TYPE" || result.code === "FILE_TOO_LARGE" ? 400
-        : result.code === "STORAGE_NOT_CONFIGURED" ? 503
-        : 500
-      return NextResponse.json({ error: result.error, code: result.code }, { status })
+      return NextResponse.json(
+        { error: result.error, code: result.code },
+        { status: statusForUploadCode(result.code) }
+      )
     }
 
     await prisma.user.update({
