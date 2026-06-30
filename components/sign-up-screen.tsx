@@ -85,28 +85,62 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     setLoading(true)
     setError("")
 
+    // Full client-side trace so we can see what's actually happening in real
+    // users' browsers. Vercel's server-side "0% errors" hid every 4xx body —
+    // these console.logs land in Sentry / Microsoft Clarity replays and let
+    // us diff a successful signup against a failing one.
+    console.log("[signup] submitting", { email, name, origin: window.location.origin, path: window.location.pathname })
+
     try {
-      const { error: authError } = await signUp.email({
+      const result = await signUp.email({
         email,
         password,
         name,
         callbackURL: "/onboarding",
       })
+      console.log("[signup] signUp.email returned", result)
 
+      const authError = (result as { error?: unknown }).error
       if (authError) {
-        const msg = authError.message || "Sign up failed"
+        // authError shape varies by Better Auth version — extract every common
+        // field. INVALID_ORIGIN, USER_ALREADY_EXISTS, etc. all surface as
+        // different keys. Older versions return { code, status, message };
+        // newer ones return { code, statusCode, body: { message } }.
+        const errObj = authError as {
+          message?: string
+          code?: string
+          status?: number
+          statusCode?: number
+          body?: { message?: string; error?: string }
+        }
+        const msg =
+          errObj.message ||
+          errObj.body?.message ||
+          errObj.body?.error ||
+          friendlyMessage(errObj.code, errObj.status ?? errObj.statusCode) ||
+          "Sign up failed"
+        console.error("[signup] authError", errObj)
         setError(msg)
-        trackEvent("signup_failed", { reason: msg.slice(0, 80) })
+        trackEvent("signup_failed", {
+          reason: msg.slice(0, 80),
+          code: errObj.code ?? null,
+          status: errObj.status ?? errObj.statusCode ?? null,
+        })
         return
       }
 
       // Fires only after Better Auth confirms the account was created.
+      console.log("[signup] account created, redirecting to /onboarding")
       fireOnce("signup_account_created")
       router.push("/onboarding")
     } catch (err) {
+      console.error("[signup] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent("signup_failed", { reason: msg.slice(0, 80) })
+      trackEvent("signup_failed", {
+        reason: msg.slice(0, 80),
+        threw: true,
+      })
     } finally {
       setLoading(false)
     }
@@ -356,6 +390,19 @@ const passwordToggleStyle: React.CSSProperties = {
   padding: "8px 10px",
   cursor: "pointer",
   minHeight: 36,
+}
+
+// Map Better Auth's machine-readable codes to user-visible messages.
+// Without this, INVALID_ORIGIN / TOO_MANY_REQUESTS / USER_ALREADY_EXISTS all
+// collapse to "Sign up failed" and the user has no idea what's wrong.
+function friendlyMessage(code: string | undefined, status: number | undefined): string | null {
+  if (code === "USER_ALREADY_EXISTS" || status === 409) return "An account with that email already exists. Try signing in."
+  if (code === "INVALID_EMAIL") return "That email address looks invalid."
+  if (code === "WEAK_PASSWORD") return "That password is too weak. Use at least 8 characters with a mix of letters and numbers."
+  if (code === "INVALID_ORIGIN" || status === 403) return "Your browser blocked the sign-up request. Try opening paytree.to directly in Safari or Chrome."
+  if (code === "TOO_MANY_REQUESTS" || status === 429) return "Too many attempts. Wait a minute and try again."
+  if (status === 500) return "Our server hit a snag. Try again in a moment."
+  return null
 }
 
 function GoogleIcon() {

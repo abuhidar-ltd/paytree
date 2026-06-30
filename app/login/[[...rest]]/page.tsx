@@ -77,22 +77,45 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
 
+    console.log("[signin] submitting", { email, origin: window.location.origin })
+
     try {
-      const { error: authError } = await signIn.email({
+      const result = await signIn.email({
         email,
         password,
         callbackURL: "/dashboard",
       })
+      console.log("[signin] signIn.email returned", result)
 
+      const authError = (result as { error?: unknown }).error
       if (authError) {
-        const msg = authError.message || "Sign in failed"
+        const errObj = authError as {
+          message?: string
+          code?: string
+          status?: number
+          statusCode?: number
+          body?: { message?: string; error?: string }
+        }
+        const msg =
+          errObj.message ||
+          errObj.body?.message ||
+          errObj.body?.error ||
+          friendlyMessage(errObj.code, errObj.status ?? errObj.statusCode) ||
+          "Sign in failed"
+        console.error("[signin] authError", errObj)
         setError(msg)
-        trackEvent(`signin_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+        trackEvent(`signin_error_${slugify(msg)}`, {
+          message: msg.slice(0, 80),
+          code: errObj.code ?? null,
+          status: errObj.status ?? errObj.statusCode ?? null,
+        })
         return
       }
 
+      console.log("[signin] success, redirecting to /dashboard")
       router.push("/dashboard")
     } catch (err) {
+      console.error("[signin] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
       trackEvent(`signin_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
@@ -309,6 +332,15 @@ const passwordToggleStyle: React.CSSProperties = {
   padding: "8px 10px",
   cursor: "pointer",
   minHeight: 36,
+}
+
+function friendlyMessage(code: string | undefined, status: number | undefined): string | null {
+  if (code === "INVALID_EMAIL_OR_PASSWORD" || status === 401) return "Email or password doesn't match. Try again."
+  if (code === "USER_NOT_FOUND") return "No account with that email. Create one at /start."
+  if (code === "INVALID_ORIGIN" || status === 403) return "Your browser blocked the sign-in request. Try opening paytree.to directly in Safari or Chrome."
+  if (code === "TOO_MANY_REQUESTS" || status === 429) return "Too many attempts. Wait a minute and try again."
+  if (status === 500) return "Our server hit a snag. Try again in a moment."
+  return null
 }
 
 function GoogleIcon() {
