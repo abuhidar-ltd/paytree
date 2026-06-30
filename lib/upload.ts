@@ -169,40 +169,48 @@ async function uploadToStorage(
 }
 
 function mapBlobError(err: unknown): UploadError {
-  if (err instanceof BlobAccessError) {
-    // Most common cause: the Blob store is provisioned with private access
-    // but we're requesting access:"public" (or vice versa). The fix is on
-    // the Vercel dashboard side, not in code.
+  // instanceof alone is unreliable after Next.js bundling: the Blob SDK's
+  // error classes get minified and the runtime instance is no longer ===
+  // the import we typed against (we hit this in prod 2026-06-30 — `Cannot
+  // use public access on a private store` surfaced as UPLOAD_FAILED instead
+  // of STORAGE_ACCESS_DENIED). Falling back to err.name + message.
+  const message = err instanceof Error ? err.message : String(err)
+  const name = (err as { name?: string } | null)?.name || ""
+
+  const matches = (cls: new (...args: never[]) => Error, classNameTail: string, msgPattern: RegExp) =>
+    err instanceof cls || name === classNameTail || name.endsWith(`.${classNameTail}`) || msgPattern.test(message)
+
+  if (matches(BlobAccessError, "BlobAccessError", /private store|public access on a private|access mismatch/i)) {
     return {
       error: "Image storage rejected the request (access mismatch). The team has been notified.",
       code: "STORAGE_ACCESS_DENIED",
     }
   }
-  if (err instanceof BlobStoreNotFoundError) {
+  if (matches(BlobStoreNotFoundError, "BlobStoreNotFoundError", /store not found|no store/i)) {
     return {
       error: "Image storage is missing. Contact support.",
       code: "STORAGE_NOT_FOUND",
     }
   }
-  if (err instanceof BlobStoreSuspendedError) {
+  if (matches(BlobStoreSuspendedError, "BlobStoreSuspendedError", /suspended/i)) {
     return {
       error: "Image storage is suspended. Contact support.",
       code: "STORAGE_SUSPENDED",
     }
   }
-  if (err instanceof BlobServiceNotAvailable) {
+  if (matches(BlobServiceNotAvailable, "BlobServiceNotAvailable", /service.*not available|temporarily unavailable/i)) {
     return {
       error: "Image storage is temporarily unavailable. Try again in a minute.",
       code: "STORAGE_UNAVAILABLE",
     }
   }
-  if (err instanceof BlobServiceRateLimited) {
+  if (matches(BlobServiceRateLimited, "BlobServiceRateLimited", /rate.?limit/i)) {
     return {
       error: "Too many uploads right now. Try again in a moment.",
       code: "STORAGE_RATE_LIMITED",
     }
   }
-  if (err instanceof BlobFileTooLargeError) {
+  if (matches(BlobFileTooLargeError, "BlobFileTooLargeError", /too large|file size/i)) {
     return {
       error: "Image is larger than what our storage allows.",
       code: "FILE_TOO_LARGE",
