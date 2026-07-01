@@ -12,23 +12,37 @@
  *    `new URL(..., import.meta.url)` — zero network dependencies at runtime.
  */
 
-const interRegular = fetch(
-  new URL("./inter-latin-400-normal.woff", import.meta.url)
-).then((res) => res.arrayBuffer())
-
-const interBold = fetch(
-  new URL("./inter-latin-700-normal.woff", import.meta.url)
-).then((res) => res.arrayBuffer())
-
 export const OG_SIZE = { width: 1200, height: 630 }
 export const OG_ALT = "Linktree takes 9%. Paytree takes 0%."
 
-export async function ogFonts() {
-  const [regular, bold] = await Promise.all([interRegular, interBold])
-  return [
-    { name: "Inter", data: regular, weight: 400 as const, style: "normal" as const },
-    { name: "Inter", data: bold, weight: 700 as const, style: "normal" as const },
-  ]
+type OgFont = { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }
+
+// Lazy + cached: fetching bundled assets at module scope runs during `next
+// build`'s page-data collection in a plain Node context, where the relative
+// asset URL can't be parsed ("Failed to parse URL from /_next/static/...").
+// Deferring to first request keeps the fetch inside the edge sandbox, where
+// bundled-asset URLs resolve. Cached across warm invocations.
+let fontsPromise: Promise<OgFont[] | undefined> | null = null
+
+export function ogFonts(): Promise<OgFont[] | undefined> {
+  if (!fontsPromise) {
+    fontsPromise = Promise.all([
+      fetch(new URL("./inter-latin-400-normal.woff", import.meta.url)).then((r) => r.arrayBuffer()),
+      fetch(new URL("./inter-latin-700-normal.woff", import.meta.url)).then((r) => r.arrayBuffer()),
+    ])
+      .then(([regular, bold]): OgFont[] => [
+        { name: "Inter", data: regular, weight: 400, style: "normal" },
+        { name: "Inter", data: bold, weight: 700, style: "normal" },
+      ])
+      .catch((err) => {
+        // A missing font must never 500 the og route — Satori's default font
+        // is an acceptable fallback, a broken share preview is not.
+        console.error("[og] font load failed, falling back to default font:", err)
+        fontsPromise = null
+        return undefined
+      })
+  }
+  return fontsPromise
 }
 
 export function OgCard() {

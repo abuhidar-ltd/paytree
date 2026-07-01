@@ -30,6 +30,7 @@ export default defineConfig({
     "diagnostic.spec.ts",
     "og-images.spec.ts",
     "iab-signup.spec.ts",
+    "activation.spec.ts",
   ],
   use: {
     baseURL: "http://localhost:3000",
