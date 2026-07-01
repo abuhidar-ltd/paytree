@@ -27,6 +27,11 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
+  // Pre-June-21 Clerk-era accounts were wiped in the Better Auth migration.
+  // Those users still try to log in (5 invalid-credential errors in the last
+  // week) — after a failed attempt, tell them what happened and route them
+  // to /register instead of letting them retry into a wall.
+  const [showLegacyNotice, setShowLegacyNotice] = useState(false)
   // Server-detected on first paint; re-checked client-side after mount.
   const [iab, setIab] = useState<IABInfo>(() => detectIAB(userAgent))
   const fired = useRef<Set<string>>(new Set())
@@ -120,18 +125,23 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
           statusCode?: number
           body?: { message?: string; error?: string }
         }
+        const status = errObj.status ?? errObj.statusCode
+        const isInvalidCredentials =
+          errObj.code === "INVALID_EMAIL_OR_PASSWORD" ||
+          errObj.code === "USER_NOT_FOUND" ||
+          status === 401
         const msg =
           errObj.message ||
           errObj.body?.message ||
           errObj.body?.error ||
-          friendlyMessage(errObj.code, errObj.status ?? errObj.statusCode) ||
+          friendlyMessage(errObj.code, status) ||
           "Sign in failed"
         console.error("[signin] authError", errObj)
         setError(msg)
-        trackEvent(`signin_error_${slugify(msg)}`, {
-          message: msg.slice(0, 80),
-          code: errObj.code ?? null,
-          status: errObj.status ?? errObj.statusCode ?? null,
+        if (isInvalidCredentials) setShowLegacyNotice(true)
+        trackEvent("error_login", {
+          reason: isInvalidCredentials ? "invalid_credentials" : (errObj.code ?? msg.slice(0, 40)),
+          status: status ?? null,
         })
         return
       }
@@ -142,7 +152,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
       console.error("[signin] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent(`signin_error_${slugify(msg)}`, { message: msg.slice(0, 80) })
+      trackEvent("error_login", { reason: "network", detail: msg.slice(0, 80) })
     } finally {
       setLoading(false)
     }
@@ -256,6 +266,30 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
               border: "0.5px solid rgba(255,85,85,0.2)",
             }}>
               {error}
+            </div>
+          )}
+
+          {showLegacyNotice && (
+            <div
+              data-testid="legacy-account-notice"
+              style={{
+                color: "#888",
+                fontSize: 12,
+                lineHeight: 1.5,
+                textAlign: "center",
+                padding: "10px 12px",
+                background: "rgba(255,255,255,0.03)",
+                borderRadius: 8,
+                border: "0.5px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              Signed up before June 21? We rebuilt our accounts system —{" "}
+              <Link
+                href="/register"
+                className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold"
+              >
+                please create a new account →
+              </Link>
             </div>
           )}
 
@@ -388,10 +422,3 @@ function GoogleIcon() {
   )
 }
 
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 40)
-}
