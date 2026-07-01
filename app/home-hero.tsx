@@ -265,12 +265,17 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
 
           {/* Right column — phone (desktop only, so mobile reaches the CTA faster) */}
           <div className="hidden lg:flex flex-[2] relative justify-center self-center">
-            <div
+            {/* The demo phone reads as tappable — make the tap a real CTA
+                instead of a dead click. */}
+            <Link
+              href="/register"
+              aria-label="Build your page — sign up free"
+              onClick={() => track("click_cta", { variant: "hero_mockup", source: "hero" })}
               className="max-w-[240px] mx-auto lg:max-w-none"
               style={{ animation: "heroPhoneFloat 4s ease-in-out infinite, heroPhoneIn 0.6s 0.3s ease both" }}
             >
               <PhoneMockup />
-            </div>
+            </Link>
 
             {/* Floating stat cards — desktop only */}
             <div

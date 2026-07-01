@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { PhoneMockup } from "./home-phone-mockup"
+import { TrackedLink } from "@/components/tracked-link"
 
 export function HomeShowcase() {
   return (
@@ -37,12 +38,24 @@ export function HomeShowcase() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            {/* Clarity showed 22 dead-click sessions — the mockup's demo
+                cards look tappable. Make the tap real: the whole phone is
+                a signup CTA. */}
+            <TrackedLink
+              href="/register"
+              event="click_cta"
+              eventProps={{ variant: "classic_mockup" }}
+              source="showcase"
+              className="block active:scale-[0.99] transition-transform"
+              aria-label="Build your page — sign up free"
             >
-              <PhoneMockup variant="classic" />
-            </motion.div>
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <PhoneMockup variant="classic" />
+              </motion.div>
+            </TrackedLink>
             <span className="text-xs font-mono text-[#777]">Classic</span>
           </motion.div>
 
@@ -65,12 +78,21 @@ export function HomeShowcase() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ type: "spring", stiffness: 120, damping: 20 }}
           >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+            <TrackedLink
+              href="/register"
+              event="click_cta"
+              eventProps={{ variant: "cinematic_mockup" }}
+              source="showcase"
+              className="block active:scale-[0.99] transition-transform"
+              aria-label="Build your page — sign up free"
             >
-              <PhoneMockup variant="cinematic" />
-            </motion.div>
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              >
+                <PhoneMockup variant="cinematic" />
+              </motion.div>
+            </TrackedLink>
             <span className="text-xs font-mono text-[#777]">Cinematic</span>
           </motion.div>
         </div>

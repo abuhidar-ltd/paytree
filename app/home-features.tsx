@@ -35,8 +35,7 @@ export function HomeFeatures() {
         <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: AI Sales Agent */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 flex flex-col h-full"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -94,8 +93,7 @@ export function HomeFeatures() {
 
           {/* Card 2: Globe Analytics */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 flex flex-col h-full"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -127,8 +125,7 @@ export function HomeFeatures() {
 
           {/* Card 3: Drop Countdown */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 flex flex-col h-full"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
