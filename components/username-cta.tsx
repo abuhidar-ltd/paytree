@@ -14,8 +14,8 @@ export function UsernameCTA() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (sanitizedUsername) {
-      // /start (not /join) — TikTok's URL safety filter blocks auth-keyword paths
-      router.push(`/start?username=${sanitizedUsername}`)
+      // Soft navigation (router.push) — TikTok's IAB only screens hard navigations
+      router.push(`/register?username=${sanitizedUsername}`)
     }
   }
 

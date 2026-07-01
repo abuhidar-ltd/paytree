@@ -86,7 +86,7 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     // ─── Measure above-fold elements ───────────────────────────────────────────
     const aboveFold = await page.evaluate((vh) => {
       const viewportHeight = vh
-      const cta = document.querySelector('a[href="/start"], a[href="/dashboard"]') as HTMLElement | null
+      const cta = document.querySelector('a[href="/register"], a[href="/dashboard"]') as HTMLElement | null
       const h1 = document.querySelector("h1") as HTMLElement | null
       const header = document.querySelector("header") as HTMLElement | null
       const badge = document.querySelector('[class*="0% fees"]') as HTMLElement | null
@@ -197,10 +197,10 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
 
     await page.goto(BASE, { waitUntil: "domcontentloaded" })
 
-    const cta = await page.locator('a[href="/start"]').first()
+    const cta = await page.locator('a[href="/register"]').first()
     const ctaExists = (await cta.count()) > 0
     if (!ctaExists) {
-      log({ severity: "critical", area: "cta", msg: "No /start CTA on homepage" })
+      log({ severity: "critical", area: "cta", msg: "No /register CTA on homepage" })
       await context.close()
       return
     }
@@ -208,14 +208,14 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     // Click and confirm navigation
     const beforeUrl = page.url()
     await cta.click({ timeout: 5000 })
-    await page.waitForURL(/\/start/, { timeout: 10_000 }).catch(() => {
+    await page.waitForURL(/\/register/, { timeout: 10_000 }).catch(() => {
       log({ severity: "critical", area: "cta", msg: `CTA click did NOT navigate. Still at ${page.url()}, was ${beforeUrl}` })
     })
 
     // Wait for the actual form to render (Next streams the loading state first)
     const formAppeared = await page.waitForSelector('form input[type="email"]', { timeout: 10_000 }).then(() => true).catch(() => false)
     if (!formAppeared) {
-      log({ severity: "critical", area: "signup", msg: "/start never rendered the signup form (still on Loading state after 10s)" })
+      log({ severity: "critical", area: "signup", msg: "/register never rendered the signup form (still on Loading state after 10s)" })
     }
 
     // Screenshot signup page
@@ -263,9 +263,9 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     const page = await context.newPage()
     await collectErrors(page, "signup-journey")
 
-    await page.goto(`${BASE}/start`, { waitUntil: "domcontentloaded" })
+    await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" })
     await page.waitForSelector('form input[type="email"]', { timeout: 15_000 }).catch(() => {
-      log({ severity: "critical", area: "signup-fill", msg: "Form inputs never appeared on /start" })
+      log({ severity: "critical", area: "signup-fill", msg: "Form inputs never appeared on /register" })
     })
 
     const ts = Date.now()
@@ -326,8 +326,8 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     await collectErrors(page, "tiktok-iab")
 
     const start = Date.now()
-    // Go directly to /start so the SSR header-based detection has the TikTok UA.
-    await page.goto(`${BASE}/start`, { waitUntil: "domcontentloaded" })
+    // Go directly to /register so the SSR header-based detection has the TikTok UA.
+    await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" })
     const tFull = Date.now() - start
 
     await page.screenshot({ path: path.join(OUT_DIR, "tiktok-iab-start.png"), fullPage: false })
@@ -336,7 +336,7 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     const iabBanner = await page.locator("text=/open it in your browser/i").count()
     console.log("TikTok IAB banner shown:", iabBanner)
     if (iabBanner === 0) {
-      log({ severity: "high", area: "tiktok-iab", msg: "TikTok IAB warning banner not detected on /start even with SSR detection" })
+      log({ severity: "high", area: "tiktok-iab", msg: "TikTok IAB warning banner not detected on /register even with SSR detection" })
     }
 
     console.log(`TikTok IAB load: ${tFull}ms`)

@@ -23,9 +23,10 @@ interface TrackedLinkProps extends Omit<LinkProps, "children"> {
  * IMPORTANT: this uses Next.js soft navigation (History API) instead of a
  * plain <a href>. Plain anchors trigger a hard page load, which causes
  * TikTok's in-app browser to re-validate the destination URL against its
- * safety blocklist — auth keywords like /join, /signup, /register all hit
+ * safety blocklist — auth keywords like /join, /signup, /register have hit
  * the "TikTok can't open this page directly" interstitial. Soft navigation
- * bypasses that check entirely because the URL change is client-side.
+ * bypasses that check entirely because the URL change is client-side, which
+ * is why internal CTAs can safely point at /register.
  */
 export function TrackedLink({ event, eventProps, location, onClick, children, ...rest }: TrackedLinkProps) {
   return (

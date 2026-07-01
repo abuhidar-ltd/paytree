@@ -86,7 +86,7 @@ export default async function HomePage() {
                   event="homepage_cta_clicked"
                   eventProps={{ variant: "start" }}
                   location="header"
-                  href="/start"
+                  href="/register"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-3 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap hidden sm:inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
                 >
                   <span className="sm:hidden">Start free →</span>

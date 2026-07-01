@@ -250,7 +250,7 @@ export default function LoginPage() {
         <div className="text-center space-y-2 text-sm">
           <p className="text-gray-400">
             Don&apos;t have an account?{" "}
-            <Link href="/start" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
+            <Link href="/register" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
               Sign up for free
             </Link>
           </p>
@@ -336,7 +336,7 @@ const passwordToggleStyle: React.CSSProperties = {
 
 function friendlyMessage(code: string | undefined, status: number | undefined): string | null {
   if (code === "INVALID_EMAIL_OR_PASSWORD" || status === 401) return "Email or password doesn't match. Try again."
-  if (code === "USER_NOT_FOUND") return "No account with that email. Create one at /start."
+  if (code === "USER_NOT_FOUND") return "No account with that email. Create one at /register."
   if (code === "INVALID_ORIGIN" || status === 403) return "Your browser blocked the sign-in request. Try opening paytree.to directly in Safari or Chrome."
   if (code === "TOO_MANY_REQUESTS" || status === 429) return "Too many attempts. Wait a minute and try again."
   if (status === 500) return "Our server hit a snag. Try again in a moment."

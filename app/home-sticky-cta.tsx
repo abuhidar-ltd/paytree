@@ -36,7 +36,7 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
     return () => window.removeEventListener("scroll", onScroll)
   }, [isLoggedIn])
 
-  const href = isLoggedIn ? "/dashboard" : "/start"
+  const href = isLoggedIn ? "/dashboard" : "/register"
   const label = isLoggedIn ? "Open dashboard →" : "Create your page — free →"
 
   return (

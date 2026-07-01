@@ -24,10 +24,11 @@ export async function GET() {
 
   return NextResponse.json({
     referralCode,
-    // /start (not /join) — referral links get shared in DMs, on Twitter, in
-    // TikTok bios. /join is on TikTok's auth-keyword safety blocklist, /start
-    // is neutral. Same SignUpScreen renders either way.
-    referralLink: referralCode ? `${appUrl}/start?ref=${referralCode}` : null,
+    // Referral links get shared in DMs, on Twitter, in TikTok bios. TikTok's
+    // IAB has historically screened hard navigations to auth-keyword paths —
+    // if referral conversions from TikTok drop, consider pointing this at a
+    // neutral alias again (see next.config.ts redirects).
+    referralLink: referralCode ? `${appUrl}/register?ref=${referralCode}` : null,
     totalReferrals: dbUser?._count.referralsGiven ?? 0,
     convertedReferrals,
     totalEarnings: ((dbUser?.referralEarnings ?? 0) / 100).toFixed(2),

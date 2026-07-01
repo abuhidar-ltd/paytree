@@ -45,7 +45,7 @@ export default function NotFound() {
             Back home →
           </Link>
           <Link
-            href="/start"
+            href="/register"
             className="inline-flex items-center justify-center bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] font-mono font-semibold px-5 py-3 rounded-xl text-sm hover:border-white/20 transition-colors"
           >
             Claim a username

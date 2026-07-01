@@ -3,28 +3,34 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      // /register is the canonical signup route. Legacy aliases (/start from
+      // the TikTok-safe-naming era, /join, /signup, /sign-up) all redirect
+      // here so old ads, bios, and DMs keep working.
       // 307 (not 308) — TikTok and other in-app WebViews flag 308 chains
       // as untrusted; 307 preserves method and survives WebView intercepts.
-      // Destination is /start (not /join) — /start is the TikTok-safe entry
-      // because /join is on TikTok's URL safety blocklist for auth keywords.
       {
-        source: "/register",
-        destination: "/start",
+        source: "/start",
+        destination: "/register",
         permanent: false,
       },
       {
-        source: "/register/:path*",
-        destination: "/start/:path*",
+        source: "/start/:path*",
+        destination: "/register/:path*",
+        permanent: false,
+      },
+      {
+        source: "/join",
+        destination: "/register",
         permanent: false,
       },
       {
         source: "/signup",
-        destination: "/start",
+        destination: "/register",
         permanent: false,
       },
       {
         source: "/sign-up",
-        destination: "/start",
+        destination: "/register",
         permanent: false,
       },
     ]

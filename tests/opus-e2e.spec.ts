@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test"
 
 /**
  * Targeted visual + behavioral verification of the highest-value pages.
- * - Landing, /join, /pricing render and look correct at 375 & 1440
+ * - Landing, /register, /pricing render and look correct at 375 & 1440
  * - /opustest (seeded published Ultra profile) renders all 15 block types
  * - The GIF on the featured link actually animates (decoded frames change)
  * - Cinematic hero shows
@@ -37,8 +37,8 @@ test.describe("Paytree E2E", () => {
   })
 
   test("join page renders", async ({ page }) => {
-    await page.goto("/join", { waitUntil: "domcontentloaded" })
-    await page.screenshot({ path: `${SCREENS}/join.png`, fullPage: true })
+    await page.goto("/register", { waitUntil: "domcontentloaded" })
+    await page.screenshot({ path: `${SCREENS}/register.png`, fullPage: true })
     const body = await page.textContent("body")
     test.info().annotations.push({
       type: "audit:join-has-stale-4.99",

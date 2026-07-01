@@ -6,11 +6,11 @@ import path from "path"
  * TikTok In-App Browser simulation.
  *
  * Spoofs the BytedanceWebview Android UA and walks the actual funnel:
- *   landing → "Create your page" CTA → /join → Clerk form
+ *   landing → "Create your page" CTA → /register → Clerk form
  *
  * Captures screenshots and asserts:
  *   - Landing renders without the IAB banner (we removed it from non-auth pages)
- *   - /join shows the IAB banner with Android-specific "Open Chrome" CTA
+ *   - /register shows the IAB banner with Android-specific "Open Chrome" CTA
  *   - Clerk Sign Up DOM appears (we never had this baseline before)
  *   - No "TikTok can't open this link" condition (we can't simulate TikTok's
  *     filter directly, but we can verify our page loads + no broken redirects)
@@ -33,7 +33,7 @@ const TIKTOK_IOS_UA =
   "musical_ly_32.7.0 JsSdk/2.0 NetType/WIFI Channel/App+Store ByteLocale/en-US"
 
 test.describe("TikTok IAB funnel", () => {
-  test("Android TikTok WebView — landing then /join", async ({ browser }) => {
+  test("Android TikTok WebView — landing then /register", async ({ browser }) => {
     const ctx = await browser.newContext({
       viewport: { width: 412, height: 915 },
       userAgent: TIKTOK_ANDROID_UA,
@@ -65,9 +65,9 @@ test.describe("TikTok IAB funnel", () => {
     const heroCta = page.getByRole("link", { name: /create your page for free/i }).first()
     await expect(heroCta).toBeVisible()
 
-    // 2. Click CTA → /join
+    // 2. Click CTA → /register
     await Promise.all([
-      page.waitForURL("**/start", { waitUntil: "domcontentloaded" }),
+      page.waitForURL("**/register", { waitUntil: "domcontentloaded" }),
       heroCta.click(),
     ])
 
@@ -107,7 +107,7 @@ test.describe("TikTok IAB funnel", () => {
     await ctx.close()
   })
 
-  test("iOS TikTok WebView — landing then /join", async ({ browser }) => {
+  test("iOS TikTok WebView — landing then /register", async ({ browser }) => {
     const ctx = await browser.newContext({
       viewport: { width: 393, height: 852 },
       userAgent: TIKTOK_IOS_UA,
@@ -122,7 +122,7 @@ test.describe("TikTok IAB funnel", () => {
     await page.screenshot({ path: path.join(SS_DIR, "01-landing-ios.png"), fullPage: true })
 
     await page.getByRole("link", { name: /create your page for free/i }).first().click()
-    await page.waitForURL("**/start", { waitUntil: "domcontentloaded" })
+    await page.waitForURL("**/register", { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(3500)
     await page.screenshot({ path: path.join(SS_DIR, "02-join-ios.png"), fullPage: true })
 
@@ -146,7 +146,7 @@ test.describe("TikTok IAB funnel", () => {
     })
     const page = await ctx.newPage()
     await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
-    await page.goto("http://localhost:3000/start", { waitUntil: "domcontentloaded" })
+    await page.goto("http://localhost:3000/register", { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(800)
     const banner = await page.locator('[role="dialog"][aria-label="Open in browser recommendation"]').count()
     expect(banner, "Banner must NOT show in real Chrome").toBe(0)

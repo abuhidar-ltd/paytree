@@ -40,7 +40,7 @@ export function ProfileLocked({ username }: ProfileLockedProps) {
             <p className="text-[#888888]">
               Want your own premium bio link?
             </p>
-            <Link href="/start">
+            <Link href="/register">
               <Button variant="accent-solid" size="lg" className="text-lg">
                 Create Your Terminal
               </Button>

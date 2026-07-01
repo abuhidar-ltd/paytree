@@ -4,7 +4,7 @@ import fs from "fs"
 
 /**
  * Mobile + desktop screenshot grid for visual regression review.
- * Captures landing, /join, /login, /pricing on the 4 most common viewports
+ * Captures landing, /register, /login, /pricing on the 4 most common viewports
  * and asserts no horizontal overflow at any of them.
  */
 
@@ -24,7 +24,7 @@ const VIEWPORTS = [
   { name: "desktop",   w: 1440, h: 900, mobile: false },
 ]
 
-const PAGES = ["/", "/join", "/login", "/pricing"]
+const PAGES = ["/", "/register", "/login", "/pricing"]
 
 for (const vp of VIEWPORTS) {
   test(`${vp.name} — all pages`, async ({ browser }) => {

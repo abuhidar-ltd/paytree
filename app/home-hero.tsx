@@ -159,12 +159,12 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     Soft navigation via next/link is required here: TikTok's
                     in-app browser intercepts hard <a> navigations to auth
                     keywords (join, signup, register) and shows its safety
-                    interstitial. Soft nav (History API) is invisible to it.
-                    We route through /start for the same reason — /join is
-                    a recognized auth-keyword on TikTok's URL blocklist.
+                    interstitial. Soft nav (History API) is invisible to it,
+                    which is what makes linking straight to /register safe
+                    for internal CTAs.
                   */}
                   <Link
-                    href="/start"
+                    href="/register"
                     onClick={() => {
                       trackEvent("homepage_cta_clicked", { variant: "start", location: "hero" })
                     }}

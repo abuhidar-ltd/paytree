@@ -9,11 +9,11 @@ import { signIn, signUp } from "@/lib/auth-client"
 import { trackEvent } from "@/lib/analytics"
 
 /**
- * Custom Better Auth signup screen. Used by both /start (canonical, TikTok-safe)
- * and /join (legacy alias). Callers pass initialIsTikTokIAB from the server
- * page (detected via headers().get('user-agent')) so the warning banner is
- * present in the initial HTML — a client useEffect alone is too late for
- * bounce-prone TikTok traffic.
+ * Custom Better Auth signup screen, served at /register (legacy aliases
+ * /start, /join, /signup redirect there). The server page passes
+ * initialIsTikTokIAB (detected via headers().get('user-agent')) so the
+ * warning banner is present in the initial HTML — a client useEffect alone
+ * is too late for bounce-prone TikTok traffic.
  */
 interface SignUpScreenProps {
   initialIsTikTokIAB?: boolean
