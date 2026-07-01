@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 interface PricingPageViewProps {
   isLoggedIn: boolean
@@ -10,7 +10,7 @@ interface PricingPageViewProps {
 
 export function PricingPageView({ isLoggedIn, currentPlan }: PricingPageViewProps) {
   useEffect(() => {
-    trackEvent("pricing_page_viewed", { logged_in: isLoggedIn, current_plan: currentPlan })
+    track("view_pricing", { logged_in: isLoggedIn, current_plan: currentPlan })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

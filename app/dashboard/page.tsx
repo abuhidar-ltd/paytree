@@ -19,7 +19,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { BottomSheet } from "@/components/ui/bottom-sheet"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 import {
   Plus, X, GripVertical, ChevronRight, ArrowUpRight,
   Search, Folder, Link as LinkIcon, Lock, Timer, Youtube, ShoppingBag,
@@ -302,17 +302,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (viewTrackedRef.current) return
     viewTrackedRef.current = true
-    trackEvent("dashboard_viewed")
+    track("view_dashboard")
     // Google OAuth sign-ins land here with ?auth=google (the OAuth
     // callbackURL) — the only reliable client-side completion signal.
     if (new URLSearchParams(window.location.search).get("auth") === "google") {
-      trackEvent("complete_google_login")
+      track("complete_google_login")
     }
     try {
       const KEY = "paytree_dashboard_first_visit_fired"
       if (!window.localStorage.getItem(KEY)) {
         window.localStorage.setItem(KEY, "1")
-        trackEvent("dashboard_first_visit")
+        track("first_dashboard")
       }
     } catch {
       // localStorage blocked — skip
@@ -377,7 +377,7 @@ export default function DashboardPage() {
     // upgrade prompt instead of creating the block.
     if (userPlan === "free" && PRO_GATED_TYPES.has(type)) {
       setShowAddPicker(false)
-      trackEvent("plan_gate_hit", { feature: type, source: "picker" })
+      track("hit_plan_gate", { feature: type, source: "picker" })
       toast(
         type === "drop"
           ? "Drop cards are a Pro feature ($7/mo)"
@@ -408,7 +408,7 @@ export default function DashboardPage() {
       setSelectedBlockId(block.id)
       setEditTab("content")
       refreshPreview()
-      trackEvent("block_added", { type, source: "picker" })
+      track("add_card", { type, source: "picker" })
       toast.success("Card added")
     } catch {
       toast.error("Failed to create card")
@@ -463,7 +463,7 @@ export default function DashboardPage() {
     try {
       await fetch(`/api/blocks/${id}`, { method: "DELETE" })
       refreshPreview()
-      trackEvent("block_deleted", { type: deletedType })
+      track("delete_card", { type: deletedType })
     } catch {
       toast.error("Failed to delete")
     }
@@ -624,7 +624,7 @@ export default function DashboardPage() {
       body: JSON.stringify({ blocks: reordered.map((b, i) => ({ id: b.id, position: i })) }),
     }).catch(() => toast.error("Failed to save order"))
 
-    trackEvent("blocks_reordered", { in_collection: !!collectionViewId })
+    track("reorder_cards", { in_collection: !!collectionViewId })
   }
 
   // ─── Render ───
@@ -760,7 +760,7 @@ export default function DashboardPage() {
           <button
             ref={addButtonRef}
             onClick={() => {
-              trackEvent("add_card_picker_opened", { source: "topbar" })
+              track("open_card_picker", { source: "topbar" })
               setShowAddPicker(true)
             }}
             className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 hover:opacity-90 active:scale-[0.97] transition-all"
@@ -913,11 +913,11 @@ export default function DashboardPage() {
           <EmptyDashboardState
             displayName={profile?.username ? `@${profile.username}` : "creator"}
             onSuggest={(type) => {
-              trackEvent("empty_state_suggestion_clicked", { type })
+              track("click_empty_suggestion", { type })
               handleAddBlock(type)
             }}
             onOpenPicker={() => {
-              trackEvent("add_card_picker_opened", { source: "empty_state" })
+              track("open_card_picker", { source: "empty_state" })
               setShowAddPicker(true)
             }}
           />

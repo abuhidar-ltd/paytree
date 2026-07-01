@@ -7,7 +7,7 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { IABBanner } from "@/components/iab-banner"
 import { signIn, useSession } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
-import { trackEvent } from "@/lib/analytics"
+import { track, type EventName } from "@/lib/analytics"
 
 // Render the Google button only when the env flag is set. lib/auth.ts ALSO
 // gates on the Google secret keys, so without both we can never show a
@@ -36,10 +36,10 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
   const [iab, setIab] = useState<IABInfo>(() => detectIAB(userAgent))
   const fired = useRef<Set<string>>(new Set())
 
-  function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {
+  function fireOnce(stage: EventName, props: Record<string, string | number | boolean | null> = {}) {
     if (fired.current.has(stage)) return
     fired.current.add(stage)
-    trackEvent(stage, props)
+    track(stage, props)
   }
 
   // Sign-in (not sign-up): existing users go to /dashboard. Sending them to
@@ -60,17 +60,17 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
       setError(msg)
-      trackEvent("error_google_login", { reason: msg.slice(0, 80) })
+      track("error_google_login", { reason: msg.slice(0, 80) })
       setGoogleLoading(false)
     }
   }
 
   useEffect(() => {
-    trackEvent("login_page_viewed")
+    track("view_login")
 
     const params = new URLSearchParams(window.location.search)
     if (params.get("google_error")) {
-      trackEvent("error_google_login", { reason: "oauth_callback" })
+      track("error_google_login", { reason: "oauth_callback" })
       setError("Google sign-in didn't complete. Use your email and password instead.")
     }
 
@@ -86,10 +86,10 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
       try {
         if (!sessionStorage.getItem("paytree_login_completed")) {
           sessionStorage.setItem("paytree_login_completed", "1")
-          trackEvent("login_completed")
+          track("complete_login")
         }
       } catch {
-        trackEvent("login_completed")
+        track("complete_login")
       }
       router.push("/dashboard")
     }
@@ -102,7 +102,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
       return
     }
 
-    fireOnce("signin_submit_clicked")
+    fireOnce("submit_login")
     setLoading(true)
     setError("")
 
@@ -139,7 +139,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
         console.error("[signin] authError", errObj)
         setError(msg)
         if (isInvalidCredentials) setShowLegacyNotice(true)
-        trackEvent("error_login", {
+        track("error_login", {
           reason: isInvalidCredentials ? "invalid_credentials" : (errObj.code ?? msg.slice(0, 40)),
           status: status ?? null,
         })
@@ -152,7 +152,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
       console.error("[signin] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent("error_login", { reason: "network", detail: msg.slice(0, 80) })
+      track("error_login", { reason: "network", detail: msg.slice(0, 80) })
     } finally {
       setLoading(false)
     }
@@ -228,7 +228,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onFocus={() => fireOnce("signin_email_focused")}
+            onFocus={() => fireOnce("start_login")}
             autoComplete="email"
             disabled={disabled}
             style={inputStyle}
@@ -240,7 +240,7 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => fireOnce("signin_password_focused")}
+              onFocus={() => fireOnce("start_login")}
               autoComplete="current-password"
               disabled={disabled}
               style={{ ...inputStyle, paddingRight: 56 }}

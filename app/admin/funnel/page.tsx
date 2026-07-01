@@ -9,14 +9,14 @@ export const dynamic = "force-dynamic"
 // Vercel Analytics, not the database, so it cannot be queried here. This page
 // shows the DB *state* funnel and points to Vercel Analytics for event rates.
 const EVENT_FUNNEL = [
-  "homepage_view",
-  "homepage_cta_clicked",
-  "signup_page_viewed",
-  "signup_submit_clicked",
-  "signup_account_created",
-  "onboarding_started",
-  "onboarding_completed",
-  "dashboard_first_visit",
+  "view_home",
+  "click_cta",
+  "view_signup",
+  "submit_signup",
+  "create_account",
+  "start_onboarding",
+  "complete_onboarding",
+  "first_dashboard",
 ]
 
 export default async function AdminFunnelPage() {

@@ -1,15 +1,93 @@
 /**
- * Conversion event tracking.
+ * Conversion event tracking — the single entry point for ALL product events.
+ *
+ * Every event name follows the verb_noun taxonomy and must be listed in
+ * EventName below; TypeScript rejects anything off-taxonomy. Do not call
+ * @vercel/analytics track() directly anywhere else in the codebase.
  *
  * Wraps @vercel/analytics `track()` and attaches the context that matters:
  * UTM params, referrer source, and whether we're in a known WebView.
- * Without this, page views are all we'd ever see.
  *
- * Client-side only.
+ * Client-side only. Server-side money events (complete_upgrade,
+ * receive_payment, publish_page) fire from lib/analytics-server.ts.
  */
 
-import { track } from "@vercel/analytics"
+import { track as vercelTrack } from "@vercel/analytics"
 import { detectInAppBrowser } from "./iab"
+
+/**
+ * The complete event taxonomy. verb_noun, lowercase, snake_case.
+ * If you're adding an event, add it here first — the union is the registry.
+ */
+export type EventName =
+  // Homepage / acquisition
+  | "view_home"          // homepage viewed
+  | "scroll_hero"        // scrolled past the hero
+  | "click_cta"          // any signup CTA; { source: hero|header|sticky|section, variant? }
+  | "click_signin"       // header sign-in link
+  // Signup
+  | "view_signup"
+  | "start_signup"       // first focus of any signup field (fires once)
+  | "submit_signup"
+  | "create_account"     // Better Auth confirmed the account
+  | "error_signup"       // { reason: network|<code>, ... }
+  | "click_google_signup"
+  | "complete_google_signup"
+  | "error_google_signup"
+  // Login
+  | "view_login"
+  | "start_login"        // first focus of any login field (fires once)
+  | "submit_login"
+  | "complete_login"
+  | "error_login"        // { reason: invalid_credentials|<code>|network }
+  | "click_google_login"
+  | "complete_google_login"
+  | "error_google_login"
+  // Onboarding
+  | "start_onboarding"
+  | "complete_onboarding_step" // { step }
+  | "skip_onboarding"
+  | "complete_onboarding"
+  // Dashboard / cards
+  | "view_dashboard"
+  | "first_dashboard"    // first dashboard visit ever (per browser)
+  | "open_card_picker"
+  | "add_card"           // { type }
+  | "delete_card"
+  | "reorder_cards"
+  | "click_empty_suggestion"
+  | "hit_plan_gate"      // { feature }
+  // Design studio
+  | "view_design"
+  | "change_hero_style"
+  | "change_accent"
+  | "change_button_style"
+  | "open_ai_bio"
+  | "apply_ai_bio"
+  // Analytics / payments pages
+  | "view_analytics"
+  | "view_payments"
+  | "connect_stripe"     // { status }
+  | "click_stripe_connect"
+  | "export_email_list"
+  // Pricing / upgrade
+  | "view_pricing"
+  | "select_plan"        // { plan }
+  | "start_checkout"     // { plan }
+  | "error_checkout"     // { plan, reason }
+  | "view_upgrade"
+  | "activate_upgrade"   // client detected the paid plan became active; NOT the money metric
+  // Public profile
+  | "view_profile"
+  | "open_vault"
+  | "submit_vault_email"
+  | "unlock_vault"
+  | "open_ai_agent"
+  // Money metrics — fired SERVER-SIDE (lib/analytics-server.ts); listed here
+  // so the taxonomy has one registry.
+  | "publish_page"
+  | "complete_upgrade"   // { plan } — Stripe webhook, checkout.session.completed
+  | "receive_payment"    // { amount } — Stripe Connect webhook
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const
 type UtmKey = typeof UTM_KEYS[number]
@@ -69,20 +147,17 @@ function readAttribution(): Attribution {
 }
 
 type AllowedValue = string | number | boolean | null
-type Props = Record<string, AllowedValue>
+export type Props = Record<string, AllowedValue>
 
 /**
- * Track a conversion event with UTM + WebView context auto-attached.
- *
- * Event names use snake_case. Vercel Analytics dedupes by name, so be specific:
- * `hero_cta_click` not `cta_click`.
+ * Track a product event with UTM + WebView context auto-attached.
  *
  * Deferred to the next idle frame so it cannot block click responsiveness —
  * Clarity was reporting INP > 1s, and synchronous enrichment + track() on
  * every CTA was a measurable chunk of that. Fire-and-forget is correct here:
  * the user has already navigated away by the time the event posts.
  */
-export function trackEvent(name: string, props: Props = {}): void {
+export function track(name: EventName, props: Props = {}): void {
   if (typeof window === "undefined") return
 
   const run = () => {
@@ -98,7 +173,7 @@ export function trackEvent(name: string, props: Props = {}): void {
     }
 
     try {
-      track(name, enriched)
+      vercelTrack(name, enriched)
     } catch {
       // Analytics disabled / blocked — don't break the user flow.
     }

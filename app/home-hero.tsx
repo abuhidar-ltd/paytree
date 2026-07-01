@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Sparkles, Bot, Lock, Timer, Globe, Percent, type LucideIcon } from "lucide-react"
 import { PhoneMockup } from "./home-phone-mockup"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 interface HomeHeroProps {
   isLoggedIn: boolean
@@ -145,7 +145,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                 <Link
                   href="/dashboard"
                   onClick={() => {
-                    trackEvent("homepage_cta_clicked", { variant: "dashboard", location: "hero" })
+                    track("click_cta", { variant: "dashboard", source: "hero" })
                   }}
                   className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)]"
                   style={{ minHeight: 56 }}
@@ -166,7 +166,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   <Link
                     href="/register"
                     onClick={() => {
-                      trackEvent("homepage_cta_clicked", { variant: "start", location: "hero" })
+                      track("click_cta", { variant: "register", source: "hero" })
                     }}
                     className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)]"
                     style={{ minHeight: 56 }}

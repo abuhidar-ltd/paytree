@@ -64,9 +64,9 @@ export default async function HomePage() {
             </Link>
             {isLoggedIn ? (
               <TrackedLink
-                event="homepage_cta_clicked"
+                event="click_cta"
                 eventProps={{ variant: "dashboard" }}
-                location="header"
+                source="header"
                 href="/dashboard"
                 className="bg-[#00ff88] text-black font-mono font-semibold px-4 rounded-xl text-sm hidden sm:inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
               >
@@ -75,17 +75,17 @@ export default async function HomePage() {
             ) : (
               <>
                 <TrackedLink
-                  event="header_signin_click"
-                  location="header"
+                  event="click_signin"
+                  source="header"
                   href="/login"
                   className="hidden sm:inline-flex items-center text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 rounded-lg hover:border-white/[0.25] min-h-11"
                 >
                   Sign in
                 </TrackedLink>
                 <TrackedLink
-                  event="homepage_cta_clicked"
+                  event="click_cta"
                   eventProps={{ variant: "start" }}
-                  location="header"
+                  source="header"
                   href="/register"
                   className="bg-[#00ff88] text-black font-mono font-semibold px-3 sm:px-4 rounded-xl text-xs sm:text-sm whitespace-nowrap hidden sm:inline-flex items-center min-h-11 active:scale-[0.97] transition-transform"
                 >

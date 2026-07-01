@@ -9,7 +9,7 @@ import { useApplyAccentColor } from "@/contexts/accent-color-context"
 import { AiAgentChat } from "@/components/ui/ai-agent-chat"
 import { SocialProofToast } from "@/components/ui/social-proof-toast"
 import { BlockRenderer, type Block } from "@/components/ui/block-renderer"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 // ─── Font loading ─────────────────────────────────────────────
 
@@ -118,7 +118,7 @@ export function ProfileClient({
   // previewing their own page so we don't pollute "real fan" metrics.
   useEffect(() => {
     if (isPreview || isOwner) return
-    trackEvent("profile_viewed", {
+    track("view_profile", {
       username: user.username,
       is_published: isPublished,
       block_count: blocks.length,

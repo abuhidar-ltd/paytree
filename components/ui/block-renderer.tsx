@@ -5,7 +5,7 @@ import NextLink from "next/link"
 import { motion, AnimatePresence, type TargetAndTransition } from "framer-motion"
 import { toast } from "sonner"
 import { LiveStatusPill } from "./live-status-pill"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 import { glass, glassReflection } from "@/lib/glass"
 import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag, MessageCircle } from "lucide-react"
 
@@ -755,7 +755,7 @@ function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, userna
     if (localStorage.getItem(key)) {
       setStep("unlocked")
     } else {
-      trackEvent("vault_opened", { block_id: block.id })
+      track("open_vault", { block_id: block.id })
     }
   }, [block.id])
 
@@ -763,7 +763,7 @@ function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, userna
     e.preventDefault()
     setError(null)
     setLoading(true)
-    trackEvent("vault_email_submitted", { block_id: block.id })
+    track("submit_vault_email", { block_id: block.id })
     try {
       const res = await fetch("/api/vault/send-code", {
         method: "POST",
@@ -775,7 +775,7 @@ function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, userna
       if (data.alreadyVerified) {
         localStorage.setItem(`vault_unlocked_${block.id}`, email)
         setStep("unlocked")
-        trackEvent("vault_unlocked", { block_id: block.id, path: "already_verified" })
+        track("unlock_vault", { block_id: block.id, path: "already_verified" })
       } else {
         setStep("code")
       }
@@ -801,7 +801,7 @@ function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, userna
       localStorage.setItem(`vault_unlocked_${block.id}`, email)
       setContent(data.content || null)
       setStep("unlocked")
-      trackEvent("vault_unlocked", { block_id: block.id, path: "verified" })
+      track("unlock_vault", { block_id: block.id, path: "verified" })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {

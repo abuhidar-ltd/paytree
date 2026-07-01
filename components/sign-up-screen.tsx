@@ -7,7 +7,7 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { IABBanner } from "@/components/iab-banner"
 import { signIn, signUp } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
-import { trackEvent } from "@/lib/analytics"
+import { track, type EventName } from "@/lib/analytics"
 
 /**
  * Custom Better Auth signup screen, served at /register (legacy aliases
@@ -50,10 +50,10 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
   const [iab, setIab] = useState<IABInfo>(() => detectIAB(userAgent))
   const fired = useRef<Set<string>>(new Set())
 
-  function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {
+  function fireOnce(stage: EventName, props: Record<string, string | number | boolean | null> = {}) {
     if (fired.current.has(stage)) return
     fired.current.add(stage)
-    trackEvent(stage, props)
+    track(stage, props)
   }
 
   async function handleGoogle() {
@@ -71,7 +71,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
       setError(msg)
-      trackEvent("error_google_signup", { reason: msg.slice(0, 80) })
+      track("error_google_signup", { reason: msg.slice(0, 80) })
       setGoogleLoading(false)
     }
   }
@@ -82,11 +82,11 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
     if (ref) {
       document.cookie = `paytree_ref=${encodeURIComponent(ref)}; path=/; max-age=604800; SameSite=Lax`
     }
-    trackEvent("signup_page_viewed", { ref: ref ?? null })
+    track("view_signup", { ref: ref ?? null })
 
     // Google's OAuth callback bounced back with an error (server-side flow).
     if (params.get("google_error")) {
-      trackEvent("error_google_signup", { reason: "oauth_callback" })
+      track("error_google_signup", { reason: "oauth_callback" })
       setError("Google sign-in didn't complete. Email works right here instead.")
     }
 
@@ -109,7 +109,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
       return
     }
 
-    fireOnce("signup_submit_clicked")
+    fireOnce("submit_signup")
     setLoading(true)
     setError("")
     setIsNetworkError(false)
@@ -161,7 +161,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
         const msg = lastNetworkError instanceof Error ? lastNetworkError.message : "fetch failed"
         setIsNetworkError(true)
         setError("Connection issue — tap to try again")
-        trackEvent("error_signup", { reason: "network", detail: msg.slice(0, 80), timed_out: timedOutOnce })
+        track("error_signup", { reason: "network", detail: msg.slice(0, 80), timed_out: timedOutOnce })
         return
       }
       console.log("[signup] signUp.email returned", result)
@@ -190,7 +190,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
           try {
             const signInResult = await signIn.email({ email, password, callbackURL: "/onboarding" })
             if (!(signInResult as { error?: unknown }).error) {
-              fireOnce("signup_account_created", { recovered: "timeout_signin" })
+              fireOnce("create_account", { recovered: "timeout_signin" })
               router.push("/onboarding")
               return
             }
@@ -207,7 +207,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
           "Sign up failed"
         console.error("[signup] authError", errObj)
         setError(msg)
-        trackEvent("error_signup", {
+        track("error_signup", {
           reason: errObj.code ?? msg.slice(0, 80),
           status: status ?? null,
         })
@@ -216,13 +216,13 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
 
       // Fires only after Better Auth confirms the account was created.
       console.log("[signup] account created, redirecting to /onboarding")
-      fireOnce("signup_account_created")
+      fireOnce("create_account")
       router.push("/onboarding")
     } catch (err) {
       console.error("[signup] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent("error_signup", {
+      track("error_signup", {
         reason: msg.slice(0, 80),
         threw: true,
       })
@@ -301,7 +301,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
             placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onFocus={() => fireOnce("signup_name_focused")}
+            onFocus={() => fireOnce("start_signup")}
             autoComplete="name"
             disabled={disabled}
             style={inputStyle}
@@ -312,7 +312,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onFocus={() => fireOnce("signup_email_focused")}
+            onFocus={() => fireOnce("start_signup")}
             autoComplete="email"
             disabled={disabled}
             style={inputStyle}
@@ -324,7 +324,7 @@ export function SignUpScreen({ userAgent }: SignUpScreenProps) {
               placeholder="Password (min 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => fireOnce("signup_password_focused")}
+              onFocus={() => fireOnce("start_signup")}
               autoComplete="new-password"
               disabled={disabled}
               style={{ ...inputStyle, paddingRight: 56 }}

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { StandaloneSwatch } from "@/components/ui/color-swatch-selector"
 import { detectLinkType } from "@/lib/link-type"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -105,9 +105,9 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // Google OAuth signups land here with ?auth=google (set as the OAuth
   // callbackURL) — that's the only reliable client-side completion signal.
   useEffect(() => {
-    trackEvent("onboarding_started")
+    track("start_onboarding")
     if (new URLSearchParams(window.location.search).get("auth") === "google") {
-      trackEvent("complete_google_signup")
+      track("complete_google_signup")
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -279,7 +279,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       }
 
       setIsSaved(true)
-      trackEvent("onboarding_completed", {
+      track("complete_onboarding", {
         added_first_link: !!firstLinkUrl,
         chose_category: !!category,
       })
@@ -298,7 +298,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     setStep((s) => {
       // Track the step the user just completed (the one they're leaving).
       // step === -1 is the welcome screen; treat that as step 0 starting.
-      if (s >= 0) trackEvent("onboarding_step_completed", { step: s })
+      if (s >= 0) track("complete_onboarding_step", { step: s })
       return s + 1
     })
   }, [])
@@ -328,7 +328,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       setIsSkipping(false)
       return
     }
-    trackEvent("onboarding_skipped")
+    track("skip_onboarding")
     router.push("/dashboard")
   }, [router, isSkipping])
 

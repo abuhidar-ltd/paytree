@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { captureAttribution, trackEvent } from "@/lib/analytics"
+import { captureAttribution, track } from "@/lib/analytics"
 
 // Module-level guard so a rerender or React strict-mode double-invoke cannot
 // fire homepage_view twice within a single page load.
@@ -18,7 +18,7 @@ export function HomePageView() {
     // Persist first-touch UTM/referrer before the (deferred) event reads it,
     // so the whole funnel is attributable from the very first homepage view.
     captureAttribution()
-    trackEvent("homepage_view")
+    track("view_home")
   }, [])
   return null
 }

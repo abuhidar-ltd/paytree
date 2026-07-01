@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { X, Send, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 interface Message {
   role: "user" | "assistant"
@@ -317,7 +317,7 @@ export function AiAgentChat({ username, creatorName, accentColor = "#00ff88" }: 
           <SiriOrb
             accent={accent}
             onClick={() => {
-              trackEvent("ai_agent_opened", { username })
+              track("open_ai_agent", { username })
               setIsOpen(true)
             }}
             creatorName={creatorName}

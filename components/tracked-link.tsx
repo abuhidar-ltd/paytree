@@ -1,19 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { trackEvent } from "@/lib/analytics"
+import { track, type EventName } from "@/lib/analytics"
 import type { ComponentProps, ReactNode } from "react"
 
 type LinkProps = ComponentProps<typeof Link>
 
 interface TrackedLinkProps extends Omit<LinkProps, "children"> {
-  event: string
+  event: EventName
   eventProps?: Record<string, string | number | boolean | null>
   /**
-   * Optional location label. When supplied, also fires the unified
-   * `cta_clicked` event with `{ location }` for consistent funnel analysis.
+   * Optional source label (hero | header | sticky | section) merged into the
+   * event props for consistent funnel analysis.
    */
-  location?: string
+  source?: string
   children: ReactNode
 }
 
@@ -28,12 +28,12 @@ interface TrackedLinkProps extends Omit<LinkProps, "children"> {
  * bypasses that check entirely because the URL change is client-side, which
  * is why internal CTAs can safely point at /register.
  */
-export function TrackedLink({ event, eventProps, location, onClick, children, ...rest }: TrackedLinkProps) {
+export function TrackedLink({ event, eventProps, source, onClick, children, ...rest }: TrackedLinkProps) {
   return (
     <Link
       {...rest}
       onClick={(e) => {
-        trackEvent(event, { ...eventProps, ...(location ? { location } : {}) })
+        track(event, { ...eventProps, ...(source ? { source } : {}) })
         onClick?.(e)
       }}
     >

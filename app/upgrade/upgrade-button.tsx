@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 export function UpgradeButton() {
   const [isLoading, setIsLoading] = useState(false)
@@ -11,12 +11,12 @@ export function UpgradeButton() {
   // /upgrade is a server component, so this client child carries the mount
   // event for the whole page — it's always rendered when the page renders.
   useEffect(() => {
-    trackEvent("upgrade_page_viewed", { source: "upgrade_page" })
+    track("view_upgrade", { source: "upgrade_page" })
   }, [])
 
   const handleUpgrade = async () => {
     setIsLoading(true)
-    trackEvent("upgrade_checkout_started", { plan: "pro", billing: "monthly" })
+    track("start_checkout", { plan: "pro", billing: "monthly", source: "upgrade" })
     toast.info("Creating checkout session...")
 
     try {

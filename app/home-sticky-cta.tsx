@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 interface HomeStickyCTAProps {
   isLoggedIn: boolean
@@ -28,7 +28,7 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
       // page by scrolling past the hero. Anything less is a bounce.
       if (shouldShow && !engagedFired.current) {
         engagedFired.current = true
-        trackEvent("homepage_scrolled_past_hero", { logged_in: isLoggedIn })
+        track("scroll_hero", { logged_in: isLoggedIn })
       }
     }
     window.addEventListener("scroll", onScroll, { passive: true })
@@ -63,7 +63,7 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
         href={href}
         onClick={() => {
           const variant = isLoggedIn ? "dashboard" : "start"
-          trackEvent("homepage_cta_clicked", { variant, location: "sticky" })
+          track("click_cta", { variant, source: "sticky" })
         }}
         className="pointer-events-auto flex w-full items-center justify-center bg-[#00ff88] text-black font-mono font-bold px-5 py-4 rounded-2xl text-base shadow-[0_8px_32px_rgba(0,255,136,0.35)] active:scale-[0.97] transition-transform duration-150"
         style={{ minHeight: 56 }}

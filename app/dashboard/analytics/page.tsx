@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan } from "@/lib/plans"
-import { trackEvent } from "@/lib/analytics"
+import { track } from "@/lib/analytics"
 
 const AudienceTable = dynamic(
   () => import("@/components/ui/audience-table").then((m) => m.AudienceTable),
@@ -820,7 +820,7 @@ export default function AnalyticsDashboard() {
   // Mount telemetry — one-shot, decoupled from the period-driven loader
   // below so changing the date range doesn't refire the event.
   useEffect(() => {
-    trackEvent("analytics_page_viewed")
+    track("view_analytics")
   }, [])
 
   useEffect(() => {
