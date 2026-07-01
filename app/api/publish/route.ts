@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
+import { trackServer } from "@/lib/analytics-server"
 
 /**
  * POST /api/publish
@@ -47,6 +48,11 @@ export async function POST() {
         pageStatus: true,
         publishedAt: true,
       }
+    })
+
+    // Activation metric — server-side so it can't be lost to a closed tab.
+    await trackServer("publish_page", {
+      first_publish: user.pageStatus !== "published",
     })
 
     return NextResponse.json({

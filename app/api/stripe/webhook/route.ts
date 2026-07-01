@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { trackServer } from "@/lib/analytics-server"
 import Stripe from "stripe"
 import { Resend } from "resend"
 
@@ -226,6 +227,12 @@ async function handleBlockProductPurchase(session: Stripe.Checkout.Session) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://paytree.to"
 
     console.log(`[STRIPE WEBHOOK] ✅ salesCount incremented for block "${block.title}" → ${block.salesCount}`)
+
+    // Revenue event — amount in cents, straight from the paid session.
+    await trackServer("receive_payment", {
+      amount: session.amount_total ?? price,
+      type: "block_product",
+    })
 
     // Social proof event
     prisma.socialProof.create({
@@ -479,6 +486,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`  - Published: ✅ YES`)
   console.log(`  - Live URL: /${user.username}`)
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+  // THE money metric: a confirmed paid subscription. Server-side because
+  // the buyer's tab is on Stripe's domain when this becomes true.
+  await trackServer("complete_upgrade", { plan, interval, status })
 }
 
 /**
@@ -738,6 +749,12 @@ async function handleProductPurchase(session: Stripe.Checkout.Session) {
     console.log("  - Buyer:", purchase.buyerEmail)
     console.log("  - Seller:", purchase.product.user.username)
 
+    // Revenue event — amount in cents.
+    await trackServer("receive_payment", {
+      amount: session.amount_total ?? 0,
+      type: "product",
+    })
+
     // Social proof event (fire-and-forget)
     prisma.socialProof.create({
       data: {
@@ -837,7 +854,13 @@ async function handleTipPayment(session: Stripe.Checkout.Session) {
   // Tips don't require database updates beyond what Stripe provides
   // The creator can see tips in their Stripe dashboard
   // In future, we could add a Tips table to track this
-  
+
+  // Revenue event — amount in cents.
+  await trackServer("receive_payment", {
+    amount: session.amount_total ?? 0,
+    type: "tip",
+  })
+
   console.log("[STRIPE WEBHOOK] ✅ Tip processed successfully!")
 }
 

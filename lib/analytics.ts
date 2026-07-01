@@ -160,6 +160,14 @@ export type Props = Record<string, AllowedValue>
 export function track(name: EventName, props: Props = {}): void {
   if (typeof window === "undefined") return
 
+  // Internal-traffic exclusion: devices that ever visited /admin are branded
+  // with pt_internal (components/analytics-loader.tsx) and never counted.
+  try {
+    if (window.localStorage.getItem("pt_internal") === "1") return
+  } catch {
+    // localStorage blocked — count the event.
+  }
+
   const run = () => {
     const inApp = detectInAppBrowser()
     const attribution = readAttribution()

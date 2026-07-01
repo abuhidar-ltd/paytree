@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toast";
-import { Analytics } from "@vercel/analytics/next";
+import { AnalyticsLoader } from "@/components/analytics-loader";
 
 // Body text
 const inter = Inter({
@@ -104,24 +103,12 @@ export default function RootLayout({
         {children}
         <Toaster />
         {/*
-          All analytics scripts deferred until the browser is idle. None of
-          them are needed for first paint — every byte they cost before
-          interactive directly hurts LCP and INP.
+          Analytics + Clarity load lazily AND skip internal traffic entirely
+          (/admin routes and pt_internal-branded devices) — see
+          components/analytics-loader.tsx. Nothing here is needed for first
+          paint; every byte before interactive hurts LCP and INP.
         */}
-        <Analytics />
-        <Script
-          id="microsoft-clarity"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(c,l,a,r,i,t,y){
-                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", "x8ply674rn");
-            `,
-          }}
-        />
+        <AnalyticsLoader />
       </body>
     </html>
   );
