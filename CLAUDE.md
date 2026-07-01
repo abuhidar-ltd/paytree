@@ -21,7 +21,7 @@ You never skip the planning phase.
 Paytree (paytree.to) — premium bio link SaaS.
 Competing with Linktree. We beat them on:
 - Price: $19/mo Ultra vs $35/mo Linktree
-- Fees: 0% vs 9% transaction fees
+- Fees: 0% platform fees on every plan vs Linktree's cut
 - AI: AI sales agent on public profile
 - Design: Cinematic dark vs boring white
 - Drops: Countdown cards (unique to us)
@@ -35,15 +35,27 @@ Do NOT claim we beat Linktree on:
 ## Target Users
 Primary: Finance/crypto traders (Twitter/X, TikTok)
 Secondary: Educators, coaches, YouTubers
-Geography: MENA first then global
+Geography: English-speaking markets (US/UK/CA/AU) + MENA.
+Product is English-only — do not propose i18n.
 
-## Plans
-Free:    $0      — publish + sell products (5% fee)
-Starter: $7/mo   — 0% fees + AI agent
-Ultra:   $19/mo  — 0% fees + AI agent + globe + no branding
+## Plans (lib/plans.ts is the source of truth)
+Free:  $0                    — publish + core cards, 0% fees
+Pro:   $7/mo or $59/yr       — drops, vault, AI agent, 0% fees
+Ultra: $19/mo or $159/yr     — everything + globe + no branding, 0% fees
 
-## Tech Stack
-Next.js 15, TypeScript, Tailwind CSS 4
+"starter" is a LEGACY DB alias for Pro (old rows have
+subscriptionPlan="starter"; normalizePlanId maps it to "pro";
+the Stripe env vars are still named STRIPE_STARTER_*).
+0% platform fees on ALL plans — Stripe processing fees still apply.
+
+## Tech Stack (current, July 2026)
+Next.js 16 (App Router), TypeScript strict, Tailwind CSS 4
+Better Auth (email/password + optional Google OAuth) — NOT Clerk
+Prisma + Neon PostgreSQL
+Stripe (subscriptions) + Stripe Connect (creator payments)
+Vercel Blob (image uploads; base64 fallback in dev only)
+Resend (transactional email)
+Vercel Analytics + Microsoft Clarity (loaded via components/analytics-loader.tsx)
 framer-motion (spring physics ALWAYS)
 motion (new performant API for complex animations)
 GSAP (timeline sequences, scroll triggers)
@@ -51,22 +63,71 @@ Three.js (3D globe, particles)
 tsParticles (background particle systems)
 lottie-react (After Effects animations)
 @dnd-kit/sortable (drag and drop)
-Clerk (auth)
-Prisma + Neon PostgreSQL
-Stripe + Stripe Connect
-Resend (email)
-Vercel (hosting)
 Anthropic Claude Haiku (AI agent feature)
+Vercel (hosting)
 
-## Animation Arsenal
-Choose the right tool:
-- UI interactions → framer-motion springs
-- Complex sequences → GSAP timelines  
-- 3D elements → Three.js
-- Background effects → tsParticles
-- Branded micro-animations → Lottie JSON files
-- High performance → motion library
-- Scroll animations → GSAP ScrollTrigger
+## Routes That Matter
+/register            canonical signup (SSR IAB detection)
+                     /start, /join, /signup, /sign-up 307-redirect here
+/login               sign-in (server wrapper + components/sign-in-screen.tsx)
+/onboarding          post-signup flow (skippable — smart defaults applied)
+/dashboard           canvas dashboard (go-live checklist + completion meter)
+/[username]          public profile
+
+## Event Taxonomy (verb_noun — THE registry lives in lib/analytics.ts)
+ALL tracking goes through lib/analytics.ts `track()` (client) or
+lib/analytics-server.ts `trackServer()` (server). Event names are a
+TypeScript union — adding an event means adding it to EventName first.
+Never call @vercel/analytics directly.
+
+Homepage:   view_home, scroll_hero, click_cta {source,variant}, click_signin
+Signup:     view_signup, start_signup (once), submit_signup, create_account,
+            error_signup {reason}, click_google_signup,
+            complete_google_signup, error_google_signup
+Login:      view_login, start_login (once), submit_login, complete_login,
+            error_login {reason}, click_google_login,
+            complete_google_login, error_google_login
+Onboarding: start_onboarding, complete_onboarding_step {step},
+            skip_onboarding, complete_onboarding
+Dashboard:  view_dashboard, first_dashboard, open_card_picker,
+            add_card {type}, delete_card, reorder_cards,
+            click_empty_suggestion, hit_plan_gate {feature}
+Design:     view_design, change_hero_style, change_accent,
+            change_button_style, open_ai_bio, apply_ai_bio
+Payments:   view_analytics, view_payments, connect_stripe {status},
+            click_stripe_connect, export_email_list
+Pricing:    view_pricing, select_plan {plan}, start_checkout {plan},
+            error_checkout, view_upgrade, activate_upgrade
+Profile:    view_profile, open_vault, submit_vault_email, unlock_vault,
+            open_ai_agent
+Money (SERVER-side, from Stripe webhook / api/publish):
+            publish_page, complete_upgrade {plan}, receive_payment {amount}
+
+## Internal Traffic Exclusion
+- /admin/** never loads Vercel Analytics or Clarity.
+- Visiting any /admin page sets localStorage.pt_internal = "1";
+  from then on that device is excluded everywhere (track() no-ops,
+  scripts don't load). See components/analytics-loader.tsx.
+- Muhammad: open /admin once on each of your devices to exclude yourself.
+- Playwright tests route **/_vercel/insights/** to a stub.
+
+## Known Platform Constraints
+- Google OAuth is HARD-BLOCKED inside all in-app browsers
+  (403 disallowed_useragent). The Google button must never render
+  when detectIAB() says isIAB — show the "email works right here" note.
+- IAB detection lives in lib/iab.ts (single module, works with the
+  server user-agent header AND client navigator.userAgent). 94% of
+  traffic is mobile, mostly TikTok/IG/FB WebViews.
+- TikTok's IAB has historically screened HARD navigations to
+  auth-keyword paths (/register, /signup, /join). Internal CTAs must
+  use next/link soft navigation (see components/tracked-link.tsx).
+  Externally shared links should prefer the bare domain or /start.
+- OG images (app/og/card.tsx) must follow Satori rules: every element
+  with >1 child needs explicit display:flex; text strings must be the
+  only child of their element; NO glyphs outside latin (✦ → dynamic
+  font fetch → 400 → broken image). Fonts are vendored woffs bundled
+  at build time. tests/og-images.spec.ts guards this.
+- iframe preview: /preview/* allows SAMEORIGIN framing via vercel.json.
 
 ## Design System (Obsidian Terminal)
 ```
@@ -113,6 +174,9 @@ Font mono:      Space Mono / Courier New
   {children}
 </motion.div>
 ```
+whileHover ONLY on elements that are genuinely interactive — hover/press
+affordances on static content read as tappable and produce dead clicks
+(Clarity flagged 22 sessions before the July 2026 audit).
 
 ## Spring Presets
 ```tsx
@@ -206,6 +270,8 @@ Card options:
 - config.animation: none | pulse | shimmer | bounce
 - scheduleStart/End: DateTime visibility window
 - config.promoCode: string shown on card
+- config.starter: true marks the auto-created signup starter card
+  (lib/auth.ts user.create.after hook; go-live checklist keys off it)
 
 ## V2 Architecture — Modular Reveal System
 
@@ -235,78 +301,74 @@ Dashboard editing:
 - Edit reveal drills into the panel with a breadcrumb back to the parent.
 - Remove reveal deletes the reveal Block (FK SetNull clears the parent's ref).
 
+## Activation System (first five minutes)
+- Starter card: every new account gets one editable example link card
+  (created in lib/auth.ts databaseHooks.user.create.after).
+- Go-live checklist (components/ui/go-live-checklist.tsx): 3 steps —
+  add a card / make it yours / publish. Derives state from live data,
+  one-tap publish, dismissible per-account after completion.
+- Completion meter (components/ui/completion-meter.tsx): photo, bio,
+  3+ cards, Stripe connected, published → % bar with deep links.
+- Publish celebration (components/ui/publish-celebration.tsx):
+  confetti + live URL + copy button. Fires from onboarding
+  (?published=1), the checklist, and the design studio.
+- Smart skip: skipping onboarding still sets accent #00ff88 +
+  classic hero and lands on the dashboard with checklist + starter card.
+
 ## Key Files
 ```
 app/dashboard/page.tsx           canvas dashboard
 app/[username]/profile-client    public profile
 components/ui/block-renderer     card renderer
+components/sign-up-screen.tsx    signup (retry + IAB gating)
+components/sign-in-screen.tsx    login (legacy-account notice)
 lib/glass.ts                     design tokens
 lib/plans.ts                     plan definitions
-app/api/                         DO NOT TOUCH
-prisma/schema.prisma             DO NOT TOUCH
+lib/analytics.ts                 client track() + EventName registry
+lib/analytics-server.ts          server trackServer() (money events)
+lib/iab.ts                       in-app-browser detection (server+client)
+lib/auth.ts                      Better Auth config + signup hooks
+app/og/card.tsx                  shared OG/Twitter image (satori rules!)
+prisma/schema.prisma             edit only when asked
 ```
 
 ## Dashboard Layout (source of truth)
 ```
-Fixed top bar (48px, z-50, full width)
+Fixed top bar (48px, z-50)
   bg-[#080808] border-b border-white/[0.06]
-  Left:   "Paytree" #00ff88 mono bold text-lg
+  Left:   hamburger (mobile) / "Paytree" #00ff88 mono bold
   Center: @username #444 mono text-sm
-  Right:  "Open ↗" ghost + "+ Add card" green button
+  Right:  Preview (mobile) + "Open ↗" ghost + "+ Add card" green button
 
-NO left sidebar — remove it completely
+Left sidebar (200px, desktop only; mobile = hamburger drawer)
+  Cards | Design | Analytics | Payments | Settings
 
-Canvas area (flex-1)
-  pt-14 pb-20 px-6
-  lg:mr-[360px] (clears preview panel)
-  bg-[#060606]
-  grid grid-cols-2 gap-3
-  max-w-[800px] mx-auto (on very wide screens)
+Canvas area (fixed inset, scrollable)
+  lg:ml-[200px] lg:mr-[360px] bg-[#060606] px-3 sm:px-6 pt-14
+  Go-live checklist + completion meter at top (new users)
+  grid grid-cols-2 gap-3, max-w-[800px] mx-auto
+  Block size: full → col-span-2, half → col-span-1
 
-  Block size:
-  full → col-span-2
-  half → col-span-1
-  default → col-span-2
+Preview panel (fixed right, w-[360px], desktop only)
+  Phone frame 280x560, iframe /preview/{username}
+  375x812 scaled 0.747, mobile gets full-screen overlay instead
 
-Preview panel (fixed right-0 top-0 bottom-0 w-[360px])
-  bg-[#080808] border-l border-white/[0.06]
-  hidden below lg
-  
-  Phone frame (280x560px centered):
-    borderRadius: 40px
-    border: 1.5px solid rgba(255,255,255,0.1)
-    overflow: hidden
-    Single iframe (NO nesting):
-      src: /preview/{username}
-      width: 375, height: 812
-      transform: scale(0.747) 
-      transformOrigin: top left
-      border: none
-
-Bottom nav (fixed bottom-0 full width h-[56px] z-50)
-  bg-[#080808] border-t border-white/[0.06]
-  flex justify-around items-center px-8
-  
-  Items: Cards | Design | Analytics | Settings
-  href:  /dashboard | /dashboard/studio | 
-         /dashboard/analytics | /settings
-  Active: text-[#00ff88]
-  Inactive: text-[#333]
-  Each: flex-col items-center gap-1
-        icon 20px + label 9px mono
+Edit panel: desktop = right rail (360px), mobile = BottomSheet
 ```
 
 ## Engineering Rules (Non-Negotiable)
-1. NEVER touch app/api/ unless explicitly asked
-2. NEVER touch prisma/schema.prisma unless asked
+1. app/api/ may be edited when the task requires it — with care and tests
+2. prisma/schema.prisma only when the task requires it — migrations reviewed
 3. ALWAYS use framer-motion spring animations
 4. ALWAYS use lib/glass.ts tokens
 5. ALWAYS TypeScript strict — zero any types
-6. ALWAYS mobile first (375px)
+6. ALWAYS mobile first (375px) — 94% of traffic is mobile
 7. ALWAYS optimistic updates on mutations
 8. ALWAYS run npx tsc --noEmit before finishing
 9. ALWAYS fix ALL TypeScript errors
 10. Read files before touching them
+11. ALL tracking through lib/analytics.ts / lib/analytics-server.ts —
+    event names must exist in the EventName union
 
 ## UI Generation Protocol
 When asked to design ANY component:
@@ -349,10 +411,28 @@ Every session:
 
 ## Testing Protocol
 After every significant change:
-1. Run npx tsc --noEmit
-2. Use Playwright to screenshot at 375px and 1440px
-3. Test the specific feature that changed
-4. Report pass/fail
+1. Run npx tsc --noEmit && npm run lint
+2. Playwright: chromium project + the three IAB projects
+   (iab-tiktok / iab-instagram / iab-facebook run the full signup
+   journey with real WebView UAs at 375px)
+3. tests/og-images.spec.ts must stay green (broken og = broken shares)
+4. Test the specific feature that changed at 375px and 1440px
+5. Report pass/fail
+
+## Status Snapshot — July 2, 2026
+Funnel (Jun 26 – Jul 2, real production data):
+  411 homepage viewers → 29 signup views → 16 submits → 12 accounts
+  → 12/19 skipped onboarding → 8 dashboards → 5 added a card
+  → 5 hit checkout → 0 confirmed upgrades
+Top of funnel is healthy: LCP 1.616s, INP 256ms, CLS 0, Clarity 83,
+homepage→signup 4–7% (was 1.4%). The leaks below it were addressed in
+the July 2 overhaul: og images fixed, signup retries, IAB Google gating,
+legacy-login notice, activation checklist/starter card/celebration,
+analytics taxonomy + server revenue events, internal-traffic exclusion,
+/start renamed to /register (redirects kept).
+Watch next: create_account → publish_page → complete_upgrade.
+Traffic quality warning: Türkiye was 41% of visitors — fix TikTok ad
+targeting (US/UK/CA/AU + MENA, English) before the next spend.
 
 ## Marketing Voice
 Tone: Confident, direct, founder-energy

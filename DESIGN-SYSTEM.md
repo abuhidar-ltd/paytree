@@ -1,5 +1,69 @@
 # Paytree Design System
 
+## Mobile Primitives (94% of traffic is mobile — start here)
+
+### BottomSheet (components/ui/bottom-sheet.tsx)
+iOS-style modal sheet. Use instead of centered dialogs on mobile:
+backdrop tap closes, drag-handle dismisses with spring release.
+```tsx
+import { BottomSheet } from "@/components/ui/bottom-sheet"
+
+<BottomSheet
+  open={open}
+  onClose={() => setOpen(false)}
+  title="Edit card"        // optional header
+  maxHeight="85vh"          // default; "auto" for content-fit
+  fullHeight={false}        // true = 95vh sticky-page mode (pickers)
+>
+  {children}
+</BottomSheet>
+```
+Pattern used by the dashboard: desktop keeps a right rail
+(`hidden lg:flex` slide-in panel), mobile wraps the same content in
+`<div className="lg:hidden"><BottomSheet …/></div>`.
+
+### Safe-area utilities (globals.css)
+```
+.pt-safe      padding-top: max(env(safe-area-inset-top), 0px)
+.pb-safe      padding-bottom: max(env(safe-area-inset-bottom), 0px)
+.pb-safe-12   padding-bottom: max(env(safe-area-inset-bottom), 12px)
+.pb-safe-16   padding-bottom: max(env(safe-area-inset-bottom), 16px)
+```
+Any fixed top bar gets `.pt-safe`; any fixed bottom bar / sheet footer
+gets `.pb-safe-*` so buttons clear the home indicator.
+
+### Sticky CTA (app/home-sticky-cta.tsx)
+Mobile-only conversion bar that appears after the user scrolls past the
+hero (fires `scroll_hero` once). Fixed bottom, z-50, `.pb-safe`,
+spring-slides in, full-width #00ff88 button. Pages with a sticky CTA
+need bottom padding on the content (`pb-32 sm:pb-0`) so the last
+section is never hidden behind it.
+
+### Go-live checklist (components/ui/go-live-checklist.tsx)
+Glass card listing "3 steps to go live" (add card → make it yours →
+publish). State derives from live data (blocks/profile) — never stored.
+Current step glows #00ff88 with the action chip inline; completed steps
+strike through; X (dismiss) appears only when all steps are done and
+persists per-account via localStorage (`useStorageFlag`).
+
+### Completion meter (components/ui/completion-meter.tsx)
+Slim expandable % bar: photo, bio, 3+ cards, Stripe, published.
+Collapsed = label + animated progress bar + %. Expanded = punch list
+where every unfinished item is a deep link. Hidden at 100%.
+
+### Publish celebration (components/ui/publish-celebration.tsx)
+The reward moment: ~40 confetti particles (framer-motion keyframes, no
+extra deps), spring-in glass card, animated check, live URL pill,
+one-tap Copy. Inner overlay component owns its state so closing resets
+everything. Trigger by state or by landing with `?published=1`.
+
+### localStorage-backed flags (lib/use-storage-flag.ts)
+```tsx
+const [dismissed, setDismissed] = useStorageFlag("key", true /* SSR fallback */)
+```
+useSyncExternalStore under the hood — correct on the first client
+render, no setState-in-effect lint errors, no hydration flash.
+
 ## Component Patterns
 
 ### Shimmer Loading State

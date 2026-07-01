@@ -1,5 +1,34 @@
 # Paytree Marketing Playbook
 
+## What's Working — Field Data (updated July 2, 2026)
+
+### Winning hero (LIVE — do not rewrite without data)
+Badge:    "0% platform commission" (green pill above headline)
+Headline: "Your entire business" (#00ff88, glow) / "in one place" (white)
+CTA:      "Create your free page →" + "No Credit Card Required"
+Result:   homepage → signup conversion 1.4% → 4–7% after this hero
+          shipped (Jun 26–Jul 2: 411 viewers → 29 signup views).
+The Linktree-math angle carries the share surfaces: the OG/Twitter
+card says "Linktree takes 9%. Paytree takes 0%." — every social share
+leads with the fee math.
+
+### In-app browser learnings (94% of traffic)
+- Most visitors arrive inside TikTok/Instagram/Facebook WebViews.
+- Google OAuth is dead in ALL of them (403 disallowed_useragent) —
+  the funnel must never depend on it; email/password is the mobile path.
+- TikTok screens hard navigations to auth-keyword URLs (/register,
+  /signup, /join). Ads and bios should link the bare domain or /start
+  (redirects to /register); in-app CTAs use soft navigation.
+- 308 redirect chains get flagged by WebView safety checks — keep 307.
+- Assume no tab-switching: email verification or "check your inbox"
+  steps lose users inside IABs.
+
+### Traffic quality warning (before ANY new ad spend)
+Türkiye was 41% of visitors in the last window — wrong-targeting from
+TikTok ads, near-zero conversion, English-only product. Fix TikTok ad
+targeting to US/UK/CA/AU + MENA with English language BEFORE buying
+more traffic. Volume without intent just pollutes the funnel data.
+
 ## Target Personas
 
 ### PERSONA 1 — The Trader (Primary Target)
