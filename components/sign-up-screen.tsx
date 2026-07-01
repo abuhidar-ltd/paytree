@@ -3,20 +3,21 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
+import { IABBanner } from "@/components/iab-banner"
 import { signIn, signUp } from "@/lib/auth-client"
+import { detectIAB, type IABInfo } from "@/lib/iab"
 import { trackEvent } from "@/lib/analytics"
 
 /**
  * Custom Better Auth signup screen, served at /register (legacy aliases
- * /start, /join, /signup redirect there). The server page passes
- * initialIsTikTokIAB (detected via headers().get('user-agent')) so the
- * warning banner is present in the initial HTML — a client useEffect alone
+ * /start, /join, /signup redirect there). The server page passes the raw
+ * user-agent header so IAB detection runs during SSR and the "open in
+ * browser" banner is present in the initial HTML — a client useEffect alone
  * is too late for bounce-prone TikTok traffic.
  */
 interface SignUpScreenProps {
-  initialIsTikTokIAB?: boolean
+  userAgent?: string
 }
 
 const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
@@ -34,7 +35,7 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
-export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) {
+export function SignUpScreen({ userAgent }: SignUpScreenProps) {
   const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -44,7 +45,9 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
   const [isNetworkError, setIsNetworkError] = useState(false)
-  const [isTikTokIAB, setIsTikTokIAB] = useState(initialIsTikTokIAB)
+  // Server-detected on first paint; re-checked client-side after mount in
+  // case the server saw no UA (static shells, some proxies).
+  const [iab, setIab] = useState<IABInfo>(() => detectIAB(userAgent))
   const fired = useRef<Set<string>>(new Set())
 
   function fireOnce(stage: string, props: Record<string, string | number | boolean | null> = {}) {
@@ -57,13 +60,18 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     if (googleLoading || loading) return
     setGoogleLoading(true)
     setError("")
-    fireOnce("signup_google_clicked")
+    // Only reachable in a real browser — the button is hidden inside IABs.
+    fireOnce("click_google_signup", { iab: iab.platform ?? "none" })
     try {
-      await signIn.social({ provider: "google", callbackURL: "/onboarding" })
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/onboarding?auth=google",
+        errorCallbackURL: "/register?google_error=1",
+      })
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
       setError(msg)
-      trackEvent("signup_google_failed", { reason: msg.slice(0, 80) })
+      trackEvent("error_google_signup", { reason: msg.slice(0, 80) })
       setGoogleLoading(false)
     }
   }
@@ -76,12 +84,18 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     }
     trackEvent("signup_page_viewed", { ref: ref ?? null })
 
-    const ua = navigator.userAgent
-    const isTikTok = /musical_ly|MusicallyApp|TikTok|BytedanceWebview|bytedance|aweme|snssdk|xigua/i.test(ua)
-    const forceIAB = params.get("iab") === "tiktok"
-    if (isTikTok || forceIAB) setIsTikTokIAB(true)
+    // Google's OAuth callback bounced back with an error (server-side flow).
+    if (params.get("google_error")) {
+      trackEvent("error_google_signup", { reason: "oauth_callback" })
+      setError("Google sign-in didn't complete. Email works right here instead.")
+    }
 
-    fireOnce("signup_form_mounted")
+    // Re-detect client-side; ?iab=<platform> forces it for testing.
+    const forced = params.get("iab")
+    const detected = forced
+      ? { isIAB: true, platform: forced as IABInfo["platform"] }
+      : detectIAB()
+    if (detected.isIAB) setIab(detected)
   }, [])
 
   async function handleSignUp(e: React.FormEvent) {
@@ -233,37 +247,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
           </Link>
         </div>
 
-        <AnimatePresence>
-          {isTikTokIAB && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              style={{
-                background: "rgba(245,158,11,0.06)",
-                border: "0.5px solid rgba(245,158,11,0.2)",
-                borderRadius: 12,
-                boxShadow: "inset 0 1px 0 rgba(245,158,11,0.08)",
-                position: "relative",
-                overflow: "hidden",
-              }}
-              className="px-4 py-3 flex items-center gap-3"
-            >
-              <div
-                style={{
-                  position: "absolute", top: 0, left: 0, right: 0,
-                  height: 1, pointerEvents: "none",
-                  background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.2) 50%, transparent)",
-                }}
-              />
-              <span className="text-[#f59e0b] text-base leading-none flex-shrink-0">↗</span>
-              <p className="text-[#f59e0b]/80 text-xs leading-relaxed">
-                If the link doesn&apos;t open, please open it in your browser.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {iab.isIAB && <IABBanner platform={iab.platform} />}
 
         <form
           onSubmit={handleSignUp}
@@ -284,7 +268,10 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
             background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)",
           }} />
 
-          {GOOGLE_LOGIN_ENABLED && (
+          {/* Google hard-blocks OAuth inside WebViews (403 disallowed_useragent).
+              Inside an IAB the button is a guaranteed dead end — hide it and
+              say why, instead of letting users hit Google's error wall. */}
+          {GOOGLE_LOGIN_ENABLED && !iab.isIAB && (
             <>
               <button
                 type="button"
@@ -302,6 +289,11 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
                 <div style={dividerLineStyle} />
               </div>
             </>
+          )}
+          {GOOGLE_LOGIN_ENABLED && iab.isIAB && (
+            <p style={{ color: "#555", fontSize: 12, textAlign: "center", margin: "0 0 4px" }}>
+              Google sign-in needs a full browser — email works right here.
+            </p>
           )}
 
           <input

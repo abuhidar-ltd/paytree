@@ -1,11 +1,15 @@
 /**
- * In-app browser (WebView) detection.
+ * In-app browser (IAB / WebView) detection — the single source of truth.
  *
- * Conversions die here: Google blocks OAuth in WebViews, third-party cookies
- * fail, captchas don't render, and email verification can't tab-switch back.
- * Detect these contexts so we can warn the user and gate broken UI.
+ * 94% of Paytree traffic is mobile, mostly inside social-app WebViews.
+ * Conversions die here: Google hard-blocks OAuth in WebViews
+ * (403 disallowed_useragent), third-party cookies fail, and email
+ * verification can't tab-switch back. Detect these contexts so we can gate
+ * broken UI and tell the user how to escape to a real browser.
  *
- * Client-side only — relies on navigator.userAgent.
+ * Works on BOTH sides:
+ *   server: detectIAB(headers().get("user-agent"))
+ *   client: detectIAB()  — falls back to navigator.userAgent
  */
 
 export type InAppBrowserSource =
@@ -23,6 +27,12 @@ export type InAppBrowserSource =
   | null
 
 export type Platform = "ios" | "android" | "other"
+
+export interface IABInfo {
+  isIAB: boolean
+  /** Which app's WebView we're inside; null when in a real browser. */
+  platform: InAppBrowserSource
+}
 
 const PATTERNS: Array<{ source: Exclude<InAppBrowserSource, null | "unknown">; regex: RegExp }> = [
   { source: "tiktok",     regex: /\b(BytedanceWebview|TikTok|musical_ly|trill|Aweme)\b/i },
@@ -56,6 +66,12 @@ export function detectInAppBrowser(userAgent?: string): InAppBrowserSource {
   if (isIOSWebView || isAndroidWebView) return "unknown"
 
   return null
+}
+
+/** The one call sites should use: `const { isIAB, platform } = detectIAB(ua)` */
+export function detectIAB(userAgent?: string): IABInfo {
+  const platform = detectInAppBrowser(userAgent)
+  return { isIAB: platform !== null, platform }
 }
 
 export function isInAppBrowser(userAgent?: string): boolean {
@@ -94,16 +110,17 @@ export function sourceLabel(source: InAppBrowserSource): string {
  * Per-platform instructions for opening in a real browser.
  */
 export function openInBrowserInstructions(source: InAppBrowserSource, platform: Platform): string {
-  if (platform === "android") return "Tap the ⋮ menu in the top right, then 'Open in Chrome'"
-  if (platform === "ios") {
-    switch (source) {
-      case "tiktok":   return "Tap ⋯ at the top right, then 'Open in browser'"
-      case "instagram":return "Tap ⋯ at the top right, then 'Open in external browser'"
-      case "facebook": return "Tap ⋯ at the top right, then 'Open in browser'"
-      case "snapchat": return "Tap ⋯ at the top right, then 'Open in browser'"
-      default:         return "Tap the share icon, then 'Open in Safari'"
-    }
+  switch (source) {
+    case "tiktok":
+      return "Tap ⋯ → Open in browser"
+    case "instagram":
+    case "facebook":
+      return "Tap ⋯ in the corner → Open in external browser"
+    default:
+      break
   }
+  if (platform === "android") return "Tap the ⋮ menu in the top right, then 'Open in Chrome'"
+  if (platform === "ios") return "Tap the share icon, then 'Open in Safari'"
   return "Tap the menu button, then 'Open in browser'"
 }
 

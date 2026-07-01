@@ -102,8 +102,13 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // Fire onboarding_started once when onboarding mounts. Account-creation
   // success is tracked separately as signup_account_created in the signup
   // screen (single source of truth), so it is intentionally NOT fired here.
+  // Google OAuth signups land here with ?auth=google (set as the OAuth
+  // callbackURL) — that's the only reliable client-side completion signal.
   useEffect(() => {
     trackEvent("onboarding_started")
+    if (new URLSearchParams(window.location.search).get("auth") === "google") {
+      trackEvent("complete_google_signup")
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

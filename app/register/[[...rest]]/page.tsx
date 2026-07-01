@@ -11,13 +11,12 @@ import { SignUpScreen } from "@/components/sign-up-screen"
 // /start (kept as a redirect). If TikTok signup traffic drops after this
 // rename, that interstitial is the first thing to check.
 //
-// We detect TikTok's in-app WebView server-side so the "open in browser"
-// banner renders in the initial HTML — a client useEffect alone is too late
-// for bounce-prone TikTok traffic on slow 4G.
-const TIKTOK_UA = /musical_ly|MusicallyApp|TikTok|BytedanceWebview|bytedance|aweme|snssdk|xigua/i
+// The raw user-agent header is passed down so IAB detection (lib/iab.ts)
+// runs during SSR and the "open in browser" banner + Google-button gating
+// are correct on first paint — a client useEffect alone is too late for
+// bounce-prone TikTok traffic on slow 4G.
 
 export default async function RegisterPage() {
   const ua = (await headers()).get("user-agent") ?? ""
-  const isTikTokIAB = TIKTOK_UA.test(ua)
-  return <SignUpScreen initialIsTikTokIAB={isTikTokIAB} />
+  return <SignUpScreen userAgent={ua} />
 }

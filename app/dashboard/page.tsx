@@ -303,6 +303,11 @@ export default function DashboardPage() {
     if (viewTrackedRef.current) return
     viewTrackedRef.current = true
     trackEvent("dashboard_viewed")
+    // Google OAuth sign-ins land here with ?auth=google (the OAuth
+    // callbackURL) — the only reliable client-side completion signal.
+    if (new URLSearchParams(window.location.search).get("auth") === "google") {
+      trackEvent("complete_google_login")
+    }
     try {
       const KEY = "paytree_dashboard_first_visit_fired"
       if (!window.localStorage.getItem(KEY)) {

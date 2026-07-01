@@ -9,7 +9,7 @@
  */
 
 import { track } from "@vercel/analytics"
-import { detectInAppBrowser } from "./in-app-browser"
+import { detectInAppBrowser } from "./iab"
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const
 type UtmKey = typeof UTM_KEYS[number]
