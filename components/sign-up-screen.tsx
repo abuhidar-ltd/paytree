@@ -21,6 +21,19 @@ interface SignUpScreenProps {
 
 const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
 
+// One real user hit "Failed to fetch" 8 times in a row and gave up — mobile
+// networks inside social-app WebViews drop requests constantly. Every attempt
+// gets a hard 10s ceiling, and network-level failures retry twice with
+// backoff before we show anything. Server-validated 4xx responses (wrong
+// email, account exists) never retry.
+const ATTEMPT_TIMEOUT_MS = 10_000
+const RETRY_DELAYS_MS = [1_000, 3_000]
+const TIMED_OUT = Symbol("timed_out")
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
 export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) {
   const router = useRouter()
   const [name, setName] = useState("")
@@ -30,6 +43,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isNetworkError, setIsNetworkError] = useState(false)
   const [isTikTokIAB, setIsTikTokIAB] = useState(initialIsTikTokIAB)
   const fired = useRef<Set<string>>(new Set())
 
@@ -84,6 +98,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     fireOnce("signup_submit_clicked")
     setLoading(true)
     setError("")
+    setIsNetworkError(false)
 
     // Full client-side trace so we can see what's actually happening in real
     // users' browsers. Vercel's server-side "0% errors" hid every 4xx body —
@@ -91,13 +106,50 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
     // us diff a successful signup against a failing one.
     console.log("[signup] submitting", { email, name, origin: window.location.origin, path: window.location.pathname })
 
+    const payload = { email, password, name, callbackURL: "/onboarding" }
+
+    // Timeout + retry live around the network call only. `timedOutOnce`
+    // matters below: a timed-out attempt may still have created the account
+    // server-side, so a later USER_ALREADY_EXISTS is treated as "the first
+    // attempt actually worked" and we sign the user in instead of erroring.
+    let timedOutOnce = false
+    let result: Awaited<ReturnType<typeof signUp.email>> | null = null
+    let lastNetworkError: unknown = null
+
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt > 0) {
+        console.log(`[signup] retry ${attempt} after network failure`)
+        await sleep(RETRY_DELAYS_MS[attempt - 1])
+      }
+      try {
+        const raced = await Promise.race([
+          signUp.email(payload),
+          sleep(ATTEMPT_TIMEOUT_MS).then(() => TIMED_OUT as typeof TIMED_OUT),
+        ])
+        if (raced === TIMED_OUT) {
+          timedOutOnce = true
+          lastNetworkError = new Error("Request timed out")
+          continue
+        }
+        result = raced
+        lastNetworkError = null
+        break
+      } catch (err) {
+        // Thrown = the fetch itself died (offline, DNS, CORS, WebView kill).
+        // Server-validated failures come back as { error } and never throw.
+        console.error("[signup] network attempt threw", err)
+        lastNetworkError = err
+      }
+    }
+
     try {
-      const result = await signUp.email({
-        email,
-        password,
-        name,
-        callbackURL: "/onboarding",
-      })
+      if (!result) {
+        const msg = lastNetworkError instanceof Error ? lastNetworkError.message : "fetch failed"
+        setIsNetworkError(true)
+        setError("Connection issue — tap to try again")
+        trackEvent("error_signup", { reason: "network", detail: msg.slice(0, 80), timed_out: timedOutOnce })
+        return
+      }
       console.log("[signup] signUp.email returned", result)
 
       const authError = (result as { error?: unknown }).error
@@ -113,18 +165,37 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
           statusCode?: number
           body?: { message?: string; error?: string }
         }
+
+        // A timed-out attempt can succeed server-side after we stopped
+        // waiting. If the retry then reports "account exists", the account
+        // is OURS from 10 seconds ago — sign in with the same credentials
+        // instead of stranding the user on a confusing error.
+        const status = errObj.status ?? errObj.statusCode
+        if (timedOutOnce && (errObj.code === "USER_ALREADY_EXISTS" || status === 409)) {
+          console.log("[signup] account exists after timeout — attempting sign-in fallback")
+          try {
+            const signInResult = await signIn.email({ email, password, callbackURL: "/onboarding" })
+            if (!(signInResult as { error?: unknown }).error) {
+              fireOnce("signup_account_created", { recovered: "timeout_signin" })
+              router.push("/onboarding")
+              return
+            }
+          } catch {
+            // Fall through to the normal error below.
+          }
+        }
+
         const msg =
           errObj.message ||
           errObj.body?.message ||
           errObj.body?.error ||
-          friendlyMessage(errObj.code, errObj.status ?? errObj.statusCode) ||
+          friendlyMessage(errObj.code, status) ||
           "Sign up failed"
         console.error("[signup] authError", errObj)
         setError(msg)
-        trackEvent("signup_failed", {
-          reason: msg.slice(0, 80),
-          code: errObj.code ?? null,
-          status: errObj.status ?? errObj.statusCode ?? null,
+        trackEvent("error_signup", {
+          reason: errObj.code ?? msg.slice(0, 80),
+          status: status ?? null,
         })
         return
       }
@@ -137,7 +208,7 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
       console.error("[signup] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      trackEvent("signup_failed", {
+      trackEvent("error_signup", {
         reason: msg.slice(0, 80),
         threw: true,
       })
@@ -277,17 +348,40 @@ export function SignUpScreen({ initialIsTikTokIAB = false }: SignUpScreenProps) 
           </div>
 
           {error && (
-            <div style={{
-              color: "#ff5555",
-              fontSize: 13,
-              textAlign: "center",
-              padding: "8px",
-              background: "rgba(255,85,85,0.08)",
-              borderRadius: 8,
-              border: "0.5px solid rgba(255,85,85,0.2)",
-            }}>
-              {error}
-            </div>
+            isNetworkError ? (
+              // Whole error card is the retry button — form state is intact,
+              // so one tap resubmits with the same values.
+              <button
+                type="submit"
+                disabled={disabled}
+                style={{
+                  color: "#f59e0b",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textAlign: "center",
+                  padding: "12px 8px",
+                  background: "rgba(245,158,11,0.08)",
+                  borderRadius: 8,
+                  border: "0.5px solid rgba(245,158,11,0.25)",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  width: "100%",
+                }}
+              >
+                {loading ? "Retrying..." : `${error} ↻`}
+              </button>
+            ) : (
+              <div style={{
+                color: "#ff5555",
+                fontSize: 13,
+                textAlign: "center",
+                padding: "8px",
+                background: "rgba(255,85,85,0.08)",
+                borderRadius: 8,
+                border: "0.5px solid rgba(255,85,85,0.2)",
+              }}>
+                {error}
+              </div>
+            )
           )}
 
           <button
