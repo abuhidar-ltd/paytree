@@ -17,6 +17,9 @@ import { CSS } from "@dnd-kit/utilities"
 import { resolveUserPlan } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { BottomSheet } from "@/components/ui/bottom-sheet"
+import { GoLiveChecklist } from "@/components/ui/go-live-checklist"
+import { CompletionMeter } from "@/components/ui/completion-meter"
+import { PublishCelebration } from "@/components/ui/publish-celebration"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
 import { track } from "@/lib/analytics"
@@ -78,6 +81,7 @@ interface Profile {
   username: string
   name: string | null
   image: string | null
+  bio: string | null
   pageStatus: string | null
   subscriptionStatus: string | null
   subscriptionPlan: string | null
@@ -90,6 +94,10 @@ interface Profile {
   aiChatSessions: number | null
   aiChatMessages: number | null
 }
+
+// Title the signup hook gives the starter card (lib/auth.ts). Editing it —
+// or adding any non-starter card — completes checklist step 1.
+const STARTER_CARD_TITLE = "My favorite link — tap to edit"
 
 // ─── Spring configs ───────────────────────────────────────────
 
@@ -234,6 +242,10 @@ export default function DashboardPage() {
   // Mobile-only preview overlay. Desktop users get the always-on right panel,
   // so this stays false there. Triggered by the Preview button in the top bar.
   const [showMobilePreview, setShowMobilePreview] = useState(false)
+  // Publish celebration — triggered by ?published=1 (onboarding hands off
+  // here after publishing) or by publishing from the go-live checklist.
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
   const viewTrackedRef = useRef(false)
 
@@ -305,8 +317,13 @@ export default function DashboardPage() {
     track("view_dashboard")
     // Google OAuth sign-ins land here with ?auth=google (the OAuth
     // callbackURL) — the only reliable client-side completion signal.
-    if (new URLSearchParams(window.location.search).get("auth") === "google") {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("auth") === "google") {
       track("complete_google_login")
+    }
+    if (params.get("published") === "1") {
+      setShowCelebration(true)
+      window.history.replaceState(null, "", "/dashboard")
     }
     try {
       const KEY = "paytree_dashboard_first_visit_fired"
@@ -369,6 +386,44 @@ export default function DashboardPage() {
 
   const previewUrl = profile?.username ? `/preview/${profile.username}` : ""
   const refreshPreview = useCallback(() => setPreviewKey(k => k + 1), [])
+
+  // ─── Activation state (go-live checklist + completion meter) ───
+  // Derived from live data — nothing to persist, nothing to drift.
+  const isStarter = (b: Block) => (b.config as { starter?: boolean })?.starter === true
+  const activation = {
+    addedCard:
+      blocks.some(b => !isStarter(b)) ||
+      blocks.some(b => isStarter(b) && b.title !== STARTER_CARD_TITLE),
+    madeItYours: !!(profile?.image || profile?.bio),
+    published: profile?.pageStatus === "published",
+  }
+  const completion = {
+    hasPhoto: !!profile?.image,
+    hasBio: !!profile?.bio,
+    hasThreeCards: blocks.filter(b => !b.parentId).length >= 3,
+    stripeConnected: profile?.stripeAccountStatus === "active",
+    published: profile?.pageStatus === "published",
+  }
+
+  const handlePublishNow = async () => {
+    if (publishing) return
+    setPublishing(true)
+    try {
+      const res = await fetch("/api/publish", { method: "POST" })
+      if (res.ok) {
+        setProfile(p => (p ? { ...p, pageStatus: "published" } : p))
+        setShowCelebration(true)
+        refreshPreview()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast.error((data as { error?: string }).error ?? "Failed to publish")
+      }
+    } catch {
+      toast.error("Failed to publish")
+    } finally {
+      setPublishing(false)
+    }
+  }
 
   // ─── Block operations ───
 
@@ -776,17 +831,30 @@ export default function DashboardPage() {
       <div
         className="fixed inset-0 overflow-y-auto lg:ml-[200px] lg:mr-[360px] bg-[#060606] px-3 sm:px-6 pt-14 pb-10"
       >
-        {/* Publish nudge — free users who haven't published yet */}
-        {userPlan === "free" && profile?.pageStatus !== "published" && (
-          <div
-            className="mb-4 px-4 py-2 flex items-center justify-between rounded-xl border border-[#00ff88]/[0.1]"
-            style={{ background: "linear-gradient(to right, rgba(0,255,136,0.06), transparent)" }}
-          >
-            <span className="text-xs text-[#00ff88] font-mono">🚀 Your page isn&apos;t live yet — publish it for free</span>
-            <Link href="/dashboard/studio" className="text-xs text-black bg-[#00ff88] font-mono font-semibold rounded-full px-3 py-1 hover:opacity-90">
-              Publish →
-            </Link>
-          </div>
+        {/* Go-live checklist + completion meter — the first-five-minutes
+            experience. The checklist replaces the old free-plan publish nudge
+            (its step 3 is the publish CTA, for every plan). */}
+        {!loading && profile && (
+          <>
+            <GoLiveChecklist
+              userId={profile.id}
+              state={activation}
+              onAddCard={() => {
+                track("open_card_picker", { source: "checklist" })
+                setShowAddPicker(true)
+              }}
+              onPublish={handlePublishNow}
+              publishing={publishing}
+            />
+            <CompletionMeter
+              input={completion}
+              onAddCard={() => {
+                track("open_card_picker", { source: "completion_meter" })
+                setShowAddPicker(true)
+              }}
+              onPublish={handlePublishNow}
+            />
+          </>
         )}
 
         {/* Stripe Connect Banner — paid users without an active Stripe account */}
@@ -1113,6 +1181,13 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Publish celebration — confetti + copy link ─── */}
+      <PublishCelebration
+        open={showCelebration}
+        username={profile?.username ?? ""}
+        onClose={() => setShowCelebration(false)}
+      />
     </div>
   )
 }

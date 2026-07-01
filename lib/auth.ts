@@ -157,6 +157,27 @@ const config: BetterAuthOptions = {
             throw err
           }
         },
+        after: async (user) => {
+          // Starter card: the canvas must never be empty. Runs for every
+          // account path (email AND Google OAuth). config.starter marks it so
+          // the go-live checklist can tell it apart from user-added cards.
+          // Never throw — a failed starter card must not abort a signup.
+          try {
+            await prisma.block.create({
+              data: {
+                userId: user.id,
+                type: "link",
+                title: "My favorite link — tap to edit",
+                url: "https://paytree.to",
+                position: 0,
+                config: { starter: true },
+              },
+            })
+            console.log("[auth:hook] starter card created for", user.email)
+          } catch (err) {
+            console.error("[auth:hook] starter card create failed:", err)
+          }
+        },
       },
     },
   },

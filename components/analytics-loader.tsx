@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Script from "next/script"
 import { Analytics } from "@vercel/analytics/next"
+import { useStorageFlag } from "@/lib/use-storage-flag"
 
 /**
  * Loads Vercel Analytics + Microsoft Clarity — EXCEPT for internal traffic.
@@ -21,23 +22,16 @@ import { Analytics } from "@vercel/analytics/next"
 export function AnalyticsLoader() {
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith("/admin") ?? false
-  const [status, setStatus] = useState<"pending" | "internal" | "external">("pending")
+  // serverFallback=true: SSR assumes internal, so nothing loads until the
+  // client confirms this device isn't branded. Both scripts were lazy-loaded
+  // anyway, so the deferral costs nothing.
+  const [branded, setBranded] = useStorageFlag("pt_internal", true)
 
   useEffect(() => {
-    let internal = isAdminRoute
-    try {
-      if (isAdminRoute) window.localStorage.setItem("pt_internal", "1")
-      internal = internal || window.localStorage.getItem("pt_internal") === "1"
-    } catch {
-      // localStorage blocked — treat as external, the /admin check still holds.
-    }
-    setStatus(internal ? "internal" : "external")
-  }, [isAdminRoute])
+    if (isAdminRoute && !branded) setBranded(true)
+  }, [isAdminRoute, branded, setBranded])
 
-  // "pending" covers the first client render: nothing loads until we know
-  // this isn't an internal device. Both scripts were lazy/idle-loaded anyway,
-  // so the one-tick delay costs nothing.
-  if (status !== "external") return null
+  if (isAdminRoute || branded) return null
 
   return (
     <>

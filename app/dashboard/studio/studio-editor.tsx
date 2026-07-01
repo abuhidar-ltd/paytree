@@ -9,6 +9,7 @@ import { PaywallModal } from "@/components/ui/paywall-modal"
 import { toast } from "sonner"
 import { Check, ChevronDown, Upload, Sparkles, ArrowLeft } from "lucide-react"
 import { AiBioWriter } from "@/components/ui/ai-bio-writer"
+import { PublishCelebration } from "@/components/ui/publish-celebration"
 import { getButtonCardStyles } from "@/components/ui/block-renderer"
 import { track } from "@/lib/analytics"
 
@@ -719,49 +720,12 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
         }}
       />
 
-      {publishedLink && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPublishedLink(null)} />
-          <div className="relative bg-[#0a0a0a] rounded-2xl max-w-md w-full p-8 border border-white/[0.07]">
-            <button onClick={() => setPublishedLink(null)} className="absolute top-4 right-4 text-[#444] hover:text-[#888] transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
-              <Check size={28} className="text-[#00ff88]" />
-            </div>
-            <div className="text-center mb-5">
-              <h2 className="text-lg font-mono font-semibold text-[#e0e0e0] mb-2">🎉 Your link is live!</h2>
-              <p className="text-[#444] text-sm font-mono">Share this with your audience</p>
-            </div>
-            <div className="bg-white/[0.03] rounded-xl p-4 mb-5 border border-white/[0.07] flex items-center gap-3">
-              <div className="flex-1 font-mono text-sm text-[#00ff88] truncate">{publishedLink}</div>
-              <button
-                onClick={() => { navigator.clipboard.writeText(publishedLink!); toast.success("Link copied!") }}
-                className="px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-lg text-xs font-mono text-[#e0e0e0] transition-colors"
-              >
-                Copy
-              </button>
-            </div>
-            <div className="space-y-2">
-              <Button
-                onClick={() => window.open(publishedLink!, "_blank")}
-                className="w-full h-11 bg-[#00ff88] text-black font-mono font-semibold rounded-xl hover:opacity-90"
-              >
-                View your page →
-              </Button>
-              <Button
-                onClick={() => setPublishedLink(null)}
-                variant="ghost"
-                className="w-full h-11 text-[#444] hover:text-[#888] font-mono"
-              >
-                Continue editing
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Publish moment — same confetti celebration as the dashboard. */}
+      <PublishCelebration
+        open={!!publishedLink}
+        username={profile.username}
+        onClose={() => setPublishedLink(null)}
+      />
     </div>
   )
 }

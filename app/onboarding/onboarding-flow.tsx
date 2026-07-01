@@ -313,6 +313,10 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   // Skip the entire onboarding flow. We MUST confirm the DB write before
   // navigating — if we push to /dashboard while onboarded=false, DashboardLayout
   // redirects back here and the user sees an infinite bounce loop.
+  //
+  // Smart skip: skipping still sets sane design defaults (mint accent,
+  // classic hero) so the dashboard + public page never look half-configured.
+  // The starter card (created at signup) + go-live checklist handle the rest.
   const skipAll = useCallback(async () => {
     if (isSkipping) return
     setIsSkipping(true)
@@ -320,7 +324,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ onboarded: true }),
+        body: JSON.stringify({ onboarded: true, accentColor: "#00ff88", heroStyle: "classic" }),
       })
       if (!res.ok) throw new Error(`PATCH failed ${res.status}`)
     } catch (err) {
@@ -391,7 +395,9 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     try {
       const res = await fetch("/api/publish", { method: "POST" })
       if (res.ok) {
-        router.push("/dashboard")
+        // ?published=1 triggers the publish celebration on the dashboard —
+        // confetti + copy-link is the moment they share it on TikTok.
+        router.push("/dashboard?published=1")
       } else {
         const data = await res.json().catch(() => ({}))
         toast.error(data.error ?? "Something went wrong.")
