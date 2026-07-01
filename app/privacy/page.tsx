@@ -46,10 +46,10 @@ export default function PrivacyPage() {
           </p>
           <ul className="list-disc pl-5 space-y-2 text-[#666] text-sm leading-relaxed">
             <li><strong className="text-[#e0e0e0]">Stripe</strong> — payment processing</li>
-            <li><strong className="text-[#e0e0e0]">Clerk</strong> — authentication</li>
+            <li><strong className="text-[#e0e0e0]">Google</strong> — optional &quot;Sign in with Google&quot;</li>
             <li><strong className="text-[#e0e0e0]">Resend</strong> — transactional email delivery</li>
             <li><strong className="text-[#e0e0e0]">Vercel</strong> — hosting and file storage</li>
-            <li><strong className="text-[#e0e0e0]">Supabase</strong> — database</li>
+            <li><strong className="text-[#e0e0e0]">Neon</strong> — database hosting</li>
           </ul>
         </section>
 

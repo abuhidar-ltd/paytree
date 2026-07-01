@@ -6,7 +6,7 @@ import { PricingPageView } from "./pricing-page-view"
 import Link from "next/link"
 
 // getCurrentUser() reads request headers, so this page can't be statically
-// generated. Marking it dynamic silences the build-time clerk-auth error and
+// generated. Marking it dynamic silences the build-time auth error and
 // makes the rendering strategy explicit.
 export const dynamic = "force-dynamic"
 

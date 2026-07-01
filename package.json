@@ -12,7 +12,8 @@
     "db:studio": "prisma studio",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "seed:admin": "tsx scripts/create-admin.ts",
-    "migrate:blocks": "tsx scripts/migrate-to-blocks.ts"
+    "migrate:blocks": "tsx scripts/migrate-to-blocks.ts",
+    "cleanup:test-users": "tsx scripts/cleanup-test-users.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

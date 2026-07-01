@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Admin pages are dynamic server components (unstable_noStore) that
+    // intentionally read the clock during render — "last 24h" queries are
+    // the whole point. react-hooks/purity is a client-render rule and
+    // misfires here.
+    files: ["app/admin/**/*.tsx"],
+    rules: {
+      "react-hooks/purity": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

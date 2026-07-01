@@ -411,32 +411,28 @@ test.describe("4 — Screenshot matrix", () => {
 
 test.describe("5 — Auth and protected routes", () => {
 
-  test("5-A: Dashboard requires auth — redirects to sign-in or shows Clerk wall", async ({ page }) => {
+  test("5-A: Dashboard requires auth — redirects to login", async ({ page }) => {
     await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" })
-    await page.waitForTimeout(2000) // Clerk client-side redirect may be delayed
+    await page.waitForTimeout(2000) // proxy redirect can lag on cold dev compile
     const url = page.url()
     console.log(`/dashboard unauthenticated → ${url}`)
     await page.screenshot({ path: SS("5A-dashboard-auth-wall") })
 
-    // Clerk may redirect to /sign-in, or render an auth wall inline
-    const hasAuthWall = url.includes("sign-in") ||
-      await page.evaluate(() => (document.body.textContent ?? "").toLowerCase().includes("sign in") ||
-        document.querySelectorAll('[data-clerk-sign-in], .cl-signIn-root').length > 0
-      )
+    // proxy.ts redirects unauthenticated users to /login
+    const hasAuthWall = url.includes("/login") ||
+      await page.evaluate(() => (document.body.textContent ?? "").toLowerCase().includes("sign in"))
     console.log(`Auth wall present: ${hasAuthWall}`)
     expect(hasAuthWall).toBe(true)
   })
 
-  test("5-B: Studio requires auth — redirects to sign-in or shows Clerk wall", async ({ page }) => {
+  test("5-B: Studio requires auth — redirects to login", async ({ page }) => {
     await page.goto(`${BASE}/dashboard/studio`, { waitUntil: "networkidle" })
     await page.waitForTimeout(1500)
     const url = page.url()
     console.log(`/dashboard/studio unauthenticated → ${url}`)
 
-    const hasAuthWall = url.includes("sign-in") ||
-      await page.evaluate(() => (document.body.textContent ?? "").toLowerCase().includes("sign in") ||
-        document.querySelectorAll('[data-clerk-sign-in], .cl-signIn-root').length > 0
-      )
+    const hasAuthWall = url.includes("/login") ||
+      await page.evaluate(() => (document.body.textContent ?? "").toLowerCase().includes("sign in"))
     expect(hasAuthWall).toBe(true)
   })
 
