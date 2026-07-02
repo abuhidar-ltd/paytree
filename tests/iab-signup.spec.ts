@@ -62,7 +62,9 @@ test("full email signup journey inside the IAB", async ({ page }, testInfo) => {
   await page.getByTestId("signup-continue").click()
 
   // 5. Account created → onboarding. Generous timeout: dev-server cold
-  //    compile of /onboarding plus a real DB roundtrip.
+  //    compile of /onboarding plus a real DB roundtrip. The cinematic
+  //    onboarding opens on Step 0 ("Your name.") — we anchor on the input
+  //    testid so future copy tweaks don't break the check.
   await page.waitForURL("**/onboarding**", { timeout: 45_000 })
-  await expect(page.getByText(/one link|let's go/i).first()).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId("onboarding-name")).toBeVisible({ timeout: 15_000 })
 })

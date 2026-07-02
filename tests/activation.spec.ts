@@ -11,12 +11,18 @@ import { test, expect } from "@playwright/test"
 
 test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
 
+// Hardcoded base — the config's global `use.baseURL` is not reaching the
+// Chromium project reliably (iab-* projects get it, desktop Chrome doesn't
+// merge it in on some Playwright versions). Follow the same pattern
+// paytree-e2e.spec.ts already uses.
+const BASE = process.env.BASE_URL ?? "http://localhost:3000"
+
 test("375px journey: home → signup → skip → add card → publish", async ({ page }) => {
   test.setTimeout(120_000)
   await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
 
   // 1. Home → hero CTA
-  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" })
   await page.getByTestId("home-hero-cta").click()
   await page.waitForURL("**/register**")
 
