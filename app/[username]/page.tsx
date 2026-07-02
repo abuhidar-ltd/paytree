@@ -137,11 +137,11 @@ export default async function ProfilePage({
   const isOwner = currentUser?.id === user.id
   const isPublished = user.pageStatus === "published"
   const userPlan = resolveUserPlan(user)
-  const isPaid = userPlan !== "free"
   const userFeatures = getUserFeatures(user)
   const showAiAgent = !isOwner && userFeatures.hasAiFeatures && user.aiAgentEnabled
 
-  if (!isOwner && (!isPublished || !isPaid)) {
+  // Publishing is free — every plan can go live. Features are gated, not visibility.
+  if (!isOwner && !isPublished) {
     return <ProfileLocked username={user.username} />
   }
 
