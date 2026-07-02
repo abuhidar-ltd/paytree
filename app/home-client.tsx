@@ -129,6 +129,7 @@ function Hero() {
           transition={{ ...springs.standard, delay: 0.15 }}
           className="mt-4 text-[15px] leading-snug text-[#aaa] max-w-[300px]"
         >
+          Your entire business in one page.{" "}
           <span className="text-white">AI closes sales while you sleep.</span>
         </motion.p>
 
