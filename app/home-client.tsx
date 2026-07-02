@@ -106,19 +106,19 @@ function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springs.standard, delay: 0.1 }}
-          className="font-bold tracking-tight leading-[1.02]"
+          className="font-bold tracking-tight leading-[1.15] text-balance"
         >
           <span
-            className="block text-[44px] text-[#00ff88]"
+            className="block text-[22px] sm:text-[26px] text-[#00ff88]"
             style={{
               textShadow:
                 "0 0 24px rgba(0,255,136,0.45), 0 0 52px rgba(0,255,136,0.22), 0 2px 8px rgba(0,0,0,0.35)",
             }}
           >
-            Sell everything
+            Sell products, content &amp; services.
           </span>
-          <span className="block mt-1 text-[26px] text-white/95 font-semibold">
-            from one link.
+          <span className="block mt-1.5 text-[20px] sm:text-[22px] text-white/95 font-semibold">
+            Share all your links and get paid instantly.
           </span>
         </motion.h1>
 
@@ -129,7 +129,6 @@ function Hero() {
           transition={{ ...springs.standard, delay: 0.15 }}
           className="mt-4 text-[15px] leading-snug text-[#aaa] max-w-[300px]"
         >
-          Your paid page.{" "}
           <span className="text-white">AI closes sales while you sleep.</span>
         </motion.p>
 
@@ -1217,7 +1216,7 @@ function FinalCTA() {
           className="mt-6 flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center gap-2 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.4)] transition-transform"
           style={{ minHeight: 56 }}
         >
-          Claim my paytree — free
+          Claim my page — free
           <span>→</span>
         </Link>
         <p className="mt-3 text-[12px] font-mono text-[#00ff88] font-semibold">
