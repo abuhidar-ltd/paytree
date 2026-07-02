@@ -1,39 +1,48 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { forwardRef, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { PremiumBackground } from "@/components/backgrounds/premium-background"
+import { motion, AnimatePresence } from "framer-motion"
 import { IABBanner } from "@/components/iab-banner"
 import { signIn, useSession } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
 import { track, type EventName } from "@/lib/analytics"
+import { ArrowRight, ArrowLeft, Eye, EyeOff, LogIn } from "lucide-react"
 
-// Render the Google button only when the env flag is set. lib/auth.ts ALSO
-// gates on the Google secret keys, so without both we can never show a
-// broken OAuth flow.
-const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
+/**
+ * Login wizard — email step → password step. Matches the register wizard
+ * so the two flows feel like one product. Same auth wiring as the real
+ * SignInScreen: Better Auth signIn.email + signIn.social, IAB detection,
+ * legacy-account notice for pre-migration users, session watcher that
+ * auto-redirects if already signed in.
+ */
 
-interface SignInScreenProps {
+interface Props {
   userAgent?: string
 }
 
-export function SignInScreen({ userAgent }: SignInScreenProps) {
+const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "1"
+
+const springs = {
+  snappy: { type: "spring" as const, stiffness: 400, damping: 32 },
+  standard: { type: "spring" as const, stiffness: 300, damping: 28 },
+}
+
+export function SignInScreen({ userAgent }: Props) {
   const router = useRouter()
   const { data: session, isPending } = useSession()
+
+  const [step, setStep] = useState(0)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
-  // Pre-June-21 Clerk-era accounts were wiped in the Better Auth migration.
-  // Those users still try to log in (5 invalid-credential errors in the last
-  // week) — after a failed attempt, tell them what happened and route them
-  // to /register instead of letting them retry into a wall.
   const [showLegacyNotice, setShowLegacyNotice] = useState(false)
-  // Server-detected on first paint; re-checked client-side after mount.
   const [iab, setIab] = useState<IABInfo>(() => detectIAB(userAgent))
+  const inputRef = useRef<HTMLInputElement>(null)
   const fired = useRef<Set<string>>(new Set())
 
   function fireOnce(stage: EventName, props: Record<string, string | number | boolean | null> = {}) {
@@ -42,45 +51,18 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
     track(stage, props)
   }
 
-  // Sign-in (not sign-up): existing users go to /dashboard. Sending them to
-  // /onboarding would loop them back through the welcome flow they already
-  // completed.
-  async function handleGoogle() {
-    if (googleLoading || loading) return
-    setGoogleLoading(true)
-    setError("")
-    // Only reachable in a real browser — the button is hidden inside IABs.
-    fireOnce("click_google_login", { iab: iab.platform ?? "none" })
-    try {
-      await signIn.social({
-        provider: "google",
-        callbackURL: "/dashboard?auth=google",
-        errorCallbackURL: "/login?google_error=1",
-      })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
-      setError(msg)
-      track("error_google_login", { reason: msg.slice(0, 80) })
-      setGoogleLoading(false)
-    }
-  }
-
   useEffect(() => {
     track("view_login")
-
     const params = new URLSearchParams(window.location.search)
     if (params.get("google_error")) {
-      track("error_google_login", { reason: "oauth_callback" })
       setError("Google sign-in didn't complete. Use your email and password instead.")
     }
-
-    const forced = params.get("iab")
-    const detected = forced
-      ? { isIAB: true, platform: forced as IABInfo["platform"] }
-      : detectIAB()
+    const detected = detectIAB()
     if (detected.isIAB) setIab(detected)
   }, [])
 
+  // If already signed in (returning tab, session cookie still valid), skip
+  // straight to /dashboard — same guard as production SignInScreen.
   useEffect(() => {
     if (!isPending && session) {
       try {
@@ -95,27 +77,49 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
     }
   }, [isPending, session, router])
 
-  async function handleSignIn(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email || !password) {
-      setError("Please fill in all fields")
-      return
-    }
+  // Refocus on step change so keyboard stays open through the wizard.
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 220)
+    return () => clearTimeout(t)
+  }, [step])
 
+  async function handleGoogle() {
+    if (googleLoading || loading) return
+    setGoogleLoading(true)
+    setError("")
+    fireOnce("click_google_login", { iab: iab.platform ?? "none" })
+    try {
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard?auth=google",
+        errorCallbackURL: "/login?google_error=1",
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not start Google sign-in. Try again."
+      setError(msg)
+      setGoogleLoading(false)
+    }
+  }
+
+  function next() {
+    setError("")
+    if (step === 0) {
+      if (!/.+@.+\..+/.test(email)) return setError("Enter a valid email.")
+      fireOnce("start_login")
+      setStep(1)
+    } else if (step === 1) {
+      submit()
+    }
+  }
+
+  async function submit() {
+    if (!password) return setError("Enter your password.")
     fireOnce("submit_login")
     setLoading(true)
     setError("")
 
-    console.log("[signin] submitting", { email, origin: window.location.origin })
-
     try {
-      const result = await signIn.email({
-        email,
-        password,
-        callbackURL: "/dashboard",
-      })
-      console.log("[signin] signIn.email returned", result)
-
+      const result = await signIn.email({ email, password, callbackURL: "/dashboard" })
       const authError = (result as { error?: unknown }).error
       if (authError) {
         const errObj = authError as {
@@ -123,20 +127,13 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
           code?: string
           status?: number
           statusCode?: number
-          body?: { message?: string; error?: string }
         }
         const status = errObj.status ?? errObj.statusCode
         const isInvalidCredentials =
           errObj.code === "INVALID_EMAIL_OR_PASSWORD" ||
           errObj.code === "USER_NOT_FOUND" ||
           status === 401
-        const msg =
-          errObj.message ||
-          errObj.body?.message ||
-          errObj.body?.error ||
-          friendlyMessage(errObj.code, status) ||
-          "Sign in failed"
-        console.error("[signin] authError", errObj)
+        const msg = errObj.message || friendlyMessage(errObj.code, status) || "Sign in failed"
         setError(msg)
         if (isInvalidCredentials) setShowLegacyNotice(true)
         track("error_login", {
@@ -145,275 +142,302 @@ export function SignInScreen({ userAgent }: SignInScreenProps) {
         })
         return
       }
-
-      console.log("[signin] success, redirecting to /dashboard")
       router.push("/dashboard")
     } catch (err) {
-      console.error("[signin] threw", err)
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
-      track("error_login", { reason: "network", detail: msg.slice(0, 80) })
     } finally {
       setLoading(false)
     }
   }
 
-  if (!isPending && session) return null
-
   const disabled = loading || googleLoading
+  const progress = Math.round(((step + 1) / 2) * 100)
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 text-white relative">
-      <PremiumBackground />
+    <div
+      // dvh so keyboard opening doesn't push CTA off-screen on mobile.
+      className="min-h-screen min-h-dvh text-white relative overflow-hidden"
+      style={{ background: "#030303" }}
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 10%, rgba(0,255,136,0.14) 0%, transparent 55%)",
+        }}
+      />
 
-      <div className="relative z-10 w-full max-w-md space-y-6">
-        <div className="text-center">
-          <Link href="/" className="inline-block">
-            <h1 className="text-3xl sm:text-4xl font-bold kinetic-shimmer-accent">Paytree</h1>
-          </Link>
-          <p className="text-sm sm:text-base text-gray-400 mt-2">Sign in to your account</p>
-        </div>
-
-        {iab.isIAB && <IABBanner platform={iab.platform} />}
-
-        <form
-          onSubmit={handleSignIn}
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "0.5px solid rgba(255,255,255,0.08)",
-            borderRadius: 16,
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-            position: "relative",
-            overflow: "hidden",
-            padding: "24px",
-          }}
-          className="flex flex-col gap-3"
-        >
-          <div style={{
-            position: "absolute", top: 0, left: 0, right: 0,
-            height: 1, pointerEvents: "none",
-            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)",
-          }} />
-
-          {/* Google hard-blocks OAuth inside WebViews (403 disallowed_useragent).
-              Inside an IAB the button is a guaranteed dead end — hide it and
-              say why, instead of letting users hit Google's error wall. */}
-          {GOOGLE_LOGIN_ENABLED && !iab.isIAB && (
-            <>
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={disabled}
-                style={googleButtonStyle(disabled)}
-              >
-                <GoogleIcon />
-                {googleLoading ? "Connecting..." : "Continue with Google"}
-              </button>
-
-              <div style={dividerWrapStyle}>
-                <div style={dividerLineStyle} />
-                <span style={dividerTextStyle}>or</span>
-                <div style={dividerLineStyle} />
-              </div>
-            </>
-          )}
-          {GOOGLE_LOGIN_ENABLED && iab.isIAB && (
-            <p style={{ color: "#555", fontSize: 12, textAlign: "center", margin: "0 0 4px" }}>
-              Google sign-in needs a full browser — email works right here.
-            </p>
-          )}
-
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onFocus={() => fireOnce("start_login")}
-            autoComplete="email"
-            disabled={disabled}
-            style={inputStyle}
-          />
-
-          <div style={{ position: "relative" }}>
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => fireOnce("start_login")}
-              autoComplete="current-password"
-              disabled={disabled}
-              style={{ ...inputStyle, paddingRight: 56 }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              style={passwordToggleStyle}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          {error && (
-            <div style={{
-              color: "#ff5555",
-              fontSize: 13,
-              textAlign: "center",
-              padding: "8px",
-              background: "rgba(255,85,85,0.08)",
-              borderRadius: 8,
-              border: "0.5px solid rgba(255,85,85,0.2)",
-            }}>
-              {error}
-            </div>
-          )}
-
-          {showLegacyNotice && (
-            <div
-              data-testid="legacy-account-notice"
-              style={{
-                color: "#888",
-                fontSize: 12,
-                lineHeight: 1.5,
-                textAlign: "center",
-                padding: "10px 12px",
-                background: "rgba(255,255,255,0.03)",
-                borderRadius: 8,
-                border: "0.5px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              Signed up before June 21? We rebuilt our accounts system —{" "}
-              <Link
-                href="/register"
-                className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold"
-              >
-                please create a new account →
-              </Link>
-            </div>
-          )}
-
+      {/* Header + progress */}
+      <div className="relative z-10 max-w-md mx-auto px-5 pt-safe">
+        <div className="flex items-center justify-between py-3">
           <button
-            type="submit"
-            disabled={disabled}
-            style={{
-              background: loading ? "rgba(0,255,136,0.5)" : "#00ff88",
-              color: "#000",
-              fontWeight: 700,
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: 16,
-              padding: "16px",
-              borderRadius: 12,
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              marginTop: 4,
-              width: "100%",
-              transition: "opacity 0.15s",
-            }}
+            onClick={() => step > 0 && setStep(step - 1)}
+            disabled={step === 0}
+            aria-label="Back"
+            className="w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-0 transition-opacity"
+            style={{ background: "rgba(255,255,255,0.04)" }}
           >
-            {loading ? "Signing in..." : "Sign in →"}
+            <ArrowLeft size={16} className="text-white" />
           </button>
-        </form>
-
-        <div className="text-center space-y-2 text-sm">
-          <p className="text-gray-400">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-[#00ff88] hover:text-[#00ff88]/80 font-semibold">
-              Sign up for free
-            </Link>
-          </p>
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-300 transition-colors">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-gray-300 transition-colors">
-              Terms of Service
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]" />
+            <span className="font-semibold text-[13px] text-white">Paytree</span>
+            <span className="text-[9px] font-mono text-[#00ff88] border border-[rgba(0,255,136,0.35)] rounded px-1.5 py-0.5">
+              v2
+            </span>
+          </Link>
+          <div className="w-11" />
+        </div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#666]">
+            step {step + 1} of 2
+          </span>
+          <span className="text-[10px] font-mono text-[#00ff88] font-bold">{progress}%</span>
+        </div>
+        <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+          <motion.div
+            animate={{ width: `${progress}%` }}
+            transition={springs.standard}
+            className="h-full"
+            style={{ background: "#00ff88", boxShadow: "0 0 10px rgba(0,255,136,0.5)" }}
+          />
         </div>
       </div>
+
+      <main className="relative z-10 max-w-md mx-auto px-5 pt-6 pb-24">
+        {iab.isIAB && (
+          <div className="mb-4">
+            <IABBanner platform={iab.platform} />
+          </div>
+        )}
+
+        {step === 0 && GOOGLE_LOGIN_ENABLED && !iab.isIAB && (
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={disabled}
+              className="w-full flex items-center justify-center gap-2.5 rounded-2xl px-4 py-3.5 text-white font-semibold text-[14px] active:scale-[0.98] disabled:opacity-60"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "0.5px solid rgba(255,255,255,0.12)",
+                minHeight: 52,
+              }}
+            >
+              <GoogleIcon />
+              {googleLoading ? "Connecting…" : "Continue with Google"}
+            </button>
+            <div className="flex items-center gap-2 my-3">
+              <div className="flex-1 h-px bg-white/[0.08]" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#555]">
+                or email · 2 steps
+              </span>
+              <div className="flex-1 h-px bg-white/[0.08]" />
+            </div>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={springs.standard}
+          >
+            {step === 0 && (
+              <StepShell
+                kicker="welcome back"
+                title="Your email."
+                sub="The one you signed up with."
+              >
+                <BigInput
+                  ref={inputRef}
+                  data-testid="login-email"
+                  type="email"
+                  inputMode="email"
+                  placeholder="you@email.com"
+                  autoComplete="username"
+                  enterKeyHint="next"
+                  autoCapitalize="none"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && next()}
+                  disabled={disabled}
+                />
+              </StepShell>
+            )}
+            {step === 1 && (
+              <StepShell
+                kicker="one more"
+                title="Your password."
+                sub={email}
+              >
+                <div className="relative">
+                  <BigInput
+                    ref={inputRef}
+                    data-testid="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    enterKeyHint="go"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && next()}
+                    disabled={disabled}
+                    style={{ paddingRight: 56 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#666] hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </StepShell>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {error && (
+          <div className="mt-4">
+            <div
+              className="rounded-xl px-4 py-3 text-[13px] text-center"
+              style={{
+                background: "rgba(255,85,85,0.08)",
+                border: "0.5px solid rgba(255,85,85,0.25)",
+                color: "#ff5555",
+              }}
+            >
+              {error}
+            </div>
+            {showLegacyNotice && (
+              // Pre-June-21 Clerk-era users hit invalid-credentials because
+              // their accounts were wiped in the Better Auth migration. Point
+              // them at /register so they can recreate with 0% friction.
+              <Link
+                href="/register"
+                className="mt-2 block rounded-xl px-4 py-3 text-[12px] text-center font-mono"
+                style={{
+                  background: "rgba(0,255,136,0.06)",
+                  border: "0.5px solid rgba(0,255,136,0.3)",
+                  color: "#00ff88",
+                }}
+              >
+                Signed up before July 2026? → Create a new account
+              </Link>
+            )}
+          </div>
+        )}
+
+        <button
+          data-testid="login-continue"
+          onClick={next}
+          disabled={disabled}
+          className="mt-6 w-full flex items-center justify-center gap-2 bg-[#00ff88] text-black font-mono font-bold px-6 rounded-2xl text-base active:scale-[0.98] disabled:opacity-70"
+          style={{
+            minHeight: 56,
+            boxShadow: "0 0 40px rgba(0,255,136,0.35)",
+          }}
+        >
+          {loading ? (
+            <>
+              <motion.span
+                className="inline-block w-3.5 h-3.5 rounded-full border-2 border-black/70 border-t-transparent"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+              />
+              Signing in…
+            </>
+          ) : step === 0 ? (
+            <>
+              Continue
+              <ArrowRight size={16} strokeWidth={2.75} />
+            </>
+          ) : (
+            <>
+              <LogIn size={16} strokeWidth={2.5} />
+              Sign in
+            </>
+          )}
+        </button>
+
+        <p className="mt-6 text-center text-[12px] text-[#666] font-mono">
+          New here?{" "}
+          <Link href="/register" className="text-[#00ff88] font-semibold">
+            Create your page
+          </Link>
+        </p>
+      </main>
     </div>
   )
 }
 
-const inputStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "0.5px solid rgba(255,255,255,0.1)",
-  borderRadius: 12,
-  padding: "14px 16px",
-  color: "#f0f0f0",
-  fontSize: 16,
-  outline: "none",
-  width: "100%",
-  fontFamily: "inherit",
+function StepShell({
+  kicker,
+  title,
+  sub,
+  children,
+}: {
+  kicker: string
+  title: string
+  sub: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#00ff88] mb-3">
+        {kicker}
+      </div>
+      <h1 className="text-[32px] font-bold text-white leading-[1.05]">{title}</h1>
+      <p className="mt-2 text-[13px] text-[#888] break-all">{sub}</p>
+      <div className="mt-6">{children}</div>
+    </div>
+  )
 }
 
-function googleButtonStyle(disabled: boolean): React.CSSProperties {
-  return {
-    background: "rgba(255,255,255,0.04)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    padding: "14px 16px",
-    color: "#f0f0f0",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.6 : 1,
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    transition: "opacity 0.15s",
-  }
-}
-
-const dividerWrapStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-}
-
-const dividerLineStyle: React.CSSProperties = {
-  flex: 1,
-  height: "0.5px",
-  background: "rgba(255,255,255,0.08)",
-}
-
-const dividerTextStyle: React.CSSProperties = {
-  color: "#444",
-  fontSize: 12,
-  fontFamily: "var(--font-mono, monospace)",
-}
-
-const passwordToggleStyle: React.CSSProperties = {
-  position: "absolute",
-  right: 10,
-  top: "50%",
-  transform: "translateY(-50%)",
-  background: "transparent",
-  border: "none",
-  color: "#888",
-  fontSize: 12,
-  fontFamily: "monospace",
-  padding: "8px 10px",
-  cursor: "pointer",
-  minHeight: 36,
-}
+const BigInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  function BigInput(props, ref) {
+    return (
+      <input
+        {...props}
+        ref={ref}
+        // 20px display font, but the raw value uses 16px minimum via CSS
+        // to avoid iOS auto-zoom (see globals). font-semibold gives Sara/
+        // sara@email.com the same weight-hierarchy the register wizard uses.
+        className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#444]"
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "0.5px solid rgba(255,255,255,0.1)",
+          borderRadius: 16,
+          padding: "18px",
+          minHeight: 60,
+          ...(props.style ?? {}),
+        }}
+      />
+    )
+  },
+)
 
 function friendlyMessage(code: string | undefined, status: number | undefined): string | null {
-  if (code === "INVALID_EMAIL_OR_PASSWORD" || status === 401) return "Email or password doesn't match. Try again."
-  if (code === "USER_NOT_FOUND") return "No account with that email. Create one at /register."
-  if (code === "INVALID_ORIGIN" || status === 403) return "Your browser blocked the sign-in request. Try opening paytree.to directly in Safari or Chrome."
-  if (code === "TOO_MANY_REQUESTS" || status === 429) return "Too many attempts. Wait a minute and try again."
+  if (code === "INVALID_EMAIL_OR_PASSWORD" || code === "USER_NOT_FOUND" || status === 401)
+    return "That email and password don't match. Try again."
+  if (code === "INVALID_EMAIL") return "That email address looks invalid."
+  if (code === "INVALID_ORIGIN" || status === 403)
+    return "Your browser blocked the sign-in. Open paytree.to directly in Safari or Chrome."
+  if (code === "TOO_MANY_REQUESTS" || status === 429)
+    return "Too many attempts. Wait a minute and try again."
   if (status === 500) return "Our server hit a snag. Try again in a moment."
   return null
 }
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4" />
       <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853" />
       <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05" />
@@ -421,4 +445,3 @@ function GoogleIcon() {
     </svg>
   )
 }
-

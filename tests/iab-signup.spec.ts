@@ -35,9 +35,11 @@ test("full email signup journey inside the IAB", async ({ page }, testInfo) => {
   // Swallow analytics beacons — no test traffic in production stats.
   await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
 
-  // 1. Land on the homepage; the hero CTA must be tappable.
+  // 1. Land on the homepage; the hero CTA must be tappable. Selector uses
+  //    the stable data-testid instead of copy — the marketing team rotates
+  //    the button label often.
   await page.goto("/", { waitUntil: "domcontentloaded" })
-  const heroCta = page.getByRole("link", { name: /create your free page/i }).first()
+  const heroCta = page.getByTestId("home-hero-cta")
   await expect(heroCta).toBeVisible()
 
   // 2. Soft-navigate to /register (hard navigations are what TikTok screens).
@@ -48,12 +50,16 @@ test("full email signup journey inside the IAB", async ({ page }, testInfo) => {
   await expect(page.getByTestId("iab-banner")).toBeVisible()
   await expect(page.getByRole("button", { name: /continue with google/i })).toHaveCount(0)
 
-  // 4. Email signup completes with zero third-party dependencies.
+  // 4. Email signup completes with zero third-party dependencies. Signup is
+  //    a 3-step wizard now (name → email → password), so we advance through
+  //    the "Continue" button between each step and land on "Publish" at 3.
   const email = `e2e-iab-${testInfo.project.name}-${Date.now()}@paytree-e2e.test`
-  await page.getByPlaceholder("Your name").fill("IAB E2E")
-  await page.getByPlaceholder("Email address").fill(email)
-  await page.getByPlaceholder(/^Password/).fill("e2e-password-123")
-  await page.getByRole("button", { name: /start free/i }).click()
+  await page.getByTestId("signup-name").fill("IAB E2E")
+  await page.getByTestId("signup-continue").click()
+  await page.getByTestId("signup-email").fill(email)
+  await page.getByTestId("signup-continue").click()
+  await page.getByTestId("signup-password").fill("e2e-password-123")
+  await page.getByTestId("signup-continue").click()
 
   // 5. Account created → onboarding. Generous timeout: dev-server cold
   //    compile of /onboarding plus a real DB roundtrip.

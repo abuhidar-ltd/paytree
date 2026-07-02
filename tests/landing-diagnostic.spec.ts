@@ -15,11 +15,12 @@ test("landing diagnostic — sections actually visible", async ({ page }) => {
   await page.waitForTimeout(800)
 
   for (const heading of [
-    "Your entire creator business",  // hero
-    "Everything Linktree",            // comparison
-    "Built different",                // features
-    "Your page. Your identity",       // showcase
-    "Start free. Scale when ready",   // pricing
+    "Sell everything",           // hero
+    "Linktree takes 9%",         // fee calc
+    "Three weapons",             // features
+    "Creators are already",      // showcase
+    "Cheaper than lunch",        // pricing
+    "Kill the doubts",           // faq
   ]) {
     const visible = await page.getByText(heading, { exact: false }).first().isVisible().catch(() => false)
     console.log(`VISIBLE: "${heading}" → ${visible}`)

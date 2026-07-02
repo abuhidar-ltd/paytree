@@ -17,19 +17,24 @@ test("375px journey: home → signup → skip → add card → publish", async (
 
   // 1. Home → hero CTA
   await page.goto("/", { waitUntil: "domcontentloaded" })
-  await page.getByRole("link", { name: /create your free page/i }).first().click()
+  await page.getByTestId("home-hero-cta").click()
   await page.waitForURL("**/register**")
 
-  // 2. Sign up
+  // 2. Sign up (3-step wizard: name → email → password → Publish)
   const email = `e2e-journey-${Date.now()}@paytree-e2e.test`
-  await page.getByPlaceholder("Your name").fill("Journey E2E")
-  await page.getByPlaceholder("Email address").fill(email)
-  await page.getByPlaceholder(/^Password/).fill("e2e-password-123")
-  await page.getByRole("button", { name: /start free/i }).click()
+  await page.getByTestId("signup-name").fill("Journey E2E")
+  await page.getByTestId("signup-continue").click()
+  await page.getByTestId("signup-email").fill(email)
+  await page.getByTestId("signup-continue").click()
+  await page.getByTestId("signup-password").fill("e2e-password-123")
+  await page.getByTestId("signup-continue").click()
   await page.waitForURL("**/onboarding**", { timeout: 45_000 })
 
-  // 3. Skip onboarding — smart skip must still land on a non-empty dashboard
-  await page.getByRole("button", { name: /skip and go to dashboard/i }).click()
+  // 3. Skip onboarding — smart skip must still land on a non-empty dashboard.
+  //    Testid instead of copy — the button label ("Skip and go to dashboard")
+  //    is preserved for accessibility, but the selector survives future
+  //    marketing rewrites.
+  await page.getByTestId("onboarding-skip").click()
   await page.waitForURL("**/dashboard**", { timeout: 30_000 })
 
   // 4. Starter card + go-live checklist + completion meter are all there
