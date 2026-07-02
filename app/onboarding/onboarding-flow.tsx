@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Check,
   BadgeCheck,
+  Camera,
 } from "lucide-react"
 import { track } from "@/lib/analytics"
 
@@ -70,12 +71,15 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [name, setName] = useState(user.name ?? "")
+  const [image, setImage] = useState<string | null>(user.image ?? null)
+  const [uploading, setUploading] = useState(false)
   const [accent, setAccent] = useState<string>(ACCENTS[0].hex)
   const [niche, setNiche] = useState<(typeof NICHES)[number]["id"] | null>(null)
   const [saving, setSaving] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const savedRef = useRef(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     track("start_onboarding")
@@ -94,13 +98,15 @@ export function OnboardingFlow({ user }: { user: UserData }) {
   const nichePreview =
     NICHES.find((n) => n.id === niche)?.card ?? "My best link"
 
+  // Steps: 0 name → 1 photo (optional) → 2 color → 3 niche → 4 publish
+  const total = 5
   const canAdvance =
     (step === 0 && nameValid) ||
-    step === 1 ||
-    (step === 2 && nicheValid) ||
-    step === 3
+    (step === 1 && !uploading) ||
+    step === 2 ||
+    (step === 3 && nicheValid) ||
+    step === 4
 
-  const total = 4
   const progress = Math.round(((step + 1) / total) * 100)
 
   function goBack() {
@@ -114,10 +120,50 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     if (!canAdvance) return
     // Fire the step the user just completed so funnel counts don't double.
     track("complete_onboarding_step", { step })
-    if (step < 3) {
+    if (step < total - 1) {
       setStep((s) => s + 1)
     } else {
       publish()
+    }
+  }
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB.")
+      return
+    }
+    setError(null)
+    setUploading(true)
+    // Optimistic preview so the phone updates instantly.
+    const previewUrl = URL.createObjectURL(file)
+    setImage(previewUrl)
+    try {
+      const formData = new FormData()
+      formData.append("file", file, file.name)
+      const res = await fetch("/api/upload/profile-image", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || `Upload failed (${res.status})`)
+      }
+      setImage(data.url)
+    } catch (err) {
+      console.error("[onboarding] photo upload failed:", err)
+      setImage(user.image ?? null)
+      setError(
+        err instanceof Error ? err.message : "Upload failed. Try again.",
+      )
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -135,11 +181,13 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     setError(null)
 
     try {
+      // Niche is used only for the live preview + starter card seeding
+      // (no user.category column exists — /api/profile is .strict() and
+      // rejects unknown fields with 400).
       const profileBody: Record<string, unknown> = {
         accentColor: accent,
         name: name.trim(),
       }
-      if (niche) profileBody.category = niche
 
       const profileRes = await fetch("/api/profile", {
         method: "PATCH",
@@ -299,7 +347,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         <LivePreview
           name={name}
           username={user.username}
-          image={user.image}
+          image={image}
           accent={accent}
           niche={niche}
           nicheCardTitle={nichePreview}
@@ -336,6 +384,88 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               </StepShell>
             )}
             {step === 1 && (
+              <StepShell
+                kicker="show your face"
+                title="Add a photo."
+                sub="Optional — but pages with a photo convert 2x."
+              >
+                <div className="mt-2 flex flex-col items-center gap-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                    data-testid="onboarding-photo-input"
+                  />
+                  <motion.button
+                    data-testid="onboarding-photo-button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    whileTap={{ scale: 0.97 }}
+                    className="relative w-32 h-32 rounded-full overflow-hidden grid place-items-center"
+                    style={{
+                      background: image
+                        ? "transparent"
+                        : `linear-gradient(135deg, ${accent}22 0%, #0a0a0a 100%)`,
+                      border: `1.5px dashed ${image ? `${accent}` : `${accent}66`}`,
+                      boxShadow: image
+                        ? `0 0 32px ${accent}44`
+                        : `inset 0 1px 0 rgba(255,255,255,0.06)`,
+                    }}
+                    aria-label={image ? "Change photo" : "Upload photo"}
+                  >
+                    {image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Camera
+                          size={28}
+                          strokeWidth={2}
+                          style={{ color: accent }}
+                        />
+                        <span
+                          className="text-[10px] font-mono uppercase tracking-widest"
+                          style={{ color: accent }}
+                        >
+                          upload
+                        </span>
+                      </div>
+                    )}
+                    {uploading && (
+                      <div
+                        className="absolute inset-0 grid place-items-center"
+                        style={{ background: "rgba(0,0,0,0.55)" }}
+                      >
+                        <motion.span
+                          className="inline-block w-6 h-6 rounded-full border-2 border-white/80 border-t-transparent"
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            duration: 0.8,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                        />
+                      </div>
+                    )}
+                  </motion.button>
+                  {image && !uploading && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-[12px] font-mono text-[#888] underline decoration-dotted"
+                    >
+                      Change photo
+                    </button>
+                  )}
+                </div>
+              </StepShell>
+            )}
+            {step === 2 && (
               <StepShell
                 kicker="pick a vibe"
                 title="Your color."
@@ -386,7 +516,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                 </div>
               </StepShell>
             )}
-            {step === 2 && (
+            {step === 3 && (
               <StepShell
                 kicker="you're a"
                 title="What do you do?"
@@ -433,7 +563,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                 </div>
               </StepShell>
             )}
-            {step === 3 && (
+            {step === 4 && (
               <StepShell
                 kicker="last step"
                 title="Publish."
@@ -518,9 +648,9 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                 />
                 Publishing your page…
               </>
-            ) : step < 3 ? (
+            ) : step < total - 1 ? (
               <>
-                Continue
+                {step === 1 && !image ? "Skip for now" : "Continue"}
                 <ArrowRight size={16} strokeWidth={2.75} />
               </>
             ) : (
@@ -530,7 +660,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               </>
             )}
           </motion.button>
-          {step < 3 && (
+          {step < total - 1 && (
             <button
               data-testid="onboarding-skip"
               onClick={skipToDashboard}
