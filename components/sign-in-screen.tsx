@@ -39,6 +39,11 @@ function sleep(ms: number) {
 
 export function SignInScreen({ userAgent }: Props) {
   const { data: session, isPending } = useSession()
+  // Guard against double-navigation: after submit() succeeds it calls
+  // hardNavigate, and then useSession revalidates and would fire its own
+  // hardNavigate — the race gives Chrome an ERR_ABORTED on the first one.
+  // Fixed the visible symptom by only navigating from the first call site.
+  const navigatedRef = useRef(false)
 
   const [step, setStep] = useState(0)
   const [email, setEmail] = useState("")
@@ -71,7 +76,8 @@ export function SignInScreen({ userAgent }: Props) {
   // If already signed in (returning tab, session cookie still valid), skip
   // straight to /dashboard — same guard as production SignInScreen.
   useEffect(() => {
-    if (!isPending && session) {
+    if (!isPending && session && !navigatedRef.current) {
+      navigatedRef.current = true
       try {
         if (!sessionStorage.getItem("paytree_login_completed")) {
           sessionStorage.setItem("paytree_login_completed", "1")
@@ -111,7 +117,13 @@ export function SignInScreen({ userAgent }: Props) {
   function next() {
     setError("")
     if (step === 0) {
-      if (!/.+@.+\..+/.test(email)) return setError("Enter a valid email.")
+      // Match the signup normalization exactly — mobile autofill emails often
+      // come back with a stray leading space or a capitalized first letter,
+      // and Postgres @unique is case-sensitive, so any mismatch is USER_NOT_FOUND
+      // even though the account exists.
+      const cleaned = email.trim().toLowerCase()
+      if (!/.+@.+\..+/.test(cleaned)) return setError("Enter a valid email.")
+      if (cleaned !== email) setEmail(cleaned)
       fireOnce("start_login")
       setStep(1)
     } else if (step === 1) {
@@ -130,7 +142,11 @@ export function SignInScreen({ userAgent }: Props) {
     // request, and a raw single-shot signIn silently reads as "wrong
     // password" when the fetch times out. Never retry on credential errors
     // (401 / INVALID_EMAIL_OR_PASSWORD) — those are the user, not the wire.
-    const payload = { email, password, callbackURL: "/dashboard" }
+    const payload = {
+      email: email.trim().toLowerCase(),
+      password,
+      callbackURL: "/dashboard",
+    }
     let result: Awaited<ReturnType<typeof signIn.email>> | null = null
     let lastNetworkError: unknown = null
 
@@ -197,6 +213,7 @@ export function SignInScreen({ userAgent }: Props) {
         })
         return
       }
+      navigatedRef.current = true
       hardNavigate("/dashboard")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."

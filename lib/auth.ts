@@ -74,6 +74,30 @@ if (process.env.NODE_ENV !== "test") {
   console.log("[auth] trustedOrigins:", trustedOrigins)
   console.log("[auth] baseURL:", process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "<undefined>")
   console.log("[auth] hasGoogleOAuth:", hasGoogleOAuth)
+
+  // Loud, one-time sanity check for the two variables whose absence otherwise
+  // manifests as opaque 500s on every signup. We warn rather than throw so a
+  // dev booting locally without a full .env still gets a running server —
+  // production catches this via `next build`'s env inlining anyway.
+  if (!process.env.BETTER_AUTH_SECRET) {
+    console.warn(
+      "[auth] ⚠ BETTER_AUTH_SECRET is not set — sessions will be signed with a\n" +
+      "        random per-process secret and every deploy will invalidate all\n" +
+      "        existing sessions. Set BETTER_AUTH_SECRET in Vercel before shipping."
+    )
+  }
+  if (!process.env.BETTER_AUTH_URL && !process.env.NEXT_PUBLIC_APP_URL) {
+    console.warn(
+      "[auth] ⚠ Neither BETTER_AUTH_URL nor NEXT_PUBLIC_APP_URL is set — the\n" +
+      "        CSRF Origin check will reject every signup with INVALID_ORIGIN."
+    )
+  }
+  if (!process.env.DATABASE_URL) {
+    console.warn(
+      "[auth] ⚠ DATABASE_URL is not set — every auth request will 500 as soon\n" +
+      "        as Prisma tries to open a connection."
+    )
+  }
 }
 
 const config: BetterAuthOptions = {

@@ -45,6 +45,7 @@ export default defineConfig({
     "og-images.spec.ts",
     "iab-signup.spec.ts",
     "signup-concurrency.spec.ts",
+    "signup-normalization.spec.ts",
     "activation.spec.ts",
   ],
   use: {

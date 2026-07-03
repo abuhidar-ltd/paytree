@@ -135,7 +135,12 @@ export function SignUpScreen({ userAgent }: Props) {
       fireOnce("start_signup", { wizard: true })
       setStep(1)
     } else if (step === 1) {
-      if (!/.+@.+\..+/.test(email)) return setError("Enter a valid email.")
+      // Normalize as the user advances — mobile keyboards autofill emails with
+      // a trailing space or a random uppercase first letter, both of which
+      // silently create phantom accounts the user can never sign back into.
+      const cleaned = email.trim().toLowerCase()
+      if (!/.+@.+\..+/.test(cleaned)) return setError("Enter a valid email.")
+      if (cleaned !== email) setEmail(cleaned)
       setStep(2)
     } else if (step === 2) {
       submit()
@@ -155,7 +160,14 @@ export function SignUpScreen({ userAgent }: Props) {
     setError("")
     setIsNetworkError(false)
 
-    const payload = { email, password, name, callbackURL: "/onboarding" }
+    // Final normalization guard. Never trim the password — users may
+    // intentionally include leading/trailing spaces and we must respect that.
+    const payload = {
+      email: email.trim().toLowerCase(),
+      password,
+      name: name.trim(),
+      callbackURL: "/onboarding",
+    }
     let timedOutOnce = false
     let result: Awaited<ReturnType<typeof signUp.email>> | null = null
     let lastNetworkError: unknown = null

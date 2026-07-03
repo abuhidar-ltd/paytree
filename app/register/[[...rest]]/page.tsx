@@ -1,6 +1,13 @@
 import { headers } from "next/headers"
 import { SignUpScreen } from "@/components/sign-up-screen"
 
+// Belt-and-suspenders: headers() below already forces dynamic rendering, but
+// making it explicit prevents a future refactor from accidentally letting
+// Next.js static-optimize the page. If that happened, every visitor would
+// receive the same cached HTML — including WebView users who'd see the
+// Google button (broken in IAB) instead of the IAB banner.
+export const dynamic = "force-dynamic"
+
 // Canonical signup entry. /start, /join, /signup and /sign-up all
 // 307-redirect here (next.config.ts).
 //
