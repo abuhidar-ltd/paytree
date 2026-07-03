@@ -1,39 +1,88 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import Link from "next/link"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  BadgeCheck,
-  Camera,
-} from "lucide-react"
+import { toast } from "sonner"
+import { StandaloneSwatch } from "@/components/ui/color-swatch-selector"
+import { detectLinkType } from "@/lib/link-type"
 import { track } from "@/lib/analytics"
 
-/**
- * Cinematic walkthrough onboarding. 3 questions (name → accent → what you
- * do) and every keystroke re-shapes the live phone preview at the top:
- * initials materialize, accent re-tints the entire UI, ghost cards glow in
- * as the niche is picked. By the time the user hits Publish they've *seen*
- * their page get built.
- *
- * Backend responsibilities preserved from the previous 5-step form:
- *   1. PATCH /api/profile with accentColor, name, category
- *   2. PATCH /api/profile with { onboarded: true } — REQUIRED, or the
- *      dashboard auth guard sends the user back here in an infinite loop
- *   3. POST /api/publish — Publish button *actually publishes*; the
- *      celebration on /dashboard fires from ?published=1
- *   4. POST /api/referral if paytree_ref cookie is set
- *   5. Skip path sets sane defaults (mint accent, classic hero) so the
- *      dashboard never looks half-configured — same behaviour as before.
- *
- * Category IDs match the previous flow (trader/creator/educator/musician/
- * developer/other) so the API stays backwards-compatible with any code
- * that reads user.category.
- */
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const ONBOARDING_COLORS = [
+  { name: "Mint",   hex: "#00ff88" },
+  { name: "Purple", hex: "#9146ff" },
+  { name: "Red",    hex: "#ff5555" },
+  { name: "Blue",   hex: "#378add" },
+  { name: "Orange", hex: "#ff9500" },
+  { name: "Pink",   hex: "#ff2d78" },
+]
+
+const CATEGORIES = [
+  { id: "trader",    icon: "📈", label: "Trader / Investor" },
+  { id: "creator",   icon: "🎥", label: "Content Creator" },
+  { id: "educator",  icon: "🎓", label: "Educator / Coach" },
+  { id: "musician",  icon: "🎵", label: "Musician / Artist" },
+  { id: "developer", icon: "💻", label: "Developer / Builder" },
+  { id: "other",     icon: "✦",  label: "Other" },
+]
+
+const CATEGORY_PREVIEWS: Record<string, { title: string; icon: string }[]> = {
+  trader:    [{ title: "Stats · Win Rate 87%", icon: "📊" }, { title: "Next Drop →", icon: "🎬" }],
+  creator:   [{ title: "Latest YouTube Video", icon: "📺" }, { title: "Exclusive Vault", icon: "🔒" }],
+  educator:  [{ title: "My Course",             icon: "🎓" }, { title: "Free Resources", icon: "🔒" }],
+  musician:  [{ title: "New Album on Spotify",  icon: "🎵" }, { title: "Booking & Merch", icon: "🔗" }],
+  developer: [{ title: "My Portfolio",          icon: "💻" }, { title: "GitHub →",        icon: "🐙" }],
+  other:     [{ title: "My Website",            icon: "🌐" }, { title: "Contact Me",      icon: "📬" }],
+}
+
+const PLATFORMS = [
+  { id: "youtube",   icon: "📺", label: "YouTube",     prefix: "https://youtube.com/@" },
+  { id: "instagram", icon: "📸", label: "Instagram",   prefix: "https://instagram.com/" },
+  { id: "twitter",   icon: "𝕏",  label: "Twitter/X",  prefix: "https://x.com/" },
+  { id: "tiktok",    icon: "🎬", label: "TikTok",      prefix: "https://tiktok.com/@" },
+  { id: "spotify",   icon: "🎵", label: "Spotify",     prefix: "https://open.spotify.com/" },
+  { id: "other",     icon: "🔗", label: "Other",       prefix: "https://" },
+]
+
+const LINK_TYPE_ICONS: Record<string, string> = {
+  youtube:   "📺",
+  instagram: "📸",
+  twitter:   "𝕏",
+  tiktok:    "🎬",
+  spotify:   "🎵",
+  twitch:    "🎮",
+  generic:   "🔗",
+}
+
+const LINK_TYPE_TITLES: Record<string, string> = {
+  youtube:   "My YouTube Channel",
+  instagram: "Follow on Instagram",
+  twitter:   "Follow on Twitter/X",
+  tiktok:    "Follow on TikTok",
+  spotify:   "Listen on Spotify",
+  twitch:    "Watch on Twitch",
+  generic:   "My Link",
+}
+
+// ─── Framer variants ───────────────────────────────────────────────────────────
+
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 280 : -280, opacity: 0 }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: { type: "spring" as const, stiffness: 300, damping: 30 },
+  },
+  exit: (dir: number) => ({
+    x: dir < 0 ? 280 : -280,
+    opacity: 0,
+    transition: { duration: 0.15 },
+  }),
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface UserData {
   username: string
@@ -41,182 +90,181 @@ interface UserData {
   image: string | null
 }
 
-const springs = {
-  snappy: { type: "spring" as const, stiffness: 400, damping: 32 },
-  standard: { type: "spring" as const, stiffness: 300, damping: 28 },
-}
-
-const ACCENTS = [
-  { name: "Mint", hex: "#00ff88" },
-  { name: "Purple", hex: "#9146ff" },
-  { name: "Amber", hex: "#f59e0b" },
-  { name: "Blue", hex: "#378add" },
-  { name: "Pink", hex: "#ff2d78" },
-]
-
-const NICHES: {
-  id: "trader" | "creator" | "educator" | "musician" | "developer" | "other"
-  label: string
-  card: string
-}[] = [
-  { id: "trader", label: "Trader / Investor", card: "Live signals · $29/mo" },
-  { id: "educator", label: "Educator / Coach", card: "1:1 call · $150" },
-  { id: "creator", label: "Content Creator", card: "Latest YouTube video" },
-  { id: "musician", label: "Musician / Artist", card: "New drop · pre-save" },
-  { id: "developer", label: "Developer / Builder", card: "Open-source project" },
-  { id: "other", label: "Something else", card: "My best link" },
-]
+// ─── Main component ────────────────────────────────────────────────────────────
 
 export function OnboardingFlow({ user }: { user: UserData }) {
   const router = useRouter()
-  const [step, setStep] = useState(0)
-  const [name, setName] = useState(user.name ?? "")
-  const [image, setImage] = useState<string | null>(user.image ?? null)
-  const [uploading, setUploading] = useState(false)
-  const [accent, setAccent] = useState<string>(ACCENTS[0].hex)
-  const [niche, setNiche] = useState<(typeof NICHES)[number]["id"] | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [skipping, setSkipping] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const savedRef = useRef(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Navigation
+  const [step, setStep] = useState(-1)
+  const [direction, setDirection] = useState(1)
+
+  // Fire onboarding_started once when onboarding mounts. Account-creation
+  // success is tracked separately as signup_account_created in the signup
+  // screen (single source of truth), so it is intentionally NOT fired here.
+  // Google OAuth signups land here with ?auth=google (set as the OAuth
+  // callbackURL) — that's the only reliable client-side completion signal.
   useEffect(() => {
     track("start_onboarding")
-    // Google OAuth signup lands at /onboarding?auth=google — that's the
-    // only reliable client-side signal to complete the Google funnel.
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get("auth") === "google") {
-        track("complete_google_signup")
-      }
+    if (new URLSearchParams(window.location.search).get("auth") === "google") {
+      track("complete_google_signup")
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const nameValid = name.trim().length >= 2
-  const nicheValid = !!niche
-  const nichePreview =
-    NICHES.find((n) => n.id === niche)?.card ?? "My best link"
+  // Step 0 — Identity
+  const [name, setName] = useState(user.name ?? "")
+  const [username, setUsername] = useState(user.username)
+  const [bio, setBio] = useState("")
+  const [image, setImage] = useState<string | null>(user.image)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const usernameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Steps: 0 name → 1 photo (optional) → 2 color → 3 niche → 4 publish
-  const total = 5
-  const canAdvance =
-    (step === 0 && nameValid) ||
-    (step === 1 && !uploading) ||
-    step === 2 ||
-    (step === 3 && nicheValid) ||
-    step === 4
+  // Step 1 — Accent color
+  const [accentColor, setAccentColor] = useState("#00ff88")
+  const [customHex, setCustomHex] = useState("")
 
-  const progress = Math.round(((step + 1) / total) * 100)
+  // Step 2 — Category
+  const [category, setCategory] = useState<string | null>(null)
 
-  function goBack() {
-    if (step > 0) {
-      setStep((s) => s - 1)
-      setError(null)
-    }
-  }
+  // Step 3 — First link
+  const [firstLinkUrl, setFirstLinkUrl] = useState("")
+  const [firstLinkTitle, setFirstLinkTitle] = useState("")
+  const [firstLinkIcon, setFirstLinkIcon] = useState("🔗")
 
-  function next() {
-    if (!canAdvance) return
-    // Fire the step the user just completed so funnel counts don't double.
-    track("complete_onboarding_step", { step })
-    if (step < total - 1) {
-      setStep((s) => s + 1)
-    } else {
-      publish()
-    }
-  }
+  // Step 4 — Done
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const saveCalledRef = useRef(false)
 
-  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ""
-    if (!file) return
-    if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file.")
+  // Skip entire onboarding loading state — prevents double-clicks and loop
+  const [isSkipping, setIsSkipping] = useState(false)
+
+  // ─── Username auto-suggest from display name ─────────────────────────────────
+
+  useEffect(() => {
+    if (!name) return
+    const suggested = name
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/[^a-z0-9_-]/g, "")
+      .slice(0, 30)
+    if (suggested) setUsername(suggested)
+  }, [name])
+
+  // ─── Username availability debounce ─────────────────────────────────────────
+
+  useEffect(() => {
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current)
+
+    if (!username || username === user.username) {
+      setUsernameAvailable(null)
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB.")
+
+    if (!/^[a-z0-9_-]{3,30}$/.test(username)) {
+      setUsernameAvailable(false)
       return
     }
-    setError(null)
-    setUploading(true)
-    // Optimistic preview so the phone updates instantly.
-    const previewUrl = URL.createObjectURL(file)
-    setImage(previewUrl)
-    try {
-      const formData = new FormData()
-      formData.append("file", file, file.name)
-      const res = await fetch("/api/upload/profile-image", {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data.error || `Upload failed (${res.status})`)
+
+    setIsCheckingUsername(true)
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/profile/check-username?username=${encodeURIComponent(username)}`
+        )
+        const data = await res.json()
+        setUsernameAvailable(data.available ?? false)
+      } catch {
+        setUsernameAvailable(null)
+      } finally {
+        setIsCheckingUsername(false)
       }
-      setImage(data.url)
-    } catch (err) {
-      console.error("[onboarding] photo upload failed:", err)
-      setImage(user.image ?? null)
-      setError(
-        err instanceof Error ? err.message : "Upload failed. Try again.",
-      )
-    } finally {
-      setUploading(false)
+    }, 400)
+
+    return () => {
+      if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current)
     }
-  }
+  }, [username, user.username])
 
-  /**
-   * The real publish path — three API calls in strict order:
-   *   PATCH profile (design fields) → PATCH profile (onboarded=true) → POST publish.
-   * Referral posts in parallel because failure is silent (analytics only).
-   * On publish failure we still route to the dashboard so the user isn't
-   * stranded on a "publish failed" screen when their account is fine.
-   */
-  async function publish() {
-    if (savedRef.current) return
-    savedRef.current = true
-    setSaving(true)
-    setError(null)
+  // ─── Link type auto-detect ────────────────────────────────────────────────────
 
+  useEffect(() => {
+    if (!firstLinkUrl) return
     try {
-      // Niche is used only for the live preview + starter card seeding
-      // (no user.category column exists — /api/profile is .strict() and
-      // rejects unknown fields with 400).
+      const type = detectLinkType(firstLinkUrl)
+      setFirstLinkIcon(LINK_TYPE_ICONS[type] ?? "🔗")
+      if (!firstLinkTitle) {
+        setFirstLinkTitle(LINK_TYPE_TITLES[type] ?? "My Link")
+      }
+    } catch {
+      // Ignore parse errors for partial URLs
+    }
+  }, [firstLinkUrl])
+
+  // ─── Save all on step 4 mount ─────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (step === 4 && !saveCalledRef.current) {
+      saveCalledRef.current = true
+      saveAll()
+    }
+  }, [step])
+
+  const saveAll = async () => {
+    setIsSaving(true)
+    try {
       const profileBody: Record<string, unknown> = {
-        accentColor: accent,
-        name: name.trim(),
+        accentColor,
+        ...(name && { name }),
+        ...(bio && { bio }),
+        ...(image && { image }),
+        ...(username !== user.username && { username }),
       }
 
-      const profileRes = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileBody),
-      })
-      if (!profileRes.ok) {
-        throw new Error(`profile save failed (${profileRes.status})`)
+      const calls: Promise<unknown>[] = [
+        fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileBody),
+        }),
+      ]
+
+      if (firstLinkUrl) {
+        calls.push(
+          fetch("/api/links", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: firstLinkTitle || "My Link",
+              url: firstLinkUrl,
+              icon: firstLinkIcon,
+            }),
+          })
+        )
       }
 
-      const onboardedRes = await fetch("/api/profile", {
+      await Promise.all(calls)
+
+      console.log("[onboarding] Sending onboarded: true to /api/profile...")
+      const onboardRes = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ onboarded: true }),
       })
-      if (!onboardedRes.ok) {
-        // If this fails, dashboard will kick the user back to /onboarding —
-        // surface an error and let them retry rather than infinite-looping.
-        throw new Error(`onboarding save failed (${onboardedRes.status})`)
+      console.log("[onboarding] onboarded save response:", onboardRes.status, onboardRes.ok)
+
+      if (!onboardRes.ok) {
+        const errorBody = await onboardRes.text()
+        console.error("[onboarding] Onboarding save failed:", onboardRes.status, errorBody)
+        throw new Error(`Failed to save onboarding completion (status ${onboardRes.status})`)
       }
 
-      // Fire publish + referral in parallel — neither should block
-      // navigation to the dashboard. Publish failure ≠ dead account.
-      const publishPromise = fetch("/api/publish", { method: "POST" }).catch(
-        (err) => {
-          console.warn("[onboarding] /api/publish failed, continuing:", err)
-        },
-      )
-
+      // Record referral if user arrived via a ref link
       const refCookie = document.cookie
         .split("; ")
         .find((row) => row.startsWith("paytree_ref="))
@@ -230,702 +278,980 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         document.cookie = "paytree_ref=; path=/; max-age=0"
       }
 
-      await publishPromise
-      track("complete_onboarding", { chose_category: !!niche })
-      // ?published=1 makes the dashboard fire the confetti celebration.
-      router.push("/dashboard?published=1")
+      setIsSaved(true)
+      track("complete_onboarding", {
+        added_first_link: !!firstLinkUrl,
+        chose_category: !!category,
+      })
+      router.push("/dashboard")
     } catch (err) {
-      console.error("[onboarding] publish flow failed:", err)
-      savedRef.current = false
-      setSaving(false)
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Try again.",
-      )
+      console.error("Onboarding save failed:", err)
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  /**
-   * Skip path — same smart defaults as the previous onboarding so the
-   * dashboard + public page never look half-configured. Sets onboarded=true
-   * before navigating; skipping and pushing to /dashboard while
-   * onboarded=false triggers an infinite bounce (dashboard guard).
-   */
-  async function skipToDashboard() {
-    if (skipping) return
-    setSkipping(true)
-    setError(null)
+  // ─── Navigation helpers ───────────────────────────────────────────────────────
+
+  const advance = useCallback(() => {
+    setDirection(1)
+    setStep((s) => {
+      // Track the step the user just completed (the one they're leaving).
+      // step === -1 is the welcome screen; treat that as step 0 starting.
+      if (s >= 0) track("complete_onboarding_step", { step: s })
+      return s + 1
+    })
+  }, [])
+
+  const retreat = useCallback(() => {
+    setDirection(-1)
+    setStep((s) => s - 1)
+  }, [])
+
+  const skip = useCallback(() => advance(), [advance])
+
+  // Skip the entire onboarding flow. We MUST confirm the DB write before
+  // navigating — if we push to /dashboard while onboarded=false, DashboardLayout
+  // redirects back here and the user sees an infinite bounce loop.
+  //
+  // Smart skip: skipping still sets sane design defaults (mint accent,
+  // classic hero) so the dashboard + public page never look half-configured.
+  // The starter card (created at signup) + go-live checklist handle the rest.
+  const skipAll = useCallback(async () => {
+    if (isSkipping) return
+    setIsSkipping(true)
     try {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          onboarded: true,
-          accentColor: "#00ff88",
-          heroStyle: "classic",
-        }),
+        body: JSON.stringify({ onboarded: true, accentColor: "#00ff88", heroStyle: "classic" }),
       })
-      if (!res.ok) throw new Error(`skip failed ${res.status}`)
-      track("skip_onboarding")
-      router.push("/dashboard")
+      if (!res.ok) throw new Error(`PATCH failed ${res.status}`)
     } catch (err) {
-      console.error("[onboarding] skip failed:", err)
-      setSkipping(false)
-      setError(
-        err instanceof Error ? err.message : "Something went wrong.",
-      )
+      console.error("[onboarding] skipAll failed:", err)
+      setIsSkipping(false)
+      return
+    }
+    track("skip_onboarding")
+    router.push("/dashboard")
+  }, [router, isSkipping])
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────────
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target
+    const file = input.files?.[0]
+    if (!file) return
+
+    // Client-side fast-fail so users see the error before bytes go over the wire.
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(`File is ${(file.size / 1024 / 1024).toFixed(1)}MB — max is 5MB.`)
+      input.value = ""
+      return
+    }
+
+    setImageUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    try {
+      const res = await fetch("/api/upload/profile-image", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({} as { url?: string; error?: string }))
+      if (res.ok && data.url) {
+        setImage(data.url)
+      } else {
+        toast.error(data.error || "Image upload failed. Please try again.")
+      }
+    } catch {
+      toast.error("Network error during upload. Please try again.")
+    } finally {
+      setImageUploading(false)
+      // Reset so picking the same file again re-fires onChange.
+      input.value = ""
     }
   }
 
-  const busy = saving || skipping
+  const handleCustomHex = (val: string) => {
+    setCustomHex(val)
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      setAccentColor(val)
+    }
+  }
 
-  return (
-    <div
-      // dvh so the CTA doesn't slide under the mobile keyboard on Step 0.
-      className="min-h-screen min-h-dvh text-white relative overflow-hidden"
-      style={{ background: "#030303" }}
-    >
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at 50% 10%, ${accent}22 0%, transparent 55%)`,
-          transition: "background 0.4s ease",
+  const handleCopyUrl = async () => {
+    const url = `https://paytree.to/${username}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error("Could not copy link")
+    }
+  }
+
+  const handlePublish = async () => {
+    try {
+      const res = await fetch("/api/publish", { method: "POST" })
+      if (res.ok) {
+        // ?published=1 triggers the publish celebration on the dashboard —
+        // confetti + copy-link is the moment they share it on TikTok.
+        router.push("/dashboard?published=1")
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error ?? "Something went wrong.")
+        router.push("/dashboard")
+      }
+    } catch {
+      toast.error("Something went wrong.")
+      router.push("/dashboard")
+    }
+  }
+
+  // ─── Render helpers ───────────────────────────────────────────────────────────
+
+  const renderWelcome = () => (
+    <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6 pb-safe">
+      <div className="max-w-md w-full text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Logo mark */}
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 mb-8 mx-auto">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.4)]" />
+          </div>
+
+          <div className="text-[#00ff88] font-mono text-sm uppercase tracking-[0.3em] mb-4">
+            PAYTREE
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
+            Your whole online presence.{" "}
+            <span className="text-[#00ff88]">One link.</span>
+          </h1>
+
+          <p className="text-[#888] text-lg mb-10">
+            Let&apos;s build your page in under 2 minutes.
+          </p>
+
+          <button
+            onClick={advance}
+            className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 text-base hover:opacity-90 active:scale-[0.97] transition-all mb-4"
+            style={{ minHeight: 56 }}
+          >
+            Let&apos;s go →
+          </button>
+
+          <button
+            onClick={skipAll}
+            disabled={isSkipping}
+            style={{
+              color: isSkipping ? "#555" : "#666",
+              fontSize: 13,
+              fontFamily: "monospace",
+              background: "transparent",
+              border: "none",
+              cursor: isSkipping ? "not-allowed" : "pointer",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(255,255,255,0.2)",
+              padding: "8px 16px",
+              marginTop: 8,
+              minHeight: 44,
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
+            onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
+          >
+            {isSkipping ? "Skipping..." : "Skip and go to dashboard →"}
+          </button>
+        </motion.div>
+      </div>
+    </div>
+  )
+
+  const renderStep0 = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Set up your identity</h2>
+        <p className="text-[#888] text-sm">This is what visitors see first.</p>
+      </div>
+
+      {/* Photo upload */}
+      <div className="flex items-center gap-5">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={imageUploading}
+          className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-white/20 hover:border-[#00ff88]/40 transition-colors flex-shrink-0 group disabled:opacity-60"
+        >
+          {image ? (
+            <img src={image} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-white/[0.03] gap-1">
+              <span className="text-xl">📷</span>
+              <span className="text-[10px] font-mono text-[#444] group-hover:text-[#888] transition-colors">
+                PHOTO
+              </span>
+            </div>
+          )}
+          {imageUploading && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <motion.div
+                className="w-5 h-5 rounded-full border-2 border-t-transparent border-[#00ff88]"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+              />
+            </div>
+          )}
+          {image && !imageUploading && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="text-xs font-mono text-white">Change</span>
+            </div>
+          )}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <div className="text-sm text-[#555]">
+          <div className="text-[#e0e0e0] font-medium mb-0.5">Profile photo</div>
+          <div>JPG, PNG, WebP, HEIC. Max 5MB.</div>
+        </div>
+      </div>
+
+      {/* Display name */}
+      <div>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          Display name <span className="text-red-400">*</span>
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="input-obsidian w-full"
+          placeholder="Your name"
+          autoComplete="off"
+        />
+      </div>
+
+      {/* Username */}
+      <div>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          Username
+        </label>
+        <div className="relative flex items-center">
+          <span className="absolute left-4 text-sm font-mono text-[#555] select-none">
+            paytree.to/
+          </span>
+          <input
+            value={username}
+            onChange={(e) =>
+              setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))
+            }
+            className="input-obsidian w-full pl-[calc(16px+84px)]"
+            placeholder="username"
+            autoComplete="off"
+          />
+          {isCheckingUsername && (
+            <span className="absolute right-4 text-[#888] text-xs font-mono">...</span>
+          )}
+          {!isCheckingUsername && usernameAvailable === true && (
+            <span className="absolute right-4 text-[#00ff88] text-sm">✓</span>
+          )}
+          {!isCheckingUsername && usernameAvailable === false && (
+            <span className="absolute right-4 text-red-400 text-sm">✗</span>
+          )}
+        </div>
+        {usernameAvailable === false && (
+          <p className="text-xs text-red-400 font-mono mt-1">Username is already taken.</p>
+        )}
+      </div>
+
+      {/* Bio */}
+      <div>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          Bio
+        </label>
+        <div className="relative">
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value.slice(0, 160))}
+            rows={3}
+            className="input-obsidian w-full resize-none"
+            placeholder="What do you do? (optional)"
+          />
+          <span className="absolute bottom-3 right-4 text-[10px] font-mono text-[#444]">
+            {bio.length}/160
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Pick your accent color</h2>
+        <p className="text-[#888] text-sm">Sets the glow and highlight across your entire page.</p>
+      </div>
+
+      <StandaloneSwatch
+        colors={ONBOARDING_COLORS}
+        value={accentColor}
+        onChange={(hex) => {
+          setAccentColor(hex)
+          setCustomHex(hex)
         }}
+        className="flex-wrap gap-4"
       />
 
-      {/* Header + progress */}
-      <div className="relative z-10 max-w-md mx-auto px-5 pt-safe">
-        <div className="flex items-center justify-between py-3">
+      <div>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          Custom hex
+        </label>
+        <input
+          value={customHex}
+          onChange={(e) => handleCustomHex(e.target.value)}
+          className="input-obsidian w-full font-mono"
+          placeholder="#00ff88"
+          maxLength={7}
+          spellCheck={false}
+        />
+      </div>
+
+      {/* Color preview strip */}
+      <div
+        className="h-12 rounded-xl transition-all duration-300"
+        style={{
+          background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}08)`,
+          border: `1px solid ${accentColor}44`,
+          boxShadow: `0 0 20px ${accentColor}22`,
+        }}
+      />
+    </div>
+  )
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">What best describes you?</h2>
+        <p className="text-[#888] text-sm">
+          We&apos;ll suggest the right blocks for your profile.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {CATEGORIES.map((cat) => {
+          const active = category === cat.id
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setCategory(cat.id)}
+              className={`flex items-center gap-3 p-4 rounded-2xl border text-left transition-all ${
+                active
+                  ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
+                  : "bg-white/[0.03] border-white/[0.07] text-[#888] hover:border-white/20 hover:text-[#e0e0e0]"
+              }`}
+              style={active ? { borderColor: `${accentColor}4d`, color: accentColor, background: `${accentColor}1a` } : undefined}
+            >
+              <span className="text-xl flex-shrink-0">{cat.icon}</span>
+              <span className="text-sm font-mono font-medium leading-tight">{cat.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-1">Add your first link</h2>
+        <p className="text-[#888] text-sm">Paste any URL — we&apos;ll detect the platform.</p>
+      </div>
+
+      {/* Quick platform buttons */}
+      <div className="flex flex-wrap gap-2">
+        {PLATFORMS.map((p) => (
           <button
-            onClick={goBack}
-            disabled={step === 0 || busy}
-            aria-label="Back"
-            className="w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-0 transition-opacity"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-          >
-            <ArrowLeft size={16} className="text-white" />
-          </button>
-          <Link href="/" className="flex items-center gap-2">
-            <div
-              className="w-5 h-5 rounded"
-              style={{
-                background: `linear-gradient(135deg, ${accent}, ${accent}80)`,
-              }}
-            />
-            <span className="font-semibold text-[13px] text-white">Paytree</span>
-          </Link>
-          <div className="w-11" />
-        </div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#666]">
-            step {step + 1} of {total}
-          </span>
-          <span
-            className="text-[10px] font-mono font-bold"
-            style={{ color: accent }}
-          >
-            {progress}%
-          </span>
-        </div>
-        <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-          <motion.div
-            animate={{ width: `${progress}%` }}
-            transition={springs.standard}
-            className="h-full"
-            style={{
-              background: accent,
-              boxShadow: `0 0 10px ${accent}80`,
+            key={p.id}
+            onClick={() => {
+              setFirstLinkUrl(p.prefix)
+              setFirstLinkIcon(LINK_TYPE_ICONS[p.id] ?? "🔗")
+              setFirstLinkTitle(LINK_TYPE_TITLES[p.id] ?? "My Link")
             }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[#888] text-xs font-mono hover:border-white/20 hover:text-[#e0e0e0] transition-all"
+          >
+            <span>{p.icon}</span>
+            <span>{p.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* URL input */}
+      <div>
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          URL
+        </label>
+        <div className="relative flex items-center">
+          {firstLinkIcon && (
+            <span className="absolute left-4 text-lg">{firstLinkIcon}</span>
+          )}
+          <input
+            value={firstLinkUrl}
+            onChange={(e) => setFirstLinkUrl(e.target.value)}
+            className="input-obsidian w-full pl-12"
+            placeholder="https://..."
+            autoComplete="off"
           />
         </div>
       </div>
 
-      <main className="relative z-10 max-w-md mx-auto px-5 pt-6 pb-40">
-        {/* Live preview — the whole point of the design. */}
-        <LivePreview
-          name={name}
-          username={user.username}
-          image={image}
-          accent={accent}
-          niche={niche}
-          nicheCardTitle={nichePreview}
-        />
+      {/* Title input */}
+      {firstLinkUrl && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.2 }}
+        >
+          <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+            Title
+          </label>
+          <input
+            value={firstLinkTitle}
+            onChange={(e) => setFirstLinkTitle(e.target.value)}
+            className="input-obsidian w-full"
+            placeholder="Link title"
+          />
+        </motion.div>
+      )}
+    </div>
+  )
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={springs.standard}
-            className="mt-6"
-          >
-            {step === 0 && (
-              <StepShell
-                kicker="first thing"
-                title="Your name."
-                sub="Watch it land on your page."
-              >
-                <BigInput
-                  data-testid="onboarding-name"
-                  autoFocus
-                  placeholder="Sara Rahman"
-                  autoComplete="name"
-                  enterKeyHint="next"
-                  autoCapitalize="words"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && nameValid && next()
-                  }
-                />
-              </StepShell>
-            )}
-            {step === 1 && (
-              <StepShell
-                kicker="show your face"
-                title="Add a photo."
-                sub="Optional — but pages with a photo convert 2x."
-              >
-                <div className="mt-2 flex flex-col items-center gap-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                    data-testid="onboarding-photo-input"
-                  />
-                  <motion.button
-                    data-testid="onboarding-photo-button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    whileTap={{ scale: 0.97 }}
-                    className="relative w-32 h-32 rounded-full overflow-hidden grid place-items-center"
-                    style={{
-                      background: image
-                        ? "transparent"
-                        : `linear-gradient(135deg, ${accent}22 0%, #0a0a0a 100%)`,
-                      border: `1.5px dashed ${image ? `${accent}` : `${accent}66`}`,
-                      boxShadow: image
-                        ? `0 0 32px ${accent}44`
-                        : `inset 0 1px 0 rgba(255,255,255,0.06)`,
-                    }}
-                    aria-label={image ? "Change photo" : "Upload photo"}
-                  >
-                    {image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={image}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <Camera
-                          size={28}
-                          strokeWidth={2}
-                          style={{ color: accent }}
-                        />
-                        <span
-                          className="text-[10px] font-mono uppercase tracking-widest"
-                          style={{ color: accent }}
-                        >
-                          upload
-                        </span>
-                      </div>
-                    )}
-                    {uploading && (
-                      <div
-                        className="absolute inset-0 grid place-items-center"
-                        style={{ background: "rgba(0,0,0,0.55)" }}
-                      >
-                        <motion.span
-                          className="inline-block w-6 h-6 rounded-full border-2 border-white/80 border-t-transparent"
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 0.8,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                        />
-                      </div>
-                    )}
-                  </motion.button>
-                  {image && !uploading && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-[12px] font-mono text-[#888] underline decoration-dotted"
-                    >
-                      Change photo
-                    </button>
-                  )}
-                </div>
-              </StepShell>
-            )}
-            {step === 2 && (
-              <StepShell
-                kicker="pick a vibe"
-                title="Your color."
-                sub="Every glow, ring, and button re-tints instantly."
-              >
-                <div className="grid grid-cols-5 gap-3 mt-2">
-                  {ACCENTS.map((a) => (
-                    <button
-                      key={a.hex}
-                      data-testid={`onboarding-accent-${a.hex.slice(1)}`}
-                      onClick={() => setAccent(a.hex)}
-                      aria-label={a.name}
-                      className="relative aspect-square rounded-2xl transition-transform active:scale-[0.94]"
-                      style={{
-                        background: `linear-gradient(135deg, ${a.hex}, ${a.hex}66)`,
-                        border:
-                          accent === a.hex
-                            ? `1.5px solid ${a.hex}`
-                            : "0.5px solid rgba(255,255,255,0.1)",
-                        boxShadow:
-                          accent === a.hex
-                            ? `0 0 24px ${a.hex}80, inset 0 1px 0 rgba(255,255,255,0.2)`
-                            : "inset 0 1px 0 rgba(255,255,255,0.06)",
-                      }}
-                    >
-                      {accent === a.hex && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={springs.snappy}
-                          className="absolute inset-0 grid place-items-center"
-                        >
-                          <Check
-                            size={16}
-                            strokeWidth={3}
-                            className="text-white"
-                            style={{
-                              filter: `drop-shadow(0 0 8px ${a.hex})`,
-                            }}
-                          />
-                        </motion.span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 text-center text-[12px] font-mono text-[#666]">
-                  {ACCENTS.find((a) => a.hex === accent)?.name}
-                </div>
-              </StepShell>
-            )}
-            {step === 3 && (
-              <StepShell
-                kicker="you're a"
-                title="What do you do?"
-                sub="We'll seed your page with the right card."
-              >
-                <div className="mt-2 flex flex-col gap-2">
-                  {NICHES.map((n) => {
-                    const selected = niche === n.id
-                    return (
-                      <button
-                        key={n.id}
-                        data-testid={`onboarding-niche-${n.id}`}
-                        onClick={() => setNiche(n.id)}
-                        className="text-left flex items-center gap-3 rounded-2xl px-4 py-3 transition-transform active:scale-[0.98] relative overflow-hidden"
-                        style={{
-                          background: selected
-                            ? `${accent}0F`
-                            : "rgba(255,255,255,0.03)",
-                          border: selected
-                            ? `0.5px solid ${accent}66`
-                            : "0.5px solid rgba(255,255,255,0.08)",
-                          minHeight: 56,
-                        }}
-                      >
-                        <span className="flex-1 text-[15px] font-semibold text-white">
-                          {n.label}
-                        </span>
-                        {selected && (
-                          <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={springs.snappy}
-                          >
-                            <Check
-                              size={16}
-                              strokeWidth={3}
-                              style={{ color: accent }}
-                            />
-                          </motion.span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </StepShell>
-            )}
-            {step === 4 && (
-              <StepShell
-                kicker="last step"
-                title="Publish."
-                sub="You can change everything after. Publish first, polish later."
-              >
-                <div
-                  className="mt-2 rounded-2xl p-4 relative overflow-hidden"
-                  style={{
-                    background: `${accent}0A`,
-                    border: `0.5px solid ${accent}55`,
-                  }}
-                >
-                  <div className="flex items-center gap-2 text-[11px] font-mono">
-                    <BadgeCheck
-                      size={13}
-                      strokeWidth={2.75}
-                      style={{ color: accent }}
-                    />
-                    <span
-                      className="uppercase tracking-widest font-bold"
-                      style={{ color: accent }}
-                    >
-                      ready
-                    </span>
-                  </div>
-                  <div className="mt-2 text-white font-semibold text-[15px] break-all">
-                    paytree.to/{user.username}
-                  </div>
-                  <div className="text-[12px] text-[#888] mt-1">
-                    Your page will be live in 2 seconds.
-                  </div>
-                </div>
-              </StepShell>
-            )}
-          </motion.div>
-        </AnimatePresence>
+  const renderStep4 = () => (
+    <div className="space-y-8 text-center">
+      {/* Checkmark animation */}
+      <div className="flex justify-center">
+        <div
+          className="w-24 h-24 rounded-full flex items-center justify-center"
+          style={{
+            background: `${accentColor}15`,
+            border: `2px solid ${accentColor}40`,
+            boxShadow: `0 0 40px ${accentColor}30`,
+          }}
+        >
+          {isSaving ? (
+            <motion.div
+              className="w-8 h-8 rounded-full border-2 border-t-transparent"
+              style={{ borderColor: `${accentColor}40`, borderTopColor: accentColor }}
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+            />
+          ) : (
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+              <motion.path
+                d="M5 13l4 4L19 7"
+                stroke={accentColor}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+              />
+            </svg>
+          )}
+        </div>
+      </div>
 
-        {error && (
-          <div
-            className="mt-5 rounded-xl px-4 py-3 text-[13px] text-center"
-            style={{
-              background: "rgba(255,85,85,0.08)",
-              border: "0.5px solid rgba(255,85,85,0.25)",
-              color: "#ff5555",
-            }}
-          >
-            {error}
-          </div>
-        )}
-      </main>
+      <div>
+        <h2 className="text-3xl font-bold text-white mb-2">Your page is ready.</h2>
+        <p className="text-[#888] text-sm">
+          {isSaving ? "Saving your profile…" : "Share your link with the world."}
+        </p>
+      </div>
 
-      {/* Fixed CTA bar */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 pb-safe-12 px-4 pt-3"
+      {/* URL pill */}
+      <button
+        onClick={handleCopyUrl}
+        className="mx-auto flex items-center gap-3 px-5 py-3 rounded-full border transition-all group"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(3,3,3,0) 0%, rgba(3,3,3,0.9) 40%, rgba(3,3,3,0.98) 100%)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
+          background: `${accentColor}0d`,
+          borderColor: `${accentColor}33`,
         }}
       >
-        <div className="max-w-md mx-auto flex flex-col gap-2">
-          <motion.button
-            data-testid="onboarding-continue"
-            onClick={next}
-            disabled={!canAdvance || busy}
-            whileTap={{ scale: 0.98 }}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl text-black font-mono font-bold text-[15px] px-6 disabled:opacity-40"
-            style={{
-              background: accent,
-              minHeight: 56,
-              boxShadow: canAdvance ? `0 0 40px ${accent}66` : "none",
-              cursor: canAdvance && !busy ? "pointer" : "not-allowed",
-            }}
-          >
-            {saving ? (
-              <>
-                <motion.span
-                  className="inline-block w-3.5 h-3.5 rounded-full border-2 border-black/70 border-t-transparent"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        <span className="font-mono text-sm text-[#e0e0e0]">
+          paytree.to/{username}
+        </span>
+        <span
+          className="text-xs font-mono transition-colors"
+          style={{ color: copied ? accentColor : "#555" }}
+        >
+          {copied ? "Copied ✓" : "Copy"}
+        </span>
+      </button>
+
+      {/* Action buttons */}
+      <div className="flex flex-col gap-3 pt-2">
+        <button
+          onClick={handlePublish}
+          disabled={isSaving}
+          className="w-full py-4 rounded-xl font-mono font-semibold text-black text-base transition-opacity disabled:opacity-50"
+          style={{ background: accentColor }}
+        >
+          Publish & Share →
+        </button>
+        <button
+          onClick={() => router.push("/dashboard/studio")}
+          disabled={isSaving}
+          className="w-full py-3 rounded-xl font-mono text-sm bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] hover:border-white/20 transition-colors disabled:opacity-50"
+        >
+          Customize more
+        </button>
+      </div>
+
+      <p className="text-xs text-[#444] font-mono">
+        Free forever. Upgrade to unlock payments &amp; more.
+      </p>
+    </div>
+  )
+
+  // ─── Step content map ──────────────────────────────────────────────────────────
+
+  const STEP_LABELS = [
+    "Identity",
+    "Color",
+    "Category",
+    "First link",
+    "Done",
+  ]
+
+  const renderCurrentStep = () => {
+    switch (step) {
+      case 0: return renderStep0()
+      case 1: return renderStep1()
+      case 2: return renderStep2()
+      case 3: return renderStep3()
+      case 4: return renderStep4()
+      default: return null
+    }
+  }
+
+  const canContinue = () => {
+    if (step === 0) return name.trim().length > 0
+    return true
+  }
+
+  // ─── Welcome ──────────────────────────────────────────────────────────────────
+
+  if (step === -1) return renderWelcome()
+
+  // ─── Main layout (steps 0–4) ──────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen bg-[#080808] text-white pb-safe">
+      <div className="flex flex-col lg:flex-row min-h-screen">
+
+        {/* ── Left: form panel — mobile-tighter px + py for more vertical room. ── */}
+        <div className="flex-1 flex flex-col px-5 sm:px-10 lg:px-14 py-6 sm:py-8 max-w-2xl w-full mx-auto lg:mx-0">
+
+          {/* Progress + skip */}
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-2">
+              {STEP_LABELS.map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: i === step ? 24 : 8,
+                    height: 8,
+                    background:
+                      i < step
+                        ? accentColor
+                        : i === step
+                        ? accentColor
+                        : "rgba(255,255,255,0.1)",
+                    opacity: i === step ? 1 : i < step ? 0.7 : 1,
+                  }}
                 />
-                Publishing your page…
-              </>
-            ) : step < total - 1 ? (
-              <>
-                {step === 1 && !image ? "Skip for now" : "Continue"}
-                <ArrowRight size={16} strokeWidth={2.75} />
-              </>
-            ) : (
-              <>
-                Publish my page
-                <ArrowRight size={16} strokeWidth={2.75} />
-              </>
+              ))}
+              <span className="text-[#444] text-xs font-mono ml-2">
+                {step + 1}/{STEP_LABELS.length}
+              </span>
+            </div>
+
+            {step < 4 && (
+              <button
+                onClick={skipAll}
+                disabled={isSkipping}
+                style={{
+                  color: isSkipping ? "#555" : "#666",
+                  fontSize: 13,
+                  fontFamily: "monospace",
+                  background: "transparent",
+                  border: "none",
+                  cursor: isSkipping ? "not-allowed" : "pointer",
+                  textDecoration: "underline",
+                  textDecorationColor: "rgba(255,255,255,0.2)",
+                  padding: "8px 12px",
+                  minHeight: 44,
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
+                onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
+              >
+                {isSkipping ? "Skipping..." : "Skip →"}
+              </button>
             )}
-          </motion.button>
-          {step < total - 1 && (
-            <button
-              data-testid="onboarding-skip"
-              onClick={skipToDashboard}
-              disabled={busy}
-              className="text-[12px] font-mono text-[#666] py-2 disabled:opacity-40"
-              // Copy intentionally matches the previous flow so muscle
-              // memory + any external docs / screenshots still make sense.
-              aria-label="Skip and go to dashboard"
-            >
-              {skipping ? "Skipping…" : "Skip and go to dashboard"}
-            </button>
+          </div>
+
+          {/* Animated step content */}
+          <div className="flex-1">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                {renderCurrentStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Navigation buttons — 48px minimum so taps land cleanly on iOS. */}
+          {step < 4 && (
+            <div className="mt-8 space-y-3">
+              <div className="flex gap-3">
+                {step > 0 && (
+                  <button
+                    onClick={retreat}
+                    className="px-5 rounded-xl font-mono text-sm bg-white/[0.03] border border-white/[0.08] text-[#e0e0e0] hover:border-white/20 active:scale-[0.97] transition-all"
+                    style={{ minHeight: 48 }}
+                  >
+                    ← Back
+                  </button>
+                )}
+                <button
+                  onClick={advance}
+                  disabled={!canContinue()}
+                  className="flex-1 rounded-xl font-mono font-semibold text-black text-sm transition-all active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100"
+                  style={{ background: accentColor, minHeight: 48 }}
+                >
+                  {step === 3 ? "Finish →" : "Continue →"}
+                </button>
+              </div>
+
+              {step > 0 && step < 4 && (
+                <button
+                  onClick={skip}
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    color: "#666",
+                    fontSize: 13,
+                    fontFamily: "monospace",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textDecorationColor: "rgba(255,255,255,0.2)",
+                    minHeight: 44,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#888"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.4)" }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#666"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.2)" }}
+                >
+                  Skip this step →
+                </button>
+              )}
+            </div>
           )}
+        </div>
+
+        {/* ── Right: phone preview ──
+            Mobile shows a tighter, scaled-down version above the fold (so it
+            stays the dopamine driver) without eating the whole viewport. The
+            phone is fixed at 240x480; we wrap in a transform + overflow-hidden
+            box that reserves real layout space matching the scaled size. */}
+        <div className="w-full lg:w-[380px] lg:sticky lg:top-0 lg:h-screen flex items-center justify-center p-4 sm:p-8 bg-[#060606] border-t lg:border-t-0 lg:border-l border-white/[0.04]">
+          <div className="text-center">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#333] mb-3 sm:mb-6">
+              Live preview
+            </div>
+            {/* Mobile: scale 0.7 (240→168, 480→336). Desktop: full size. */}
+            <div
+              className="lg:hidden mx-auto"
+              style={{
+                width: 168,
+                height: 336,
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  transform: "scale(0.7)",
+                  transformOrigin: "top left",
+                  width: 240,
+                  height: 480,
+                }}
+              >
+                <PhonePreview
+                  name={name}
+                  username={username}
+                  bio={bio}
+                  image={image}
+                  accentColor={accentColor}
+                  category={category}
+                  firstLinkUrl={firstLinkUrl}
+                  firstLinkTitle={firstLinkTitle}
+                  firstLinkIcon={firstLinkIcon}
+                />
+              </div>
+            </div>
+            <div className="hidden lg:block">
+              <PhonePreview
+                name={name}
+                username={username}
+                bio={bio}
+                image={image}
+                accentColor={accentColor}
+                category={category}
+                firstLinkUrl={firstLinkUrl}
+                firstLinkTitle={firstLinkTitle}
+                firstLinkIcon={firstLinkIcon}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function StepShell({
-  kicker,
-  title,
-  sub,
-  children,
-}: {
-  kicker: string
-  title: string
-  sub: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[#00ff88] mb-3">
-        {kicker}
-      </div>
-      <h1 className="text-[28px] font-bold text-white leading-[1.05]">
-        {title}
-      </h1>
-      <p className="mt-2 text-[13px] text-[#888]">{sub}</p>
-      <div className="mt-6">{children}</div>
-    </div>
-  )
-}
+// ─── Phone Preview ─────────────────────────────────────────────────────────────
 
-function BigInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      // 16px minimum kills iOS auto-zoom on focus; the 20px visual size
-      // comes from font-weight + tracking, not fontSize.
-      className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#444]"
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "0.5px solid rgba(255,255,255,0.1)",
-        borderRadius: 16,
-        padding: "18px",
-        minHeight: 60,
-        fontSize: 20,
-        ...(props.style ?? {}),
-      }}
-    />
-  )
-}
-
-/* Live phone preview — every state change re-shapes it so the user
-   physically watches their page get built as they answer. */
-function LivePreview({
-  name,
-  username,
-  image,
-  accent,
-  niche,
-  nicheCardTitle,
-}: {
+interface PhonePreviewProps {
   name: string
   username: string
+  bio: string
   image: string | null
-  accent: string
-  niche: string | null
-  nicheCardTitle: string
-}) {
-  const initials =
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join("") || username[0]?.toUpperCase() || "?"
-  const nameValid = name.trim().length >= 2
+  accentColor: string
+  category: string | null
+  firstLinkUrl: string
+  firstLinkTitle: string
+  firstLinkIcon: string
+}
+
+function PhonePreview({
+  name,
+  username,
+  bio,
+  image,
+  accentColor,
+  category,
+  firstLinkUrl,
+  firstLinkTitle,
+  firstLinkIcon,
+}: PhonePreviewProps) {
+  const accent = accentColor || "#00ff88"
+  const glow = `${accent}33`
+  const displayName = name || "Your Name"
+  const displayUsername = username || "username"
+
+  const previewCards = category ? CATEGORY_PREVIEWS[category] : []
+  const showDefaults = !firstLinkUrl && previewCards.length === 0
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="mb-2 flex items-center gap-1.5">
-        <motion.span
-          animate={{ opacity: [1, 0.4, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: accent, boxShadow: `0 0 6px ${accent}` }}
-        />
-        <span
-          className="text-[10px] font-mono uppercase tracking-widest"
-          style={{ color: accent }}
-        >
-          building your page
-        </span>
-      </div>
+    <div
+      style={{
+        width: 240,
+        height: 480,
+        background: "#030303",
+        borderRadius: 28,
+        border: "6px solid #1a1a1a",
+        overflow: "hidden",
+        boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+        flexShrink: 0,
+      }}
+    >
+      {/* Notch */}
+      <div
+        style={{
+          width: 80,
+          height: 4,
+          background: "#1a1a1a",
+          borderRadius: 2,
+          margin: "8px auto 0",
+        }}
+      />
 
       <div
-        className="relative"
         style={{
-          width: 240,
-          height: 320,
-          borderRadius: 36,
-          padding: 6,
-          background:
-            "linear-gradient(180deg, #1c1c1c 0%, #0a0a0a 40%, #000 100%)",
-          boxShadow: `0 30px 60px rgba(0,0,0,0.6), 0 0 40px ${accent}18`,
+          overflowY: "auto",
+          height: "calc(100% - 18px)",
+          padding: "16px 14px 20px",
         }}
       >
+        {/* Avatar + name */}
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              margin: "0 auto 8px",
+              border: `2px solid ${accent}`,
+              boxShadow: `0 0 16px ${glow}`,
+              overflow: "hidden",
+              background: `linear-gradient(135deg, ${accent}22, #0a0a14)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "border-color 0.3s, box-shadow 0.3s",
+            }}
+          >
+            {image ? (
+              <img
+                src={image}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span
+                style={{
+                  color: accent,
+                  fontWeight: 700,
+                  fontSize: 22,
+                  transition: "color 0.3s",
+                }}
+              >
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div
+            style={{ fontWeight: 700, fontSize: 13, color: "#fff", marginBottom: 2 }}
+          >
+            {displayName}
+          </div>
+          <div style={{ fontSize: 10, color: "#666", marginBottom: bio ? 4 : 0 }}>
+            @{displayUsername}
+          </div>
+          {bio && (
+            <div
+              style={{
+                fontSize: 9,
+                color: "#888",
+                lineHeight: 1.4,
+                maxHeight: 32,
+                overflow: "hidden",
+              }}
+            >
+              {bio}
+            </div>
+          )}
+        </div>
+
+        {/* Link cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* First link (user entered) */}
+          {firstLinkUrl && (
+            <div
+              style={{
+                padding: "9px 11px",
+                borderRadius: 12,
+                background: `${accent}0d`,
+                border: `1px solid ${accent}2a`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "border-color 0.3s, background 0.3s",
+              }}
+            >
+              <span style={{ fontSize: 13 }}>{firstLinkIcon}</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "#e0e0e0",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {firstLinkTitle || "My Link"}
+              </span>
+            </div>
+          )}
+
+          {/* Category placeholders */}
+          {previewCards.map((card, i) => (
+            <div
+              key={i}
+              style={{
+                padding: "9px 11px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 13 }}>{card.icon}</span>
+              <span style={{ fontSize: 10, color: "#888" }}>{card.title}</span>
+            </div>
+          ))}
+
+          {/* Default placeholders when nothing is set */}
+          {showDefaults && (
+            <>
+              {[
+                { icon: "🔗", title: "Add your first link" },
+                { icon: "📸", title: "Connect social media" },
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "9px 11px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.01)",
+                    border: "1px dashed rgba(255,255,255,0.07)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13, opacity: 0.3 }}>{c.icon}</span>
+                  <span style={{ fontSize: 10, color: "#333" }}>{c.title}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Branding */}
         <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-20 h-3.5 w-14 rounded-full"
-          style={{ background: "#000" }}
-        />
-        <div
-          className="relative w-full h-full overflow-hidden"
           style={{
-            borderRadius: 30,
-            background: `radial-gradient(circle at 50% 12%, ${accent}18 0%, transparent 55%), #050505`,
+            textAlign: "center",
+            marginTop: 20,
+            fontSize: 8,
+            color: "#333",
+            fontFamily: "monospace",
           }}
         >
-          <div className="flex items-center justify-center gap-1 pt-4 pb-1">
-            <span className="text-[8px] font-mono text-[#555]">paytree.to/</span>
-            <span
-              className="text-[9px] font-mono font-bold"
-              style={{ color: accent }}
-            >
-              {username}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center pt-2">
-            <motion.div
-              animate={{
-                boxShadow: nameValid
-                  ? `0 0 0 3px ${accent}20, 0 0 20px ${accent}55`
-                  : "0 0 0 3px rgba(255,255,255,0.05)",
-              }}
-              transition={{ duration: 0.3 }}
-              className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-lg font-bold text-white"
-              style={{
-                border: `1.5px solid ${nameValid ? accent : "rgba(255,255,255,0.15)"}80`,
-                background: image
-                  ? undefined
-                  : nameValid
-                    ? `linear-gradient(135deg, ${accent} 0%, #0a0a0a 100%)`
-                    : "linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)",
-              }}
-            >
-              {image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={image}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={initials}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={springs.snappy}
-                  >
-                    {initials}
-                  </motion.span>
-                </AnimatePresence>
-              )}
-            </motion.div>
-
-            <div className="mt-2 h-4 flex items-center">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={name || "empty"}
-                  initial={{ opacity: 0, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -3 }}
-                  transition={springs.snappy}
-                  className="text-white text-[12px] font-bold"
-                >
-                  {name || "Your name"}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            <div
-              className="text-[8px] font-mono mt-0.5"
-              style={{ color: accent }}
-            >
-              @{username}
-            </div>
-          </div>
-
-          <div className="mt-3 px-3 flex flex-col gap-1.5">
-            <motion.div
-              animate={{
-                opacity: nameValid ? 1 : 0.4,
-                borderColor: nameValid ? `${accent}60` : "rgba(255,255,255,0.06)",
-              }}
-              transition={{ duration: 0.25 }}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 relative overflow-hidden"
-              style={{
-                background: nameValid ? `${accent}10` : "rgba(255,255,255,0.02)",
-                border: "0.5px solid rgba(255,255,255,0.06)",
-              }}
-            >
-              <div
-                className="w-4 h-4 rounded"
-                style={{
-                  background: `linear-gradient(135deg, ${accent}, ${accent}44)`,
-                }}
-              />
-              <span className="text-[9px] text-white/85 font-semibold truncate">
-                {niche ? nicheCardTitle : "Your first link"}
-              </span>
-              {niche && (
-                <span
-                  className="ml-auto text-[7px] font-mono font-bold rounded px-1.5 py-0.5"
-                  style={{ background: accent, color: "#000" }}
-                >
-                  BUY
-                </span>
-              )}
-            </motion.div>
-
-            <motion.div
-              animate={{ opacity: niche ? 1 : 0.35 }}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5"
-              style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "0.5px solid rgba(255,255,255,0.06)",
-              }}
-            >
-              <div className="w-4 h-4 rounded bg-white/[0.06]" />
-              <span className="text-[9px] text-white/80 font-medium">
-                Free intro PDF
-              </span>
-            </motion.div>
-
-            <motion.div
-              animate={{ opacity: niche ? 1 : 0.25 }}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5"
-              style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "0.5px solid rgba(255,255,255,0.06)",
-              }}
-            >
-              <div className="w-4 h-4 rounded bg-white/[0.06]" />
-              <span className="text-[9px] text-white/75 font-medium">
-                AI agent · online
-              </span>
-              <span
-                className="ml-auto w-1.5 h-1.5 rounded-full"
-                style={{ background: accent }}
-              />
-            </motion.div>
-          </div>
+          Powered by Paytree
         </div>
       </div>
     </div>
