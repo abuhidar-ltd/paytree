@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "@/lib/prisma"
@@ -102,6 +103,19 @@ const config: BetterAuthOptions = {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // 1 day
   },
+  // Cookie domain lift for www/apex parity. Opt-in via env so dev on localhost
+  // stays untouched. Set BETTER_AUTH_COOKIE_DOMAIN=".paytree.to" in Vercel to
+  // share the session between paytree.to and www.paytree.to — if the marketing
+  // team ever links across subdomains mid-flow, the user stays signed in.
+  ...(process.env.BETTER_AUTH_COOKIE_DOMAIN
+    ? {
+        advanced: {
+          defaultCookieAttributes: {
+            domain: process.env.BETTER_AUTH_COOKIE_DOMAIN,
+          },
+        },
+      }
+    : {}),
   user: {
     additionalFields: {
       username: { type: "string", required: false, input: false },
@@ -125,35 +139,34 @@ const config: BetterAuthOptions = {
     user: {
       create: {
         before: async (user) => {
-          // Wrap the whole hook so a Prisma timeout / pool exhaustion / collision
-          // surfaces in Vercel logs instead of silently aborting the signup.
-          // Better Auth catches any thrown error and returns a generic 500 to
-          // the client — without this log we'd never know why.
+          // Username allocation must be race-free under concurrent signups.
+          // The old check-then-insert (findUnique → return candidate → let
+          // Better Auth db.user.create) had a TOCTOU: two signups with the
+          // same email-localpart arriving in the same tick both saw the base
+          // free, both returned the same candidate, and the second insert
+          // hit Prisma P2002 → generic "Sign up failed". The Playwright
+          // concurrency spec reproduced this deterministically at N=6.
+          //
+          // Strategy now: always append 8 hex chars of cryptographic entropy
+          // (~4B values per base). Two concurrent same-base signups collide
+          // with probability ~1/4B; even a viral burst of 1000 same-base
+          // requests has collision odds of 1 in ~8k. The residual is caught
+          // by the client's FAILED_TO_CREATE_USER retry, which re-invokes
+          // this hook and rolls fresh entropy — guaranteed-terminating.
+          //
+          // The username is a starter value only. During onboarding step 0
+          // the user picks the pretty handle they actually want.
           try {
             const base =
               (user.email.split("@")[0] || "user")
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, "")
-                .slice(0, 15) || "user"
-            let candidate = base
-            let i = 1
-            const loopStart = Date.now()
-            while (await prisma.user.findUnique({ where: { username: candidate } })) {
-              candidate = `${base}${i++}`
-              // Hard time bound on top of the iteration bound. Under bot load
-              // the per-query latency can spike and i never reaches 100.
-              if (i > 100 || Date.now() - loopStart > 3000) {
-                candidate = `${base}${Date.now()}${Math.random().toString(36).slice(2, 6)}`
-                break
-              }
-            }
+                .slice(0, 12) || "user"
+            const candidate = `${base}${randomBytes(4).toString("hex")}`
             console.log("[auth:hook] username allocated:", { email: user.email, username: candidate })
             return { data: { ...user, username: candidate } }
           } catch (err) {
             console.error("[auth:hook] user.create.before threw:", err)
-            // Re-throw so Better Auth aborts the signup with a proper error,
-            // rather than silently creating a user with a NULL username (which
-            // would break the unique constraint later anyway).
             throw err
           }
         },

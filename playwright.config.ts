@@ -44,6 +44,7 @@ export default defineConfig({
     "diagnostic.spec.ts",
     "og-images.spec.ts",
     "iab-signup.spec.ts",
+    "signup-concurrency.spec.ts",
     "activation.spec.ts",
   ],
   use: {
@@ -55,6 +56,11 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
       testIgnore: ["**/iab-signup.spec.ts"],
+    },
+    {
+      name: "concurrency",
+      testMatch: ["**/signup-concurrency.spec.ts"],
+      use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "iab-tiktok",

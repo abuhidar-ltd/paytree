@@ -427,8 +427,9 @@ function friendlyMessage(code: string | undefined, status: number | undefined): 
   if (code === "INVALID_EMAIL_OR_PASSWORD" || code === "USER_NOT_FOUND" || status === 401)
     return "That email and password don't match. Try again."
   if (code === "INVALID_EMAIL") return "That email address looks invalid."
+  // Server-side trustedOrigins rejection — misleading to blame the browser.
   if (code === "INVALID_ORIGIN" || status === 403)
-    return "Your browser blocked the sign-in. Open paytree.to directly in Safari or Chrome."
+    return "Sign-in was blocked by our server. Please email support@paytree.to and we'll fix it."
   if (code === "TOO_MANY_REQUESTS" || status === 429)
     return "Too many attempts. Wait a minute and try again."
   if (status === 500) return "Our server hit a snag. Try again in a moment."

@@ -42,7 +42,12 @@ const springs = {
   standard: { type: "spring" as const, stiffness: 300, damping: 28 },
 }
 
-type Draft = { name: string; email: string; password: string; step: number }
+// Draft persisted so a WebView kill doesn't wipe progress. Password is
+// intentionally NOT persisted — plaintext credentials in localStorage would be
+// leaked by any XSS, browser extension, or session-replay tool (Clarity masks
+// password inputs but not localStorage). If the WebView restores mid-flow with
+// a saved step 2 (password), we clamp back to step 1 so the user re-enters.
+type Draft = { name: string; email: string; step: number }
 
 export function SignUpScreen({ userAgent }: Props) {
   const router = useRouter()
@@ -66,7 +71,9 @@ export function SignUpScreen({ userAgent }: Props) {
   }
 
   // Restore draft on first mount — the WebView may have killed the tab
-  // mid-flow and we want the user back where they were.
+  // mid-flow and we want the user back where they were. Password is never
+  // restored (never persisted); if the draft says we were on the password
+  // step, clamp back to the email step so the user re-enters credentials.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
@@ -74,8 +81,9 @@ export function SignUpScreen({ userAgent }: Props) {
         const d = JSON.parse(raw) as Partial<Draft>
         if (typeof d.name === "string") setName(d.name)
         if (typeof d.email === "string") setEmail(d.email)
-        if (typeof d.password === "string") setPassword(d.password)
-        if (typeof d.step === "number" && d.step > 0 && d.step < 3) setStep(d.step)
+        if (typeof d.step === "number" && d.step > 0) {
+          setStep(Math.min(d.step, 1))
+        }
       }
     } catch {}
 
@@ -89,14 +97,12 @@ export function SignUpScreen({ userAgent }: Props) {
   }, [])
 
   // Persist draft as user types so a WebView kill doesn't reset progress.
+  // Password is deliberately omitted — see the Draft type comment.
   useEffect(() => {
     try {
-      localStorage.setItem(
-        DRAFT_KEY,
-        JSON.stringify({ name, email, password, step }),
-      )
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, email, step }))
     } catch {}
-  }, [name, email, password, step])
+  }, [name, email, step])
 
   // Autofocus the input on every step change — TikTok's WebView won't
   // pop the keyboard automatically otherwise.
@@ -155,6 +161,12 @@ export function SignUpScreen({ userAgent }: Props) {
     let result: Awaited<ReturnType<typeof signUp.email>> | null = null
     let lastNetworkError: unknown = null
 
+    // Retry envelope covers three failure modes:
+    //   1. Network / timeout — obvious retry.
+    //   2. Thrown error from signUp.email — same.
+    //   3. FAILED_TO_CREATE_USER 500 — surfaces the residual (~1/65k)
+    //      username-suffix collision from the auth hook. The hook re-rolls
+    //      entropy on each call, so retrying is guaranteed-terminating.
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1])
       try {
@@ -165,6 +177,12 @@ export function SignUpScreen({ userAgent }: Props) {
         if (raced === TIMED_OUT) {
           timedOutOnce = true
           lastNetworkError = new Error("Request timed out")
+          continue
+        }
+        const racedErr = (raced as { error?: { code?: string; status?: number; statusCode?: number } }).error
+        if (racedErr?.code === "FAILED_TO_CREATE_USER") {
+          // Ask the server to roll a fresh username on the next try.
+          lastNetworkError = new Error("FAILED_TO_CREATE_USER")
           continue
         }
         result = raced
@@ -568,10 +586,17 @@ function friendlyMessage(code: string | undefined, status: number | undefined): 
   if (code === "INVALID_EMAIL") return "That email address looks invalid."
   if (code === "WEAK_PASSWORD")
     return "That password is too weak. Use at least 8 characters."
+  // INVALID_ORIGIN is a server-side trustedOrigins misconfig — telling the
+  // user to switch browsers sends them on a wild goose chase. Point them at
+  // support so we hear about it fast.
   if (code === "INVALID_ORIGIN" || status === 403)
-    return "Your browser blocked the sign-up. Open paytree.to directly in Safari or Chrome."
+    return "Sign-up was blocked by our server. Please email support@paytree.to and we'll fix it."
   if (code === "TOO_MANY_REQUESTS" || status === 429)
     return "Too many attempts. Wait a minute and try again."
+  // FAILED_TO_CREATE_USER survives past retries — surface as retryable instead
+  // of a dead-end message so the user doesn't bounce.
+  if (code === "FAILED_TO_CREATE_USER")
+    return "Couldn't finish creating your account. Please try again."
   if (status === 500) return "Our server hit a snag. Try again in a moment."
   return null
 }
