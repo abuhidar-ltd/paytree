@@ -2,12 +2,12 @@
 
 import { forwardRef, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { IABBanner } from "@/components/iab-banner"
 import { signUp, signIn } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
 import { track, type EventName } from "@/lib/analytics"
+import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react"
 
 /**
@@ -50,7 +50,6 @@ const springs = {
 type Draft = { name: string; email: string; step: number }
 
 export function SignUpScreen({ userAgent }: Props) {
-  const router = useRouter()
   const [step, setStep] = useState(0)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -215,7 +214,7 @@ export function SignUpScreen({ userAgent }: Props) {
             if (!(s as { error?: unknown }).error) {
               try { localStorage.removeItem(DRAFT_KEY) } catch {}
               fireOnce("create_account", { recovered: "timeout_signin", wizard: true })
-              router.push("/onboarding")
+              hardNavigate("/onboarding")
               return
             }
           } catch {}
@@ -227,7 +226,7 @@ export function SignUpScreen({ userAgent }: Props) {
       }
       try { localStorage.removeItem(DRAFT_KEY) } catch {}
       fireOnce("create_account", { wizard: true })
-      router.push("/onboarding")
+      hardNavigate("/onboarding")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)

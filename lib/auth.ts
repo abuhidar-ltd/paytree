@@ -34,12 +34,25 @@ function buildTrustedOrigins(): string[] {
   const baseURL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL
   const baseAlias = baseURL ? safeOrigin(baseURL) : null
 
+  // Vercel-provided hostnames — critical so signup works on preview deployments
+  // (each PR gets a paytree-git-<branch>-<team>.vercel.app URL). Without these,
+  // every internal test on a preview URL hits INVALID_ORIGIN and looks like
+  // "signup is broken". Also covers the production alias.
+  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+  const vercelBranchUrl = process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : null
+  const vercelProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : null
+
   const defaults = [
     baseAlias,
     "https://paytree.to",
     "https://www.paytree.to",
     "http://localhost:3000",
     "http://localhost:3001",
+    vercelUrl,
+    vercelBranchUrl,
+    vercelProdUrl,
   ].filter((s): s is string => !!s)
 
   // Dedup while preserving order so the canonical baseURL stays first.
@@ -84,6 +97,23 @@ const config: BetterAuthOptions = {
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 8,
+  },
+  // Rate limit only in production — bots hammering /sign-up eat Prisma pool
+  // slots and cascade into real users seeing 500s. 10 requests per minute
+  // per IP is generous for humans (a fumbled password + a retry) and
+  // aggressive enough to make a botnet uneconomical. Better Auth keeps the
+  // window in-memory; fine for the size of surface we're protecting.
+  //
+  // Disabled in dev/test — Playwright's IAB and concurrency specs fire from
+  // a single loopback IP and would otherwise trip the limit within one run.
+  rateLimit: {
+    enabled: process.env.NODE_ENV === "production",
+    window: 60,
+    max: 20,
+    customRules: {
+      "/sign-up/email": { window: 60, max: 10 },
+      "/sign-in/email": { window: 60, max: 10 },
+    },
   },
   // Register Google only when both credentials are present. Missing creds
   // would otherwise crash Better Auth at boot via the `as string` cast in

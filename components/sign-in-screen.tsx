@@ -2,12 +2,12 @@
 
 import { forwardRef, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { IABBanner } from "@/components/iab-banner"
 import { signIn, useSession } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
 import { track, type EventName } from "@/lib/analytics"
+import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, ArrowLeft, Eye, EyeOff, LogIn } from "lucide-react"
 
 /**
@@ -29,8 +29,15 @@ const springs = {
   standard: { type: "spring" as const, stiffness: 300, damping: 28 },
 }
 
+const ATTEMPT_TIMEOUT_MS = 10_000
+const RETRY_DELAYS_MS = [1_000, 3_000]
+const TIMED_OUT = Symbol("timed_out")
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms))
+}
+
 export function SignInScreen({ userAgent }: Props) {
-  const router = useRouter()
   const { data: session, isPending } = useSession()
 
   const [step, setStep] = useState(0)
@@ -73,9 +80,9 @@ export function SignInScreen({ userAgent }: Props) {
       } catch {
         track("complete_login")
       }
-      router.push("/dashboard")
+      hardNavigate("/dashboard")
     }
-  }, [isPending, session, router])
+  }, [isPending, session])
 
   // Refocus on step change so keyboard stays open through the wizard.
   useEffect(() => {
@@ -118,8 +125,56 @@ export function SignInScreen({ userAgent }: Props) {
     setLoading(true)
     setError("")
 
+    // Retry envelope mirroring the signup flow — a Twitter/Instagram WebView
+    // on a slow 4G connection routinely takes 6-8s round trip for the first
+    // request, and a raw single-shot signIn silently reads as "wrong
+    // password" when the fetch times out. Never retry on credential errors
+    // (401 / INVALID_EMAIL_OR_PASSWORD) — those are the user, not the wire.
+    const payload = { email, password, callbackURL: "/dashboard" }
+    let result: Awaited<ReturnType<typeof signIn.email>> | null = null
+    let lastNetworkError: unknown = null
+
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1])
+      try {
+        const raced = await Promise.race([
+          signIn.email(payload),
+          sleep(ATTEMPT_TIMEOUT_MS).then(() => TIMED_OUT as typeof TIMED_OUT),
+        ])
+        if (raced === TIMED_OUT) {
+          lastNetworkError = new Error("Request timed out")
+          continue
+        }
+        const racedErr = (raced as { error?: { code?: string; status?: number; statusCode?: number } }).error
+        const status = racedErr?.status ?? racedErr?.statusCode
+        // Credential rejections are not retryable — surface immediately.
+        if (
+          racedErr?.code === "INVALID_EMAIL_OR_PASSWORD" ||
+          racedErr?.code === "USER_NOT_FOUND" ||
+          status === 401
+        ) {
+          result = raced
+          break
+        }
+        // Retryable server errors: 5xx + generic FAILED_TO_CREATE_USER.
+        if (racedErr && (status === undefined || status >= 500)) {
+          lastNetworkError = new Error(racedErr.code || `HTTP ${status ?? "?"}`)
+          continue
+        }
+        result = raced
+        break
+      } catch (err) {
+        lastNetworkError = err
+      }
+    }
+
     try {
-      const result = await signIn.email({ email, password, callbackURL: "/dashboard" })
+      if (!result) {
+        const detail = lastNetworkError instanceof Error ? lastNetworkError.message : "fetch failed"
+        setError("Connection issue — please try again in a moment.")
+        track("error_login", { reason: "network", detail: detail.slice(0, 80) })
+        return
+      }
       const authError = (result as { error?: unknown }).error
       if (authError) {
         const errObj = authError as {
@@ -142,7 +197,7 @@ export function SignInScreen({ userAgent }: Props) {
         })
         return
       }
-      router.push("/dashboard")
+      hardNavigate("/dashboard")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)

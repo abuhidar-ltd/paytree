@@ -47,8 +47,11 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
+    // @prisma/client intentionally excluded — optimizePackageImports has a
+    // recurring history of tree-shaking Prisma's generated types out of the
+    // client bundle in Next 15/16, which surfaces as "Model X does not exist
+    // in the database" at runtime. Costs a few KB, worth the reliability.
     optimizePackageImports: [
-      "@prisma/client",
       "recharts",
       "framer-motion",
       "lucide-react",
