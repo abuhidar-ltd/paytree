@@ -6,12 +6,17 @@ import { test, expect } from "@playwright/test"
  * History: 679 of 1,021 requests to /opengraph-image + /twitter-image threw
  * (Jun 26 – Jul 2) — Satori "Expected <div> to have explicit display:flex"
  * plus a dynamic-font 400 for the ✦ glyph. Every social share of paytree.to
- * had a broken preview. These tests assert the routes actually render a PNG.
+ * had a broken preview. After that we swapped the Satori route for a static
+ * PNG served via Next's file convention (app/opengraph-image.png,
+ * app/twitter-image.png) — no runtime rendering, no glyph traps.
+ *
+ * The convention URL includes the .png suffix; Next appends a query-string
+ * hash for cache-busting which we ignore in the test.
  */
 
 const PNG_MAGIC = "89504e470d0a1a0a"
 
-const OG_ROUTES = ["/opengraph-image", "/twitter-image"]
+const OG_ROUTES = ["/opengraph-image.png", "/twitter-image.png"]
 
 for (const route of OG_ROUTES) {
   test(`${route} renders a real PNG`, async ({ request }) => {
