@@ -438,6 +438,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           </p>
 
           <button
+            data-testid="onboarding-welcome-next"
             onClick={advance}
             className="w-full bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-6 text-base hover:opacity-90 active:scale-[0.97] transition-all mb-4"
             style={{ minHeight: 56 }}
@@ -530,6 +531,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           Display name <span className="text-red-400">*</span>
         </label>
         <input
+          data-testid="onboarding-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="input-obsidian w-full"

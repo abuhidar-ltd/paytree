@@ -435,8 +435,8 @@ export default function DashboardPage() {
       track("hit_plan_gate", { feature: type, source: "picker" })
       toast(
         type === "drop"
-          ? "Drop cards are a Pro feature ($7/mo)"
-          : "Vault cards are a Pro feature ($7/mo)",
+          ? "Drop cards are a Pro feature ($4.99/mo)"
+          : "Vault cards are a Pro feature ($4.99/mo)",
         {
           action: {
             label: "Upgrade to Pro →",

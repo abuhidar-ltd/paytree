@@ -50,24 +50,24 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               style={{ animation: "fadeIn 0.5s ease 0.05s both" }}
             >
               <span
-                className="inline-flex items-center gap-2 rounded-full pl-2.5 pr-3 py-1.5"
+                className="inline-flex items-center gap-2.5 rounded-full pl-3 pr-4 py-2"
                 style={{
                   background: "rgba(0,255,136,0.10)",
                   border: "0.5px solid rgba(0,255,136,0.35)",
-                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.18), 0 0 24px rgba(0,255,136,0.18)",
+                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.18), 0 0 28px rgba(0,255,136,0.20)",
                   backdropFilter: "blur(8px)",
                   WebkitBackdropFilter: "blur(8px)",
                 }}
               >
                 <span
-                  className="grid place-items-center w-5 h-5 rounded-full"
+                  className="grid place-items-center w-6 h-6 rounded-full"
                   style={{ background: "rgba(0,255,136,0.18)" }}
                 >
-                  <Percent size={12} strokeWidth={2.5} className="text-[#00ff88]" />
+                  <Percent size={14} strokeWidth={2.5} className="text-[#00ff88]" />
                 </span>
                 <span className="font-mono tracking-tight leading-none">
-                  <span className="text-sm sm:text-base font-extrabold text-[#00ff88]">0%</span>{" "}
-                  <span className="text-xs sm:text-[13px] font-semibold text-white">platform commission</span>
+                  <span className="text-base sm:text-lg font-extrabold text-[#00ff88]">0%</span>{" "}
+                  <span className="text-sm sm:text-[15px] font-semibold text-white">platform commission</span>
                 </span>
               </span>
             </div>
@@ -165,6 +165,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   */}
                   <Link
                     href="/register"
+                    data-testid="home-hero-cta"
                     onClick={() => {
                       track("click_cta", { variant: "register", source: "hero" })
                     }}

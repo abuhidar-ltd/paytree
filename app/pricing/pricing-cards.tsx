@@ -58,13 +58,13 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
   const normalizedPlan =
     currentPlan === "starter" ? "pro" : currentPlan
 
-  const proPrice = interval === "monthly" ? "$7" : "$59"
+  const proPrice = interval === "monthly" ? "$4.99" : "$29.99"
   const proPer = interval === "monthly" ? "/mo" : "/yr"
-  const proSave = interval === "yearly" ? "Save 30%" : null
+  const proSave = interval === "yearly" ? "Save 50%" : null
 
-  const ultraPrice = interval === "monthly" ? "$19" : "$159"
+  const ultraPrice = interval === "monthly" ? "$14.99" : "$99.99"
   const ultraPer = interval === "monthly" ? "/mo" : "/yr"
-  const ultraSave = interval === "yearly" ? "Save 30%" : null
+  const ultraSave = interval === "yearly" ? "Save 44%" : null
 
   async function handleCheckout(plan: CheckoutPlan) {
     track("start_checkout", { plan, interval })
@@ -382,7 +382,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       <div className="max-w-3xl mx-auto text-center mt-10">
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
           <p className="text-sm text-[#e0e0e0] font-mono">
-            vs Linktree Premium ($35/mo) — Paytree Ultra is <span className="text-[#00ff88] font-bold">$16/mo cheaper</span> with more features. <span className="text-[#00ff88] font-bold">0% fees on every paid plan.</span>
+            vs Linktree Premium ($35/mo) — Paytree Ultra is <span className="text-[#00ff88] font-bold">$20/mo cheaper</span> with more features. <span className="text-[#00ff88] font-bold">0% fees on every paid plan.</span>
           </p>
         </div>
       </div>

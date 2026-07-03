@@ -116,6 +116,8 @@ export function openInBrowserInstructions(source: InAppBrowserSource, platform: 
     case "instagram":
     case "facebook":
       return "Tap ⋯ in the corner → Open in external browser"
+    case "twitter":
+      return "Tap the share icon → Open in Safari"
     default:
       break
   }

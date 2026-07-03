@@ -17,9 +17,23 @@ const FACEBOOK_IOS_UA =
   "(KHTML, like Gecko) Mobile/21C66 [FBAN/FBIOS;FBAV/447.0.0.31.107;FBBV/564431005;" +
   "FBDV/iPhone15,3;FBMD/iPhone;FBSN/iOS;FBSV/17.2.1;FBSS/3;FBID/phone;FBLC/en_US;FBOP/5]"
 
+// X/Twitter for iPhone uses WKWebView and appends "Twitter for iPhone" to the UA.
+// This is the primary paid-traffic source since we moved off TikTok (July 2026).
+const TWITTER_IOS_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 " +
+  "(KHTML, like Gecko) Mobile/21F90 Twitter for iPhone"
+
+// X on Android renders links inside its own WebView; recent builds omit an app
+// marker so we fall through to the generic Android WebView heuristic (wv token).
+const TWITTER_ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A.231005.007.A1; wv) " +
+  "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/125.0.6422.165 " +
+  "Mobile Safari/537.36"
+
 const IAB_VIEWPORT = { width: 375, height: 812 }
 
 export default defineConfig({
+  testDir: "./tests",
   testMatch: [
     "design-fixes.spec.ts",
     "paytree-e2e.spec.ts",
@@ -33,7 +47,7 @@ export default defineConfig({
     "activation.spec.ts",
   ],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
     headless: true,
   },
   projects: [
@@ -67,6 +81,26 @@ export default defineConfig({
       testMatch: ["**/iab-signup.spec.ts"],
       use: {
         userAgent: FACEBOOK_IOS_UA,
+        viewport: IAB_VIEWPORT,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "iab-twitter-ios",
+      testMatch: ["**/iab-signup.spec.ts"],
+      use: {
+        userAgent: TWITTER_IOS_UA,
+        viewport: IAB_VIEWPORT,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "iab-twitter-android",
+      testMatch: ["**/iab-signup.spec.ts"],
+      use: {
+        userAgent: TWITTER_ANDROID_UA,
         viewport: IAB_VIEWPORT,
         isMobile: true,
         hasTouch: true,

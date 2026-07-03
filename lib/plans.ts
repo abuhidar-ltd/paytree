@@ -3,8 +3,8 @@
  *
  * Tiers (canonical):
  *  - free: $0
- *  - pro:  $7/mo or $59/yr
- *  - ultra: $19/mo or $159/yr
+ *  - pro:  $4.99/mo or $29.99/yr
+ *  - ultra: $14.99/mo or $99.99/yr
  *
  * Legacy DB compat:
  *  Existing users may have `subscriptionPlan = "starter"` from the previous
@@ -88,8 +88,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   pro: {
     id: "pro",
     name: "Pro",
-    monthly: 700,    // $7
-    yearly: 5900,    // $59 (~$4.92/mo)
+    monthly: 499,    // $4.99
+    yearly: 2999,    // $29.99 (~$2.50/mo)
     features: [
       "Everything in Free",
       "Countdown / drop cards",
@@ -116,8 +116,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   ultra: {
     id: "ultra",
     name: "Ultra",
-    monthly: 1900,   // $19
-    yearly: 15900,   // $159 (~$13.25/mo)
+    monthly: 1499,   // $14.99
+    yearly: 9999,    // $99.99 (~$8.33/mo)
     features: [
       "Everything in Pro",
       "AI sales agent on your page",

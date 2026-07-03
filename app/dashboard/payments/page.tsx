@@ -85,8 +85,8 @@ const stagger = {
 
 const FEE_TABLE: { plan: PlanId; label: string; fee: string; monthly: string; canSell: boolean }[] = [
   { plan: "free",  label: "Free",  fee: "0%", monthly: "$0",     canSell: true },
-  { plan: "pro",   label: "Pro",   fee: "0%", monthly: "$7/mo",  canSell: true },
-  { plan: "ultra", label: "Ultra", fee: "0%", monthly: "$19/mo", canSell: true },
+  { plan: "pro",   label: "Pro",   fee: "0%", monthly: "$4.99/mo",  canSell: true },
+  { plan: "ultra", label: "Ultra", fee: "0%", monthly: "$14.99/mo", canSell: true },
 ]
 
 export default function PaymentsPage() {

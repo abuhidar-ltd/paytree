@@ -10,7 +10,7 @@ const ROWS: Array<{ feature: string; linktree: Cell; paytree: Cell; highlight?: 
   { feature: "Countdown drop cards", linktree: false, paytree: true },
   { feature: "Vault — gate any card by email/payment", linktree: false, paytree: true },
   { feature: "Globe analytics — country & city map", linktree: false, paytree: true },
-  { feature: "Top tier monthly price", linktree: "$35", paytree: "$19", highlight: true },
+  { feature: "Top tier monthly price", linktree: "$35", paytree: "$14.99", highlight: true },
 ]
 
 function Mark({ value }: { value: Cell }) {
