@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { trackServer } from "@/lib/analytics-server"
+import { closeCompGrantLogs, CLEAR_COMP_FIELDS } from "@/lib/comped"
 import Stripe from "stripe"
 import { Resend } from "resend"
 
@@ -454,6 +455,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Persist customer ID (covers race where create-checkout-session DB write didn't complete)
   const stripeCustomerId = session.customer ? (session.customer as string) : undefined
 
+  // A real paid subscription supersedes any admin-granted comp — clear the
+  // comped flags so this user counts in MRR, and close their grant-log rows.
+  await closeCompGrantLogs(resolvedId)
+
   // Update user subscription status AND publish page
   const user = await prisma.user.update({
     where: { id: resolvedId },
@@ -465,6 +470,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       ...(stripeCustomerId ? { stripeCustomerId } : {}),
       trialEndsAt,
       subscriptionEndsAt,
+      ...CLEAR_COMP_FIELDS,
       // AUTO-PUBLISH PAGE AFTER SUCCESSFUL PAYMENT
       pageStatus: 'published',
       publishedAt: new Date(),
@@ -688,6 +694,9 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
     }
   }
 
+  // Real Stripe state now owns this user's subscription — end any active comp.
+  await closeCompGrantLogs(userId)
+
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
@@ -697,6 +706,7 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
       subscriptionEndsAt,
       ...(plan ? { subscriptionPlan: plan } : {}),
       ...(interval ? { subscriptionInterval: interval } : {}),
+      ...CLEAR_COMP_FIELDS,
     },
     select: { username: true }
   })

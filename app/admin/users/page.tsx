@@ -16,6 +16,7 @@ type SearchParams = {
   status?: string
   onboarded?: string
   published?: string
+  comped?: string
 }
 
 // Plan is a *computed* value (resolveUserPlan: legacy starter→pro + trial expiry),
@@ -52,6 +53,9 @@ function buildWhere(sp: SearchParams): Prisma.UserWhereInput {
     and.push({ OR: [{ pageStatus: { not: "published" } }, { pageStatus: null }] })
   }
 
+  if (sp.comped === "yes") and.push({ isComped: true })
+  else if (sp.comped === "no") and.push({ isComped: false })
+
   return and.length ? { AND: and } : {}
 }
 
@@ -63,6 +67,7 @@ function qs(sp: SearchParams, overrides: Partial<SearchParams>): string {
   if (merged.status) params.set("status", merged.status)
   if (merged.onboarded) params.set("onboarded", merged.onboarded)
   if (merged.published) params.set("published", merged.published)
+  if (merged.comped) params.set("comped", merged.comped)
   if (merged.page) params.set("page", merged.page)
   const s = params.toString()
   return s ? `?${s}` : ""
@@ -84,7 +89,7 @@ export default async function AdminUsersPage({
   const pageNum = Math.max(1, parseInt(sp.page ?? "1", 10) || 1)
   const skip = (pageNum - 1) * PAGE_SIZE
 
-  const [total, users] = await Promise.all([
+  const [total, users, recentGrants] = await Promise.all([
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
@@ -106,12 +111,25 @@ export default async function AdminUsersPage({
         subscriptionInterval: true,
         trialEndsAt: true,
         subscriptionEndsAt: true,
+        isComped: true,
+        compedExpiresAt: true,
         stripeAccountStatus: true,
         aiChatMessages: true,
         _count: { select: { links: true, blocks: true, clicks: true } },
       },
     }),
+    prisma.planGrantLog.findMany({ orderBy: { grantedAt: "desc" }, take: 20 }),
   ])
+
+  // The audit log stores userId only (rows must outlive account deletion) —
+  // resolve emails for display in one lookup.
+  const grantUsers = recentGrants.length
+    ? await prisma.user.findMany({
+        where: { id: { in: [...new Set(recentGrants.map((g) => g.userId))] } },
+        select: { id: true, email: true, username: true },
+      })
+    : []
+  const grantUserById = new Map(grantUsers.map((u) => [u.id, u]))
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const hasPrev = pageNum > 1
@@ -123,7 +141,7 @@ export default async function AdminUsersPage({
     <>
       <PageTitle
         title="Users"
-        subtitle={`${nf(total)} match · showing ${nf(showingFrom)}–${nf(showingTo)} · page ${pageNum}/${totalPages} · read-only`}
+        subtitle={`${nf(total)} match · showing ${nf(showingFrom)}–${nf(showingTo)} · page ${pageNum}/${totalPages}`}
       />
 
       <Card>
@@ -143,6 +161,7 @@ export default async function AdminUsersPage({
           <FilterSelect name="status" label="Status" value={sp.status ?? ""} options={STATUS_OPTIONS} />
           <FilterSelect name="onboarded" label="Onboarded" value={sp.onboarded ?? ""} options={["", "yes", "no"]} />
           <FilterSelect name="published" label="Published" value={sp.published ?? ""} options={["", "yes", "no"]} />
+          <FilterSelect name="comped" label="Comped" value={sp.comped ?? ""} options={["", "yes", "no"]} />
 
           <button
             type="submit"
@@ -175,12 +194,13 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-4 text-right">Blocks</th>
                 <th className="py-2 pr-4 text-right">Clicks</th>
                 <th className="py-2 pr-4 text-right">AI msgs</th>
+                <th className="py-2 pr-4"></th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td className="py-4 text-[#555]" colSpan={13}>No users match these filters.</td>
+                  <td className="py-4 text-[#555]" colSpan={14}>No users match these filters.</td>
                 </tr>
               ) : (
                 users.map((u) => {
@@ -212,14 +232,29 @@ export default async function AdminUsersPage({
                       <td className="py-2 pr-4">{u.emailVerified ? "✓" : <span className="text-[#f59e0b]">no</span>}</td>
                       <td className="py-2 pr-4">{u.onboarded ? "✓" : <span className="text-[#666]">no</span>}</td>
                       <td className="py-2 pr-4">{u.pageStatus ?? "—"}</td>
-                      <td className="py-2 pr-4">{plan}</td>
+                      <td className="py-2 pr-4">
+                        {plan}
+                        {u.isComped ? (
+                          <span className="ml-1.5 text-[10px] uppercase tracking-widest text-[#f59e0b] border border-[#f59e0b]/30 rounded px-1 py-0.5">
+                            comped
+                          </span>
+                        ) : null}
+                      </td>
                       <td className="py-2 pr-4">{u.subscriptionStatus ?? "free"}</td>
-                      <td className="py-2 pr-4">{fmtDate(ends)}</td>
+                      <td className="py-2 pr-4">{fmtDate(u.isComped ? u.compedExpiresAt : ends)}</td>
                       <td className="py-2 pr-4">{u.stripeAccountStatus ?? "—"}</td>
                       <td className="py-2 pr-4 text-right">{nf(u._count.links)}</td>
                       <td className="py-2 pr-4 text-right">{nf(u._count.blocks)}</td>
                       <td className="py-2 pr-4 text-right">{nf(u._count.clicks)}</td>
                       <td className="py-2 pr-4 text-right">{nf(u.aiChatMessages)}</td>
+                      <td className="py-2 pr-4">
+                        <Link
+                          href={`/admin/users/${u.id}`}
+                          className="text-[#00ff88] border border-[#00ff88]/25 rounded-lg px-2.5 py-1 hover:bg-[#00ff88]/10"
+                        >
+                          Manage
+                        </Link>
+                      </td>
                     </tr>
                   )
                 })
@@ -256,6 +291,55 @@ export default async function AdminUsersPage({
             )}
           </div>
         </div>
+      </Card>
+
+      {/* Accountability record: every manual grant/revoke, newest first. */}
+      <Card title="Plan grant audit log (latest 20)">
+        {recentGrants.length === 0 ? (
+          <p className="text-xs font-mono text-[#555]">No manual plan grants yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs font-mono whitespace-nowrap">
+              <thead>
+                <tr className="text-[#555] text-left border-b border-white/[0.06]">
+                  <th className="py-2 pr-4">User</th>
+                  <th className="py-2 pr-4">Plan</th>
+                  <th className="py-2 pr-4">Duration</th>
+                  <th className="py-2 pr-4">Reason</th>
+                  <th className="py-2 pr-4">Granted by</th>
+                  <th className="py-2 pr-4">Granted</th>
+                  <th className="py-2 pr-4">Ended</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentGrants.map((g) => {
+                  const u = grantUserById.get(g.userId)
+                  return (
+                    <tr key={g.id} className="border-b border-white/[0.04] text-[#d0d0d0]">
+                      <td className="py-2 pr-4">
+                        {u ? (
+                          <Link href={`/admin/users/${g.userId}`} className="text-[#00ff88] hover:underline">
+                            {u.username ? `@${u.username}` : u.email}
+                          </Link>
+                        ) : (
+                          <span className="text-[#555]">(deleted account)</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-4 uppercase">{g.plan}</td>
+                      <td className="py-2 pr-4">{g.duration}</td>
+                      <td className="py-2 pr-4 whitespace-normal max-w-[240px]">{g.reason}</td>
+                      <td className="py-2 pr-4 text-[#888]">{g.grantedBy}</td>
+                      <td className="py-2 pr-4">{fmtDate(g.grantedAt)}</td>
+                      <td className="py-2 pr-4">
+                        {g.revokedAt ? fmtDate(g.revokedAt) : <span className="text-[#00ff88]">active</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </>
   )

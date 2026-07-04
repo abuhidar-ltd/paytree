@@ -41,3 +41,17 @@ export async function requireAdmin(): Promise<AdminUser> {
   }
   return user
 }
+
+/**
+ * Same allowlist check for Server Actions (mutations), where a thrown error —
+ * not a 404 render — is the correct rejection. Every admin action must call
+ * this first; never rely on the page being gated, since actions are directly
+ * invokable POST endpoints.
+ */
+export async function requireAdminAction(): Promise<AdminUser> {
+  const user = await getCurrentUser()
+  if (!user || !isAdminEmail(user.email)) {
+    throw new Error("Unauthorized")
+  }
+  return user
+}

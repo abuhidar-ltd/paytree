@@ -169,13 +169,25 @@ function normalizePlanId(raw: string | null | undefined): PlanId {
 /**
  * Resolve a user's effective plan from their subscription data.
  * Returns "free" if no active subscription.
+ *
+ * Comped plans (admin-granted, no Stripe subscription) ride the normal
+ * status="active" path. The one extra rule: an EXPIRED comp resolves to
+ * "free" even while the DB row still says "active" — lib/get-user.ts
+ * reverts the row itself on the user's next authenticated read.
+ * Callers that don't select the comped fields simply skip this check.
  */
 export function resolveUserPlan(user: {
   subscriptionStatus?: string | null
   subscriptionPlan?: string | null
   trialEndsAt?: Date | null
   subscriptionEndsAt?: Date | null
+  isComped?: boolean | null
+  compedExpiresAt?: Date | null
 }): PlanId {
+  if (user.isComped && user.compedExpiresAt && new Date() > new Date(user.compedExpiresAt)) {
+    return "free"
+  }
+
   const status = user.subscriptionStatus
   if (!status || status === "free" || status === "canceled") {
     if (status === "canceled" && user.subscriptionEndsAt) {
@@ -208,6 +220,8 @@ export function getUserFeatures(user: {
   subscriptionPlan?: string | null
   trialEndsAt?: Date | null
   subscriptionEndsAt?: Date | null
+  isComped?: boolean | null
+  compedExpiresAt?: Date | null
 }): PlanDefinition {
   const planId = resolveUserPlan(user)
   return PLANS[planId]
@@ -220,6 +234,8 @@ export function isSubscriptionActive(user: {
   subscriptionStatus?: string | null
   trialEndsAt?: Date | null
   subscriptionEndsAt?: Date | null
+  isComped?: boolean | null
+  compedExpiresAt?: Date | null
 }): boolean {
   const plan = resolveUserPlan(user)
   return plan !== "free"

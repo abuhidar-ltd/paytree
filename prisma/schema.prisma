@@ -70,6 +70,19 @@ model User {
 
   // Onboarding
   onboarded Boolean @default(false)
+  // How onboarding ended: "completed" | "skipped". Null = abandoned (never
+  // finished) or predates this field. Set by /api/profile from the flow.
+  onboardingOutcome String?
+
+  // Manually granted (comped) plan — partnerships, support gestures, friends.
+  // A comped user has subscriptionStatus="active" + subscriptionPlan set but
+  // NO Stripe subscription. isComped keeps them out of MRR estimates; the
+  // Stripe webhook clears these fields if the user later genuinely pays.
+  // compedExpiresAt = null means lifetime. Full history lives in PlanGrantLog.
+  isComped        Boolean   @default(false)
+  compedReason    String?   @db.Text
+  compedBy        String?
+  compedExpiresAt DateTime?
 
   // Branding toggle (Ultra plan removes "Made with Paytree" footer)
   removeBranding Boolean @default(false)
@@ -523,4 +536,57 @@ model Block {
   @@index([userId])
   @@index([userId, enabled])
   @@index([parentId])
+}
+
+// ===== ADMIN / INTERNAL ANALYTICS =====
+
+// One row per landing-page document request (/, /register, /login) — persisted
+// twin of the `[visit]` console line in proxy.ts. Server-side ground truth for
+// bot vs human traffic quality; console logs expire, these rows don't.
+model Visit {
+  id        String   @id @default(cuid())
+  path      String
+  country   String?
+  bot       Boolean  @default(false)
+  referrer  String?
+  clickIds  String?
+  ua        String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([bot, createdAt])
+}
+
+// One row per client-side signup stage beacon — persisted twin of the
+// `[signup:client]` console line (app/api/signup-telemetry). Powers the
+// hydration-time distribution and signup step funnel on /admin.
+model SignupTelemetry {
+  id        String   @id @default(cuid())
+  event     String // hydrated | step_done | validation_failed | submit | submit_result
+  ms        Int?
+  step      String?
+  ok        Boolean?
+  country   String?
+  ua        String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+  @@index([createdAt])
+}
+
+// Audit log for manually granted plans. Every grant writes a row; revoke (or
+// auto-expiry) stamps revokedAt. Never deleted — accountability record of who
+// got free access, from whom, and why.
+model PlanGrantLog {
+  id        String    @id @default(cuid())
+  userId    String
+  plan      String
+  duration  String // 1m | 3m | 6m | 12m | lifetime
+  reason    String    @db.Text
+  grantedBy String
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@index([grantedAt])
 }

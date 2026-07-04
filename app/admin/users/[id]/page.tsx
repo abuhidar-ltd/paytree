@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin"
 import { resolveUserPlan } from "@/lib/plans"
 import { StatCard, Card, PageTitle, nf, money, fmtDate, fmtDateTime, maskId } from "../../ui"
+import { PlanManager } from "../plan-manager"
 
 export const dynamic = "force-dynamic"
 
@@ -40,6 +41,10 @@ export default async function AdminUserDetailPage({
       subscriptionInterval: true,
       trialEndsAt: true,
       subscriptionEndsAt: true,
+      isComped: true,
+      compedReason: true,
+      compedBy: true,
+      compedExpiresAt: true,
       stripeCustomerId: true,
       stripeSubscriptionId: true,
       stripeAccountId: true,
@@ -67,7 +72,7 @@ export default async function AdminUserDetailPage({
   if (!user) notFound()
 
   // Purchases have no direct userId — they belong to the user's products.
-  const [purchaseCount, recentLinks, recentProducts, recentPurchases] = await Promise.all([
+  const [purchaseCount, recentLinks, recentProducts, recentPurchases, grantLog] = await Promise.all([
     prisma.purchase.count({ where: { product: { userId: id } } }),
     prisma.link.findMany({
       where: { userId: id },
@@ -94,6 +99,11 @@ export default async function AdminUserDetailPage({
         product: { select: { title: true } },
       },
     }),
+    prisma.planGrantLog.findMany({
+      where: { userId: id },
+      orderBy: { grantedAt: "desc" },
+      take: 25,
+    }),
   ])
 
   const plan = resolveUserPlan(user)
@@ -109,8 +119,56 @@ export default async function AdminUserDetailPage({
 
       <PageTitle
         title={user.username ? `@${user.username}` : "(no username)"}
-        subtitle={`${user.email} · read-only`}
+        subtitle={user.email}
       />
+
+      <Card title="Plan management">
+        <PlanManager
+          userId={user.id}
+          currentPlan={plan}
+          isComped={user.isComped}
+          compedExpiresAt={user.compedExpiresAt?.toISOString() ?? null}
+          compedReason={user.compedReason}
+          compedBy={user.compedBy}
+          hasStripeSubscription={
+            !!user.stripeSubscriptionId &&
+            ["active", "trial", "canceling"].includes(user.subscriptionStatus ?? "")
+          }
+        />
+        {grantLog.length > 0 ? (
+          <div className="mt-5 pt-4 border-t border-white/[0.06] overflow-x-auto">
+            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-3">
+              Grant history
+            </h3>
+            <table className="w-full text-xs font-mono whitespace-nowrap">
+              <thead>
+                <tr className="text-[#555] text-left border-b border-white/[0.06]">
+                  <th className="py-2 pr-4">Plan</th>
+                  <th className="py-2 pr-4">Duration</th>
+                  <th className="py-2 pr-4">Reason</th>
+                  <th className="py-2 pr-4">Granted by</th>
+                  <th className="py-2 pr-4">Granted</th>
+                  <th className="py-2 pr-4">Ended</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grantLog.map((g) => (
+                  <tr key={g.id} className="border-b border-white/[0.04] text-[#d0d0d0]">
+                    <td className="py-2 pr-4 uppercase">{g.plan}</td>
+                    <td className="py-2 pr-4">{g.duration}</td>
+                    <td className="py-2 pr-4 whitespace-normal max-w-[280px]">{g.reason}</td>
+                    <td className="py-2 pr-4 text-[#888]">{g.grantedBy}</td>
+                    <td className="py-2 pr-4">{fmtDateTime(g.grantedAt)}</td>
+                    <td className="py-2 pr-4">
+                      {g.revokedAt ? fmtDateTime(g.revokedAt) : <span className="text-[#00ff88]">active</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
 
       {/* Counts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
@@ -149,6 +207,9 @@ export default async function AdminUserDetailPage({
             <Row label="Trial ends" value={fmtDate(user.trialEndsAt)} />
             <Row label="Sub ends" value={fmtDate(user.subscriptionEndsAt)} />
             <Row label="Ends (effective)" value={fmtDate(ends)} />
+            <Row label="Comped" value={user.isComped ? `yes — ${user.compedExpiresAt ? `until ${fmtDate(user.compedExpiresAt)}` : "lifetime"}` : "no"} />
+            {user.isComped ? <Row label="Comped by" value={user.compedBy ?? "—"} /> : null}
+            {user.isComped ? <Row label="Comp reason" value={user.compedReason ?? "—"} /> : null}
             <Row label="Stripe customer" value={maskId(user.stripeCustomerId)} mono />
             <Row label="Stripe subscription" value={maskId(user.stripeSubscriptionId)} mono />
             <Row label="Connect account" value={maskId(user.stripeAccountId)} mono />

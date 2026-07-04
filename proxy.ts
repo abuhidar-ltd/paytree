@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server"
 import { getSessionCookie } from "better-auth/cookies"
 
 /**
@@ -35,7 +35,7 @@ const VISIT_CLICK_IDS = ["twclid", "rdt_cid", "fbclid", "gclid", "gbraid", "wbra
 
 const BOT_UA = /bot|crawl|spider|slurp|preview|headless|scanner|monitor|facebookexternalhit|curl\/|python|go-http|axios|wget/i
 
-function logVisit(request: NextRequest, pathname: string): void {
+function logVisit(request: NextRequest, pathname: string, event: NextFetchEvent): void {
   const accept = request.headers.get("accept") || ""
   // Documents only — skip prefetches, RSC payload fetches, and asset requests.
   if (request.method !== "GET" || !accept.includes("text/html")) return
@@ -47,15 +47,38 @@ function logVisit(request: NextRequest, pathname: string): void {
   const ids = VISIT_CLICK_IDS.filter((k) => sp.has(k))
     .map((k) => `${k}=${(sp.get(k) || "").slice(0, 16)}`)
     .join(",")
+  const bot = BOT_UA.test(ua)
   console.log(
-    `[visit] ${pathname} country=${country} bot=${BOT_UA.test(ua)} ref=${referer} ids=${ids || "-"} ua="${ua.slice(0, 140)}"`
+    `[visit] ${pathname} country=${country} bot=${bot} ref=${referer} ids=${ids || "-"} ua="${ua.slice(0, 140)}"`
+  )
+
+  // Persist the same line as a Visit row — console logs expire, /admin queries
+  // these. waitUntil keeps the write off the request's critical path; a DB
+  // hiccup must never break a landing-page load, hence the swallowed catch.
+  // (proxy.ts runs on the Node runtime in Next 16, so Prisma is available;
+  // the dynamic import keeps it un-evaluated for the 3 logged paths' misses.)
+  event.waitUntil(
+    import("@/lib/prisma")
+      .then(({ prisma }) =>
+        prisma.visit.create({
+          data: {
+            path: pathname,
+            country: country === "-" ? null : country,
+            bot,
+            referrer: referer === "-" ? null : referer.slice(0, 300),
+            clickIds: ids || null,
+            ua: ua.slice(0, 300),
+          },
+        })
+      )
+      .catch((err) => console.error("[visit] persist failed:", err))
   )
 }
 
-export function proxy(request: NextRequest) {
+export function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
-  if (VISIT_LOGGED_PATHS.has(pathname)) logVisit(request, pathname)
+  if (VISIT_LOGGED_PATHS.has(pathname)) logVisit(request, pathname, event)
 
   // Inject x-pathname for dashboard routes that read it. Propagating request
   // headers via NextResponse.next({ request }) emits a middleware rewrite that

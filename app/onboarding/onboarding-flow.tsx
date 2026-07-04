@@ -254,7 +254,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       const onboardRes = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ onboarded: true }),
+        body: JSON.stringify({ onboarded: true, onboardingOutcome: "completed" }),
       })
       console.log("[onboarding] onboarded save response:", onboardRes.status, onboardRes.ok)
 
@@ -324,7 +324,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ onboarded: true, accentColor: "#00ff88", heroStyle: "classic" }),
+        body: JSON.stringify({ onboarded: true, onboardingOutcome: "skipped", accentColor: "#00ff88", heroStyle: "classic" }),
       })
       if (!res.ok) throw new Error(`PATCH failed ${res.status}`)
     } catch (err) {

@@ -54,6 +54,23 @@ export async function POST(req: Request) {
     fields.ua = (req.headers.get("user-agent") || "").slice(0, 140)
 
     console.log(`[signup:client] ${stage}`, JSON.stringify(fields))
+
+    // Persist for /admin (hydration-time distribution + signup step funnel).
+    // Console lines expire; these rows are the queryable record. Same 204
+    // contract: a DB failure is swallowed — telemetry must never error out.
+    const { prisma } = await import("@/lib/prisma")
+    await prisma.signupTelemetry
+      .create({
+        data: {
+          event: stage,
+          ms: typeof fields.ms === "number" && Number.isFinite(fields.ms) ? Math.round(fields.ms) : null,
+          step: typeof fields.step === "string" ? fields.step : null,
+          ok: typeof fields.ok === "boolean" ? fields.ok : null,
+          country: fields.country === "-" ? null : String(fields.country),
+          ua: String(fields.ua),
+        },
+      })
+      .catch((err) => console.error("[signup:client] persist failed:", err))
   } catch {
     // Malformed beacon — drop silently.
   }

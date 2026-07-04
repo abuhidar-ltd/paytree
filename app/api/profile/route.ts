@@ -24,6 +24,9 @@ const profileSchema = z.object({
   heroImage: z.string().nullable().optional().or(z.literal("")),
   cornerRadius: z.string().nullable().optional(),
   onboarded: z.boolean().optional(),
+  // Distinguishes "finished the flow" from "smart-skipped it" — both set
+  // onboarded=true; null means abandoned. Read by the /admin dashboard.
+  onboardingOutcome: z.enum(["completed", "skipped"]).optional(),
   aiAgentEnabled: z.boolean().optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
 
@@ -115,7 +118,7 @@ export async function PATCH(req: Request) {
       name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
       backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
       heroImage, cornerRadius,
-      onboarded, aiAgentEnabled,
+      onboarded, onboardingOutcome, aiAgentEnabled,
     } = profileSchema.parse(body)
 
     // Check username uniqueness if being changed
@@ -155,6 +158,7 @@ export async function PATCH(req: Request) {
         heroImage: heroImage || null,
         cornerRadius,
         ...(onboarded !== undefined && { onboarded }),
+        ...(onboardingOutcome !== undefined && { onboardingOutcome }),
         ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
         ...(referralCode !== undefined && { referralCode }),
       },

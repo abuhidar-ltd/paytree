@@ -15,9 +15,17 @@ export async function getCurrentUser() {
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user?.id) return null
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+    let user = await prisma.user.findUnique({ where: { id: session.user.id } })
     if (!user) {
       console.warn("[getCurrentUser] session present but user not found in DB:", session.user.id)
+      return null
+    }
+    // Check-on-read: an admin-granted (comped) plan whose end date has passed
+    // reverts to Free here, on the user's next authenticated request. Fires at
+    // most once per comp — the revert clears isComped.
+    const { expireCompIfDue } = await import("@/lib/comped")
+    if (await expireCompIfDue(user)) {
+      user = await prisma.user.findUnique({ where: { id: user.id } })
     }
     return user
   } catch (err) {

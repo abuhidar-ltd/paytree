@@ -21,7 +21,7 @@ export default async function AdminSubscriptionsPage() {
       where: { subscriptionStatus: { in: ["active", "trial", "canceling"] } },
       select: {
         subscriptionStatus: true, subscriptionPlan: true, subscriptionInterval: true,
-        trialEndsAt: true, subscriptionEndsAt: true,
+        trialEndsAt: true, subscriptionEndsAt: true, isComped: true, compedExpiresAt: true,
       },
     }),
     prisma.user.findMany({
@@ -31,18 +31,25 @@ export default async function AdminSubscriptionsPage() {
       select: {
         username: true, subscriptionStatus: true, subscriptionPlan: true,
         subscriptionInterval: true, trialEndsAt: true, subscriptionEndsAt: true,
+        isComped: true, compedExpiresAt: true,
       },
     }),
   ])
 
-  // Plan + interval breakdown + MRR (trials excluded from MRR).
+  // Plan + interval breakdown + MRR. Comped (admin-granted) users never count
+  // toward MRR — they don't pay. Trials excluded from MRR as before.
   const planCounts: Record<PlanId, number> = { free: 0, pro: 0, ultra: 0 }
   let monthly = 0
   let yearly = 0
+  let comped = 0
   let mrrCents = 0
   for (const u of subUsers) {
     const plan = resolveUserPlan(u)
     if (plan === "free") continue
+    if (u.isComped) {
+      comped++
+      continue
+    }
     planCounts[plan]++
     if (u.subscriptionInterval === "yearly") yearly++
     else monthly++
@@ -54,9 +61,10 @@ export default async function AdminSubscriptionsPage() {
     <>
       <PageTitle title="Subscriptions" subtitle="Read-only. MRR is an estimate — Stripe is the source of truth." />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatCard label="MRR estimate" value={money(mrrCents)} sub="excl. trials" />
-        <StatCard label="Pro / Ultra" value={`${nf(planCounts.pro)} / ${nf(planCounts.ultra)}`} sub="active + trial" />
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <StatCard label="MRR estimate" value={money(mrrCents)} sub="excl. trials + comped" />
+        <StatCard label="Pro / Ultra" value={`${nf(planCounts.pro)} / ${nf(planCounts.ultra)}`} sub="paying + trial" />
+        <StatCard label="Comped" value={nf(comped)} sub="admin-granted, $0" />
         <StatCard label="Monthly / Yearly" value={`${nf(monthly)} / ${nf(yearly)}`} sub="billing interval" />
         <StatCard label="Trials ending ≤3d" value={nf(trialsEndingSoon)} />
       </div>
@@ -107,7 +115,10 @@ export default async function AdminSubscriptionsPage() {
                       </Link>
                     ) : "—"}
                   </td>
-                  <td className="py-2 pr-4">{resolveUserPlan(u)}</td>
+                  <td className="py-2 pr-4">
+                    {resolveUserPlan(u)}
+                    {u.isComped ? <span className="ml-1.5 text-[10px] uppercase text-[#f59e0b]">comped</span> : null}
+                  </td>
                   <td className="py-2 pr-4">{u.subscriptionInterval ?? "—"}</td>
                   <td className="py-2 pr-4">{u.subscriptionStatus ?? "—"}</td>
                   <td className="py-2 pr-4">{fmtDate(u.trialEndsAt ?? u.subscriptionEndsAt ?? null)}</td>

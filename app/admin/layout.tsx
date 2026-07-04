@@ -37,9 +37,6 @@ export default async function AdminLayout({
           <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#f59e0b] border border-[#f59e0b]/30 rounded px-1.5 py-0.5">
             Admin
           </span>
-          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#555] border border-white/[0.08] rounded px-1.5 py-0.5">
-            Read-only
-          </span>
         </div>
         <span className="text-[#444] font-mono text-xs truncate max-w-[180px]">
           {admin.email}
