@@ -334,6 +334,9 @@ export function SignInScreen({ userAgent }: Props) {
                   autoComplete="username"
                   enterKeyHint="next"
                   autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  translate="no"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
@@ -355,6 +358,10 @@ export function SignInScreen({ userAgent }: Props) {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     enterKeyHint="go"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    translate="no"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && next()}
@@ -443,6 +450,15 @@ export function SignInScreen({ userAgent }: Props) {
           <Link href="/register" className="text-[#00ff88] font-semibold">
             Create your page
           </Link>
+        </p>
+
+        {/* Legal footer — mirrors /register so users see the same trust
+            signal on both flows. */}
+        <p className="mt-4 text-center text-[11px] text-[#444] leading-relaxed">
+          By signing in you agree to our{" "}
+          <Link href="/terms" className="text-[#666] underline hover:text-[#888]">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-[#666] underline hover:text-[#888]">Privacy Policy</Link>.
         </p>
       </main>
     </div>

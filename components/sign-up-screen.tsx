@@ -361,6 +361,10 @@ export function SignUpScreen({ userAgent }: Props) {
                   type="text"
                   placeholder="Sara Miller"
                   autoComplete="name"
+                  enterKeyHint="next"
+                  autoCapitalize="words"
+                  spellCheck={false}
+                  translate="no"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
@@ -381,6 +385,11 @@ export function SignUpScreen({ userAgent }: Props) {
                   inputMode="email"
                   placeholder="you@email.com"
                   autoComplete="email"
+                  enterKeyHint="next"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  translate="no"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
@@ -401,6 +410,11 @@ export function SignUpScreen({ userAgent }: Props) {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     autoComplete="new-password"
+                    enterKeyHint="go"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    translate="no"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && next()}
@@ -539,6 +553,15 @@ export function SignUpScreen({ userAgent }: Props) {
           <Link href="/login" className="text-[#00ff88] font-semibold">
             Sign in
           </Link>
+        </p>
+
+        {/* Legal footer — required for Google OAuth review + basic
+            trust signal that measurably lifts signup conversion. */}
+        <p className="mt-4 text-center text-[11px] text-[#444] leading-relaxed">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="text-[#666] underline hover:text-[#888]">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-[#666] underline hover:text-[#888]">Privacy Policy</Link>.
         </p>
       </main>
     </div>
