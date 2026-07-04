@@ -168,6 +168,12 @@ export function SignUpScreen({ userAgent }: Props) {
       name: name.trim(),
       callbackURL: "/onboarding",
     }
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "unknown"
+    console.log("[signup] request started", {
+      email: payload.email,
+      name: payload.name,
+      userAgent,
+    })
     let timedOutOnce = false
     let result: Awaited<ReturnType<typeof signUp.email>> | null = null
     let lastNetworkError: unknown = null
@@ -181,6 +187,7 @@ export function SignUpScreen({ userAgent }: Props) {
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1])
       try {
+        console.log("[signup] creating user...", { email: payload.email, name: payload.name, attempt })
         const raced = await Promise.race([
           signUp.email(payload),
           sleep(ATTEMPT_TIMEOUT_MS).then(() => TIMED_OUT as typeof TIMED_OUT),
@@ -199,6 +206,15 @@ export function SignUpScreen({ userAgent }: Props) {
         result = raced
         break
       } catch (err) {
+        console.error("[signup] attempt threw", {
+          error: err,
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+          email: payload.email,
+          name: payload.name,
+          userAgent,
+          attempt,
+        })
         lastNetworkError = err
       }
     }
@@ -236,10 +252,22 @@ export function SignUpScreen({ userAgent }: Props) {
         track("error_signup", { reason: errObj.code ?? msg.slice(0, 80), status: status ?? null })
         return
       }
+      console.log("[signup] user + session created successfully", {
+        email: payload.email,
+        name: payload.name,
+      })
       try { localStorage.removeItem(DRAFT_KEY) } catch {}
       fireOnce("create_account", { wizard: true })
       hardNavigate("/onboarding")
     } catch (err) {
+      console.error("[signup] submit threw", {
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        email: payload.email,
+        name: payload.name,
+        userAgent,
+      })
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
     } finally {

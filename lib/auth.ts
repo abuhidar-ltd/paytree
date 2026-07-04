@@ -210,6 +210,7 @@ const config: BetterAuthOptions = {
           //
           // The username is a starter value only. During onboarding step 0
           // the user picks the pretty handle they actually want.
+          console.log("[signup] creating user...", { email: user.email, name: user.name })
           try {
             const base =
               (user.email.split("@")[0] || "user")
@@ -220,11 +221,22 @@ const config: BetterAuthOptions = {
             console.log("[auth:hook] username allocated:", { email: user.email, username: candidate })
             return { data: { ...user, username: candidate } }
           } catch (err) {
-            console.error("[auth:hook] user.create.before threw:", err)
+            console.error("[signup] user.create.before threw", {
+              error: err,
+              message: err instanceof Error ? err.message : String(err),
+              stack: err instanceof Error ? err.stack : undefined,
+              email: user.email,
+              name: user.name,
+            })
             throw err
           }
         },
         after: async (user) => {
+          console.log("[signup] user created successfully", {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          })
           // Starter card: the canvas must never be empty. Runs for every
           // account path (email AND Google OAuth). config.starter marks it so
           // the go-live checklist can tell it apart from user-added cards.
@@ -242,8 +254,24 @@ const config: BetterAuthOptions = {
             })
             console.log("[auth:hook] starter card created for", user.email)
           } catch (err) {
-            console.error("[auth:hook] starter card create failed:", err)
+            console.error("[signup] starter card create failed", {
+              error: err,
+              message: err instanceof Error ? err.message : String(err),
+              stack: err instanceof Error ? err.stack : undefined,
+              userId: user.id,
+              email: user.email,
+            })
           }
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          console.log("[signup] session created", {
+            sessionId: session.id,
+            userId: session.userId,
+          })
         },
       },
     },
