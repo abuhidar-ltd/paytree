@@ -50,3 +50,5 @@ prisma/dev.db-journal
 .env
 .env.local
 .env*
+# but the template stays committed
+!.env.example
