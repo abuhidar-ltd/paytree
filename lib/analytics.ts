@@ -92,12 +92,65 @@ export type EventName =
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const
 type UtmKey = typeof UTM_KEYS[number]
 
+// Paid-click identifiers. Each ad network stamps its click ID as a URL param
+// on the landing URL; without capturing them we can never reconcile revenue
+// to the ad click that produced it. Keep the parameter names verbatim — the
+// networks look them up on their side to match server-side conversion events.
+//   twclid    — X (Twitter) Ads
+//   fbclid    — Meta (Facebook/Instagram) Ads
+//   gclid     — Google Ads (web)
+//   gbraid    — Google Ads iOS (SKAdNetwork, replaces gclid)
+//   wbraid    — Google Ads iOS (web-to-app, replaces gclid)
+//   msclkid   — Microsoft Advertising / Bing Ads
+//   ttclid    — TikTok Ads
+//   li_fat_id — LinkedIn Ads
+const CLICK_ID_KEYS = [
+  "twclid",
+  "fbclid",
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "msclkid",
+  "ttclid",
+  "li_fat_id",
+] as const
+type ClickIdKey = typeof CLICK_ID_KEYS[number]
+
 const STORAGE_KEY = "paytree_attribution"
 
-type Attribution = Partial<Record<UtmKey, string>> & {
-  referrer?: string
-  landing_path?: string
-  captured_at?: string
+type Attribution = Partial<Record<UtmKey, string>> &
+  Partial<Record<ClickIdKey, string>> & {
+    referrer?: string
+    source_guess?: string
+    landing_path?: string
+    captured_at?: string
+  }
+
+/**
+ * Map a document.referrer hostname to the ad network it belongs to. Social
+ * apps proxy shared links through their own short domains (X uses t.co,
+ * Meta uses l.facebook.com / l.instagram.com / lm.facebook.com) so raw
+ * referrer strings in attribution reports read as noise instead of the
+ * platform the click actually came from.
+ */
+function guessSource(referrer: string | undefined): string | undefined {
+  if (!referrer) return undefined
+  let host: string
+  try {
+    host = new URL(referrer).hostname.toLowerCase()
+  } catch {
+    return undefined
+  }
+  if (host === "t.co" || host.endsWith(".x.com") || host === "x.com" || host.endsWith(".twitter.com") || host === "twitter.com") return "x"
+  if (host === "lm.facebook.com" || host === "l.facebook.com" || host === "m.facebook.com" || host === "facebook.com" || host.endsWith(".facebook.com")) return "facebook"
+  if (host === "l.instagram.com" || host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram"
+  if (host === "linkedin.com" || host.endsWith(".linkedin.com") || host === "lnkd.in") return "linkedin"
+  if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be") return "youtube"
+  if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok"
+  if (host === "google.com" || host.endsWith(".google.com") || host === "google.co.uk") return "google"
+  if (host === "bing.com" || host.endsWith(".bing.com")) return "bing"
+  if (host === "reddit.com" || host.endsWith(".reddit.com")) return "reddit"
+  return undefined
 }
 
 /**
@@ -115,14 +168,20 @@ export function captureAttribution(): void {
     }
 
     const params = new URLSearchParams(window.location.search)
+    const referrer = document.referrer || undefined
     const attribution: Attribution & { _exp: number } = {
       _exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      referrer: document.referrer || undefined,
+      referrer,
+      source_guess: guessSource(referrer),
       landing_path: window.location.pathname,
       captured_at: new Date().toISOString(),
     }
 
     for (const key of UTM_KEYS) {
+      const v = params.get(key)
+      if (v) attribution[key] = v
+    }
+    for (const key of CLICK_ID_KEYS) {
       const v = params.get(key)
       if (v) attribution[key] = v
     }

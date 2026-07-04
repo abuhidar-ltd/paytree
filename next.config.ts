@@ -47,13 +47,16 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
-    // @prisma/client intentionally excluded — optimizePackageImports has a
-    // recurring history of tree-shaking Prisma's generated types out of the
-    // client bundle in Next 15/16, which surfaces as "Model X does not exist
-    // in the database" at runtime. Costs a few KB, worth the reliability.
+    // Deliberately excluded from optimizePackageImports:
+    //   @prisma/client — history of tree-shaking generated types out of the
+    //     client bundle in Next 15/16, surfacing as "Model X does not exist".
+    //   framer-motion  — same category. Occasional SSR/CSR mismatches on
+    //     animated components have been reported when this is on. We run
+    //     framer-motion throughout the app; a subtle hydration break would
+    //     silently look like "the animations are broken" to real users.
+    // Cost of exclusion is a few KB, worth the reliability.
     optimizePackageImports: [
       "recharts",
-      "framer-motion",
       "lucide-react",
       "@dnd-kit/core",
       "@dnd-kit/sortable",
