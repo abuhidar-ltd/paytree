@@ -40,6 +40,10 @@ export async function POST(req: Request) {
         subscriptionPlan: true,
         trialEndsAt: true,
         subscriptionEndsAt: true,
+        // Comp fields must ride along or an EXPIRED comp still passes the
+        // hasAiFeatures gate below (resolveUserPlan only sees what's selected).
+        isComped: true,
+        compedExpiresAt: true,
         socialLinks: {
           where: { enabled: true },
           select: { platform: true, url: true },

@@ -544,18 +544,25 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log("  - User ID (from metadata):", userId)
   
   // Find user by subscription ID if not in metadata
-  const user = userId 
-    ? await prisma.user.findUnique({ 
+  const user = userId
+    ? await prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, username: true }
+        select: { id: true, username: true, isComped: true }
       })
-    : await prisma.user.findFirst({ 
+    : await prisma.user.findFirst({
         where: { stripeSubscriptionId: sub.id },
-        select: { id: true, username: true }
+        select: { id: true, username: true, isComped: true }
       })
 
   if (!user) {
     console.error("[STRIPE WEBHOOK] ❌ Cannot find user for deleted subscription:", sub.id)
+    return
+  }
+
+  // An admin-granted comp outranks the death of an OLD Stripe subscription —
+  // don't let a stale cancellation event downgrade a deliberately comped user.
+  if (user.isComped) {
+    console.log(`[STRIPE WEBHOOK] ⏭️  ${user.username} has an active comp — skipping cancellation downgrade`)
     return
   }
 
@@ -694,8 +701,20 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
     }
   }
 
-  // Real Stripe state now owns this user's subscription — end any active comp.
-  await closeCompGrantLogs(userId)
+  // Clear an active comp ONLY when a real subscription ACTIVATES. Dunning and
+  // cancellation events (past_due/unpaid/canceled — often from an old, dead
+  // subscription) must not strip a comp the admin granted on purpose, nor
+  // clobber the comp's "active" status with "canceled".
+  const isActivation = status === "active" || status === "trial"
+  if (isActivation) {
+    await closeCompGrantLogs(userId)
+  } else {
+    const existing = await prisma.user.findUnique({ where: { id: userId }, select: { isComped: true } })
+    if (existing?.isComped) {
+      console.log("[STRIPE WEBHOOK] ⏭️  user has an active comp — skipping non-activation subscription update")
+      return
+    }
+  }
 
   const updatedUser = await prisma.user.update({
     where: { id: userId },
@@ -706,7 +725,7 @@ async function updateUserSubscription(userId: string, subscription: Stripe.Subsc
       subscriptionEndsAt,
       ...(plan ? { subscriptionPlan: plan } : {}),
       ...(interval ? { subscriptionInterval: interval } : {}),
-      ...CLEAR_COMP_FIELDS,
+      ...(isActivation ? CLEAR_COMP_FIELDS : {}),
     },
     select: { username: true }
   })

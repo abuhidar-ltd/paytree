@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         subscriptionStatus: true,
         subscriptionPlan: true,
         trialEndsAt: true,
-        subscriptionEndsAt: true,
+        subscriptionEndsAt: true, isComped: true, compedExpiresAt: true,
       },
     })
 

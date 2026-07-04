@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         subscriptionStatus: true,
         subscriptionPlan: true,
         trialEndsAt: true,
-        subscriptionEndsAt: true,
+        subscriptionEndsAt: true, isComped: true, compedExpiresAt: true,
       }
     })
 

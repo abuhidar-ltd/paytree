@@ -36,8 +36,14 @@ export const COMP_DURATIONS: { id: CompDuration; label: string; months: number |
 export function compExpiryDate(duration: CompDuration, from: Date = new Date()): Date | null {
   const def = COMP_DURATIONS.find((d) => d.id === duration)
   if (!def || def.months === null) return null
+  // Clamp to the target month's last day — a bare setMonth overflows short
+  // months (Jan 31 + 1m would land on Mar 3, silently gifting extra days).
   const expires = new Date(from)
+  const day = expires.getDate()
+  expires.setDate(1)
   expires.setMonth(expires.getMonth() + def.months)
+  const lastDay = new Date(expires.getFullYear(), expires.getMonth() + 1, 0).getDate()
+  expires.setDate(Math.min(day, lastDay))
   return expires
 }
 
@@ -60,19 +66,33 @@ export async function grantComp(opts: {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, subscriptionStatus: true, stripeSubscriptionId: true, isComped: true },
+    select: {
+      id: true,
+      subscriptionStatus: true,
+      subscriptionEndsAt: true,
+      stripeSubscriptionId: true,
+      isComped: true,
+    },
   })
   if (!user) return { ok: false, error: "User not found." }
 
   // Live Stripe subscription → this is a paying customer. Comping them would
   // desync the DB from Stripe and hide real revenue. Handle in Stripe instead.
-  if (
-    user.stripeSubscriptionId &&
-    ["active", "trial", "canceling"].includes(user.subscriptionStatus ?? "")
-  ) {
+  // "canceled" with a future subscriptionEndsAt is included: dunning maps to
+  // "canceled" in our DB, and a canceled-mid-term subscriber still has paid
+  // time that a comp overwrite (and its later revoke/expiry) would destroy.
+  const hasLiveStatus = ["active", "trial", "canceling"].includes(user.subscriptionStatus ?? "")
+  const hasPaidGraceTime =
+    user.subscriptionStatus === "canceled" &&
+    !user.isComped &&
+    !!user.subscriptionEndsAt &&
+    new Date(user.subscriptionEndsAt) > new Date()
+  if (user.stripeSubscriptionId && (hasLiveStatus || hasPaidGraceTime)) {
     return {
       ok: false,
-      error: "User has a live Stripe subscription — manage it in Stripe, not via a comp.",
+      error: hasPaidGraceTime
+        ? "User still has paid Stripe time left — wait until it lapses or handle it in Stripe."
+        : "User has a live Stripe subscription — manage it in Stripe, not via a comp.",
     }
   }
 

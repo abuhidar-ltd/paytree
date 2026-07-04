@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     // Feature gates — free plan restrictions
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { subscriptionStatus: true, subscriptionPlan: true, trialEndsAt: true, subscriptionEndsAt: true },
+      select: { subscriptionStatus: true, subscriptionPlan: true, trialEndsAt: true, subscriptionEndsAt: true, isComped: true, compedExpiresAt: true },
     })
     const features = getUserFeatures(dbUser ?? {})
 

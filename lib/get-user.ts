@@ -22,10 +22,18 @@ export async function getCurrentUser() {
     }
     // Check-on-read: an admin-granted (comped) plan whose end date has passed
     // reverts to Free here, on the user's next authenticated request. Fires at
-    // most once per comp — the revert clears isComped.
-    const { expireCompIfDue } = await import("@/lib/comped")
-    if (await expireCompIfDue(user)) {
-      user = await prisma.user.findUnique({ where: { id: user.id } })
+    // most once per comp — the revert clears isComped. Isolated try/catch: a
+    // failed bookkeeping write must NEVER discard the already-fetched user
+    // (that's the "signed-in user looks signed-out" outage class this file's
+    // header warns about). resolveUserPlan treats the expired comp as free
+    // regardless, so skipping the revert here costs nothing but a retry later.
+    try {
+      const { expireCompIfDue } = await import("@/lib/comped")
+      if (await expireCompIfDue(user)) {
+        user = (await prisma.user.findUnique({ where: { id: user.id } })) ?? user
+      }
+    } catch (err) {
+      console.error("[getCurrentUser] comp-expiry revert failed (non-fatal):", err)
     }
     return user
   } catch (err) {

@@ -4,7 +4,7 @@
 // Renders inside a server-side Card on the user detail page; all validation
 // and authorization live in the server actions, this is presentation only.
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { grantPlanAction, revokePlanAction, type PlanActionState } from "./actions"
 
@@ -45,7 +45,11 @@ export function PlanManager({
 }) {
   const [grantState, grantAction, granting] = useActionState<PlanActionState, FormData>(grantPlanAction, null)
   const [revokeState, revokeAction, revoking] = useActionState<PlanActionState, FormData>(revokePlanAction, null)
-  const feedback = grantState ?? revokeState
+  // Show the feedback of whichever action ran LAST — both hook states persist,
+  // so `grantState ?? revokeState` would hide every revoke result after the
+  // first successful grant.
+  const [lastAction, setLastAction] = useState<"grant" | "revoke" | null>(null)
+  const feedback = lastAction === "revoke" ? revokeState : lastAction === "grant" ? grantState : null
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
@@ -73,7 +77,7 @@ export function PlanManager({
           disabled here.
         </p>
       ) : (
-        <form action={grantAction} className="flex flex-wrap items-end gap-3 mb-4">
+        <form action={grantAction} onSubmit={() => setLastAction("grant")} className="flex flex-wrap items-end gap-3 mb-4">
           <input type="hidden" name="userId" value={userId} />
           <Field label="Grant plan">
             <select name="plan" defaultValue="ultra" className={inputCls}>
@@ -122,7 +126,9 @@ export function PlanManager({
           onSubmit={(e) => {
             if (!window.confirm("Revoke this comped plan? The user reverts to Free immediately.")) {
               e.preventDefault()
+              return
             }
+            setLastAction("revoke")
           }}
         >
           <input type="hidden" name="userId" value={userId} />

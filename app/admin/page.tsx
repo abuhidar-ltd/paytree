@@ -31,16 +31,17 @@ function bucketLabel(d: Date, range: RangeId): string {
 
 function bucketSeries(dates: Date[], since: Date, range: RangeId): { label: string; count: number }[] {
   const stepMs = range === "24h" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000
-  const buckets: { label: string; count: number }[] = []
-  const index = new Map<string, number>()
-  for (let t = since.getTime(); t <= Date.now(); t += stepMs) {
-    const label = bucketLabel(new Date(t), range)
-    index.set(label, buckets.length)
-    buckets.push({ label, count: 0 })
-  }
+  // Index by time offset, not by label — in the 24h view the first and last
+  // hourly buckets share the same "HH:00" label, and a label lookup would
+  // silently merge them (double-counting the newest hour into the oldest).
+  const n = Math.max(1, Math.ceil((Date.now() - since.getTime()) / stepMs))
+  const buckets = Array.from({ length: n }, (_, i) => ({
+    label: bucketLabel(new Date(since.getTime() + i * stepMs), range),
+    count: 0,
+  }))
   for (const d of dates) {
-    const i = index.get(bucketLabel(d, range))
-    if (i !== undefined) buckets[i].count++
+    const i = Math.floor((d.getTime() - since.getTime()) / stepMs)
+    if (i >= 0 && i < n) buckets[i].count++
   }
   return buckets
 }
@@ -134,17 +135,26 @@ export default async function AdminOverviewPage({
       orderBy: { _count: { id: "desc" } },
       take: 8,
     }),
+    // Referrer is an attacker-controlled header — cap the group count so junk
+    // Referers can't balloon this query (top 50 pre-normalization covers the
+    // top-8 hostnames we display).
     prisma.visit.groupBy({
       by: ["referrer"],
       where: { createdAt: { gte: since }, bot: false, referrer: { not: null } },
       _count: { _all: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 50,
     }),
     prisma.visit.count({
       where: { createdAt: { gte: since }, bot: false, clickIds: { not: null } },
     }),
+    // Newest 10k hydration samples — plenty for a distribution, bounded even
+    // if the table is flooded.
     prisma.signupTelemetry.findMany({
       where: { event: "hydrated", createdAt: { gte: since }, ms: { not: null } },
       select: { ms: true },
+      orderBy: { createdAt: "desc" },
+      take: 10_000,
     }),
     prisma.signupTelemetry.groupBy({
       by: ["event", "step", "ok"],

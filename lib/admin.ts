@@ -29,6 +29,16 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 type AdminUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 
 /**
+ * Signups don't require email verification, so an allowlisted address with no
+ * existing account could be registered by anyone. Admin access therefore
+ * requires BOTH the allowlist match AND a verified email — verify your admin
+ * account (or set emailVerified in the DB) before first use.
+ */
+function isAdminUser(user: AdminUser | null): user is AdminUser {
+  return !!user && user.emailVerified && isAdminEmail(user.email)
+}
+
+/**
  * Require an authenticated, allowlisted admin. Calls notFound() (404) for
  * anyone who is not — so /admin is not discoverable by non-admins. Returns the
  * admin's user record on success. Compares the authenticated session email,
@@ -36,7 +46,7 @@ type AdminUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
  */
 export async function requireAdmin(): Promise<AdminUser> {
   const user = await getCurrentUser()
-  if (!user || !isAdminEmail(user.email)) {
+  if (!isAdminUser(user)) {
     notFound()
   }
   return user
@@ -50,7 +60,7 @@ export async function requireAdmin(): Promise<AdminUser> {
  */
 export async function requireAdminAction(): Promise<AdminUser> {
   const user = await getCurrentUser()
-  if (!user || !isAdminEmail(user.email)) {
+  if (!isAdminUser(user)) {
     throw new Error("Unauthorized")
   }
   return user

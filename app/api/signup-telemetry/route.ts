@@ -14,6 +14,8 @@
  *    of its own or give bots an error surface to probe
  */
 
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
+
 const STAGES = new Set([
   "hydrated",
   "step_done",
@@ -21,6 +23,10 @@ const STAGES = new Set([
   "submit",
   "submit_result",
 ])
+
+// The only step values the signup flow emits. Persisting anything else would
+// let a bot mint unbounded distinct groupBy keys in the admin dashboard.
+const STEPS = new Set(["name", "email", "password"])
 
 // Only these keys are ever written to logs. Everything else is discarded.
 const FIELD_WHITELIST = [
@@ -37,6 +43,13 @@ const FIELD_WHITELIST = [
 
 export async function POST(req: Request) {
   try {
+    // A real signup emits ~8 beacons; 40/min per IP is generous headroom while
+    // capping what a curl loop can write to the DB. Always 204 — never give
+    // abusers a distinguishable rejection signal.
+    if (!rateLimit(`signup-telemetry:${getClientIp(req)}`, 40, 60_000).ok) {
+      return new Response(null, { status: 204 })
+    }
+
     const raw = await req.text()
     if (raw.length === 0 || raw.length > 2048) return new Response(null, { status: 204 })
 
@@ -64,7 +77,7 @@ export async function POST(req: Request) {
         data: {
           event: stage,
           ms: typeof fields.ms === "number" && Number.isFinite(fields.ms) ? Math.round(fields.ms) : null,
-          step: typeof fields.step === "string" ? fields.step : null,
+          step: typeof fields.step === "string" && STEPS.has(fields.step) ? fields.step : null,
           ok: typeof fields.ok === "boolean" ? fields.ok : null,
           country: fields.country === "-" ? null : String(fields.country),
           ua: String(fields.ua),

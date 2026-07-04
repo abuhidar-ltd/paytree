@@ -42,7 +42,9 @@ export function BarsChart({
           <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} interval="preserveStartEnd" />
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#888" }} itemStyle={{ color }} />
-          <Bar dataKey="count" fill={color} fillOpacity={0.75} radius={[3, 3, 0, 0]} maxBarSize={28} />
+          {/* No entry animation: throttled rAF in background tabs leaves
+              animated charts stuck at frame 0 (invisible). */}
+          <Bar dataKey="count" fill={color} fillOpacity={0.75} radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -70,6 +72,7 @@ export function DonutChart({
               outerRadius="90%"
               paddingAngle={2}
               stroke="none"
+              isAnimationActive={false}
             >
               {data.map((d) => (
                 <Cell key={d.name} fill={d.color} fillOpacity={0.85} />

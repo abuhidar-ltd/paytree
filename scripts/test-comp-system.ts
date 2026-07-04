@@ -115,8 +115,31 @@ async function main() {
       reason: "should fail", grantedBy: admin,
     })
     check("grant refused for live Stripe subscription", !refused.ok)
+
+    // Canceled mid-term with paid time remaining is still a paying customer.
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { subscriptionStatus: "canceled", subscriptionEndsAt: nextMonth },
+    })
+    const refusedGrace = await grantComp({
+      userId: user.id, plan: "ultra", duration: "lifetime",
+      reason: "should fail", grantedBy: admin,
+    })
+    check("grant refused for canceled sub with paid grace time", !refusedGrace.ok)
+
+    // ── Month-end expiry clamp ──
+    console.log("\n[7] Expiry date clamps short months")
+    const { compExpiryDate } = await import("../lib/comped")
+    const jan31 = new Date("2026-01-31T12:00:00Z")
+    const plus1m = compExpiryDate("1m", jan31)
+    check(
+      "Jan 31 + 1 month clamps to Feb 28 (no March overflow)",
+      !!plus1m && plus1m.getUTCMonth() === 1 && plus1m.getUTCDate() === 28,
+      plus1m?.toISOString()
+    )
   } finally {
-    console.log("\n[7] Cleanup")
+    console.log("\n[8] Cleanup")
     await prisma.planGrantLog.deleteMany({ where: { userId: user.id } })
     await prisma.user.delete({ where: { id: user.id } })
     console.log("  throwaway rows deleted")

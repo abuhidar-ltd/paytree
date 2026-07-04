@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server"
 import { getSessionCookie } from "better-auth/cookies"
+import { rateLimit } from "@/lib/rate-limit"
 
 /**
  * Routes that require a signed-in session. API routes do their own auth via
@@ -57,6 +58,11 @@ function logVisit(request: NextRequest, pathname: string, event: NextFetchEvent)
   // hiccup must never break a landing-page load, hence the swallowed catch.
   // (proxy.ts runs on the Node runtime in Next 16, so Prisma is available;
   // the dynamic import keeps it un-evaluated for the 3 logged paths' misses.)
+  // Per-IP cap so a landing-page flood can't turn into unbounded Neon writes —
+  // the console line above still fires for every request (free, ephemeral).
+  const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0]?.trim() || "unknown"
+  if (!rateLimit(`visit:${ip}`, 30, 60_000).ok) return
+
   event.waitUntil(
     import("@/lib/prisma")
       .then(({ prisma }) =>

@@ -1,5 +1,11 @@
 {
   "buildCommand": "prisma generate && next build",
+  "crons": [
+    {
+      "path": "/api/cron/prune-telemetry",
+      "schedule": "30 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
