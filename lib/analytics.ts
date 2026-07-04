@@ -104,6 +104,7 @@ type UtmKey = typeof UTM_KEYS[number]
 //   msclkid   — Microsoft Advertising / Bing Ads
 //   ttclid    — TikTok Ads
 //   li_fat_id — LinkedIn Ads
+//   rdt_cid   — Reddit Ads
 const CLICK_ID_KEYS = [
   "twclid",
   "fbclid",
@@ -113,6 +114,7 @@ const CLICK_ID_KEYS = [
   "msclkid",
   "ttclid",
   "li_fat_id",
+  "rdt_cid",
 ] as const
 type ClickIdKey = typeof CLICK_ID_KEYS[number]
 
@@ -215,8 +217,13 @@ export type Props = Record<string, AllowedValue>
  * Clarity was reporting INP > 1s, and synchronous enrichment + track() on
  * every CTA was a measurable chunk of that. Fire-and-forget is correct here:
  * the user has already navigated away by the time the event posts.
+ *
+ * opts.urgent skips the idle deferral: use it for events fired immediately
+ * before a hard navigation (create_account, complete_login) — a deferred
+ * callback dies with the document and the event is silently lost, which is
+ * exactly how the funnel's success events went missing in July 2026.
  */
-export function track(name: EventName, props: Props = {}): void {
+export function track(name: EventName, props: Props = {}, opts: { urgent?: boolean } = {}): void {
   if (typeof window === "undefined") return
 
   // Internal-traffic exclusion: devices that ever visited /admin are branded
@@ -244,6 +251,11 @@ export function track(name: EventName, props: Props = {}): void {
     } catch {
       // Analytics disabled / blocked — don't break the user flow.
     }
+  }
+
+  if (opts.urgent) {
+    run()
+    return
   }
 
   const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback

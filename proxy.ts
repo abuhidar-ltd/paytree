@@ -21,8 +21,41 @@ function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
+/**
+ * Entry-point visit log — the ad-funnel landing paths, one line per document
+ * request. This is the server-side ground truth for "who actually landed":
+ * user-agent (bot vs WebView vs real browser), referrer, country, and which
+ * ad click IDs arrived. Client analytics can't see bots and dies with slow
+ * WebViews; this line always fires.
+ */
+const VISIT_LOGGED_PATHS = new Set(["/", "/register", "/login"])
+
+// Paid click IDs worth surfacing per-visit (same set lib/analytics.ts captures).
+const VISIT_CLICK_IDS = ["twclid", "rdt_cid", "fbclid", "gclid", "gbraid", "wbraid", "msclkid", "ttclid", "li_fat_id"]
+
+const BOT_UA = /bot|crawl|spider|slurp|preview|headless|scanner|monitor|facebookexternalhit|curl\/|python|go-http|axios|wget/i
+
+function logVisit(request: NextRequest, pathname: string): void {
+  const accept = request.headers.get("accept") || ""
+  // Documents only — skip prefetches, RSC payload fetches, and asset requests.
+  if (request.method !== "GET" || !accept.includes("text/html")) return
+
+  const ua = request.headers.get("user-agent") || "<none>"
+  const referer = request.headers.get("referer") || "-"
+  const country = request.headers.get("x-vercel-ip-country") || "-"
+  const sp = request.nextUrl.searchParams
+  const ids = VISIT_CLICK_IDS.filter((k) => sp.has(k))
+    .map((k) => `${k}=${(sp.get(k) || "").slice(0, 16)}`)
+    .join(",")
+  console.log(
+    `[visit] ${pathname} country=${country} bot=${BOT_UA.test(ua)} ref=${referer} ids=${ids || "-"} ua="${ua.slice(0, 140)}"`
+  )
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (VISIT_LOGGED_PATHS.has(pathname)) logVisit(request, pathname)
 
   // Inject x-pathname for dashboard routes that read it. Propagating request
   // headers via NextResponse.next({ request }) emits a middleware rewrite that

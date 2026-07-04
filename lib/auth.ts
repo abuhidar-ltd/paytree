@@ -70,10 +70,12 @@ function safeOrigin(rawUrl: string): string | null {
 const trustedOrigins = buildTrustedOrigins()
 
 if (process.env.NODE_ENV !== "test") {
-  // Print once at module init so a misconfigured deploy is obvious from logs.
-  console.log("[auth] trustedOrigins:", trustedOrigins)
-  console.log("[auth] baseURL:", process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "<undefined>")
-  console.log("[auth] hasGoogleOAuth:", hasGoogleOAuth)
+  // One compact line per cold start so a misconfigured deploy is obvious
+  // from logs without three multi-line dumps on every function instance.
+  console.log(
+    `[auth] init baseURL=${process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "<undefined>"} ` +
+      `google=${hasGoogleOAuth} origins=${trustedOrigins.join(",")}`
+  )
 
   // Loud, one-time sanity check for the two variables whose absence otherwise
   // manifests as opaque 500s on every signup. We warn rather than throw so a
@@ -107,9 +109,11 @@ const config: BetterAuthOptions = {
   // Surface internal errors to Vercel logs. Without this we have no visibility
   // into 4xx rejections (INVALID_ORIGIN, USER_ALREADY_EXISTS, etc.) — they
   // come back to the client as `{ error: {...} }` with no server log.
+  // warn+error only: debug-level output drowned the signal (the route wrapper
+  // in app/api/auth/[...all]/route.ts already logs request/response/body).
   logger: {
     disabled: false,
-    level: "debug",
+    level: "warn",
     log(level, message, ...args) {
       console.log(`[better-auth:${level}]`, message, ...args)
     },
@@ -210,7 +214,6 @@ const config: BetterAuthOptions = {
           //
           // The username is a starter value only. During onboarding step 0
           // the user picks the pretty handle they actually want.
-          console.log("[signup] creating user...", { email: user.email, name: user.name })
           try {
             const base =
               (user.email.split("@")[0] || "user")
@@ -218,25 +221,18 @@ const config: BetterAuthOptions = {
                 .replace(/[^a-z0-9]/g, "")
                 .slice(0, 12) || "user"
             const candidate = `${base}${randomBytes(4).toString("hex")}`
-            console.log("[auth:hook] username allocated:", { email: user.email, username: candidate })
+            console.log(`[signup] user.create.before email=${user.email} username=${candidate}`)
             return { data: { ...user, username: candidate } }
           } catch (err) {
-            console.error("[signup] user.create.before threw", {
-              error: err,
-              message: err instanceof Error ? err.message : String(err),
-              stack: err instanceof Error ? err.stack : undefined,
-              email: user.email,
-              name: user.name,
-            })
+            console.error(
+              `[signup] user.create.before FAILED email=${user.email} err=${err instanceof Error ? err.message : String(err)}`,
+              err instanceof Error ? err.stack : undefined,
+            )
             throw err
           }
         },
         after: async (user) => {
-          console.log("[signup] user created successfully", {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          })
+          console.log(`[signup] user created id=${user.id} email=${user.email}`)
           // Starter card: the canvas must never be empty. Runs for every
           // account path (email AND Google OAuth). config.starter marks it so
           // the go-live checklist can tell it apart from user-added cards.
@@ -252,15 +248,13 @@ const config: BetterAuthOptions = {
                 config: { starter: true },
               },
             })
-            console.log("[auth:hook] starter card created for", user.email)
+            console.log(`[signup] starter-card ok userId=${user.id}`)
           } catch (err) {
-            console.error("[signup] starter card create failed", {
-              error: err,
-              message: err instanceof Error ? err.message : String(err),
-              stack: err instanceof Error ? err.stack : undefined,
-              userId: user.id,
-              email: user.email,
-            })
+            const code = (err as { code?: string })?.code
+            console.error(
+              `[signup] starter-card FAILED userId=${user.id} code=${code ?? "-"} err=${err instanceof Error ? err.message : String(err)}`,
+              err instanceof Error ? err.stack : undefined,
+            )
           }
         },
       },
@@ -268,10 +262,9 @@ const config: BetterAuthOptions = {
     session: {
       create: {
         after: async (session) => {
-          console.log("[signup] session created", {
-            sessionId: session.id,
-            userId: session.userId,
-          })
+          // Fires on signup AND login — session id truncated: it's a bearer
+          // credential, logs only need enough of it to correlate.
+          console.log(`[auth] session created userId=${session.userId} sid=${session.id.slice(0, 8)}…`)
         },
       },
     },

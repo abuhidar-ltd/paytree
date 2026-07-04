@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { IABBanner } from "@/components/iab-banner"
 import { signIn, useSession } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
-import { track, type EventName } from "@/lib/analytics"
+import { track, captureAttribution, type EventName } from "@/lib/analytics"
 import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, ArrowLeft, Eye, EyeOff, LogIn } from "lucide-react"
 
@@ -64,7 +64,15 @@ export function SignInScreen({ userAgent }: Props) {
   }
 
   useEffect(() => {
-    track("view_login")
+    // First-touch attribution — ads and shared links can land here directly.
+    captureAttribution()
+
+    // Adopt keystrokes typed before hydration (they never fired onChange) —
+    // same wipe-proofing as the register wizard; inputs are uncontrolled.
+    const preTyped = inputRef.current?.value ?? ""
+    if (preTyped) setEmail(preTyped)
+
+    track("view_login", { hydration_ms: Math.round(performance.now()) })
     const params = new URLSearchParams(window.location.search)
     if (params.get("google_error")) {
       setError("Google sign-in didn't complete. Use your email and password instead.")
@@ -81,10 +89,12 @@ export function SignInScreen({ userAgent }: Props) {
       try {
         if (!sessionStorage.getItem("paytree_login_completed")) {
           sessionStorage.setItem("paytree_login_completed", "1")
-          track("complete_login")
+          fireOnce("complete_login")
         }
       } catch {
-        track("complete_login")
+        // sessionStorage blocked (hardened WebView) — fireOnce still dedupes
+        // within this mount, so the event can't fire on every revalidation.
+        fireOnce("complete_login")
       }
       hardNavigate("/dashboard")
     }
@@ -120,10 +130,11 @@ export function SignInScreen({ userAgent }: Props) {
       // Match the signup normalization exactly — mobile autofill emails often
       // come back with a stray leading space or a capitalized first letter,
       // and Postgres @unique is case-sensitive, so any mismatch is USER_NOT_FOUND
-      // even though the account exists.
-      const cleaned = email.trim().toLowerCase()
+      // even though the account exists. DOM-first read: keystrokes typed
+      // before hydration never reach onChange (inputs are uncontrolled).
+      const cleaned = (inputRef.current?.value ?? email).trim().toLowerCase()
       if (!/.+@.+\..+/.test(cleaned)) return setError("Enter a valid email.")
-      if (cleaned !== email) setEmail(cleaned)
+      setEmail(cleaned)
       fireOnce("start_login")
       setStep(1)
     } else if (step === 1) {
@@ -132,7 +143,9 @@ export function SignInScreen({ userAgent }: Props) {
   }
 
   async function submit() {
-    if (!password) return setError("Enter your password.")
+    const pw = inputRef.current?.value ?? password
+    if (!pw) return setError("Enter your password.")
+    if (pw !== password) setPassword(pw)
     fireOnce("submit_login")
     setLoading(true)
     setError("")
@@ -144,7 +157,7 @@ export function SignInScreen({ userAgent }: Props) {
     // (401 / INVALID_EMAIL_OR_PASSWORD) — those are the user, not the wire.
     const payload = {
       email: email.trim().toLowerCase(),
-      password,
+      password: pw,
       callbackURL: "/dashboard",
     }
     let result: Awaited<ReturnType<typeof signIn.email>> | null = null
@@ -214,6 +227,16 @@ export function SignInScreen({ userAgent }: Props) {
         return
       }
       navigatedRef.current = true
+      // urgent: fire before the hard navigation tears the document down —
+      // deferred events die with the page and complete_login never records.
+      try {
+        if (!sessionStorage.getItem("paytree_login_completed")) {
+          sessionStorage.setItem("paytree_login_completed", "1")
+          track("complete_login", {}, { urgent: true })
+        }
+      } catch {
+        track("complete_login", {}, { urgent: true })
+      }
       hardNavigate("/dashboard")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
@@ -337,7 +360,10 @@ export function SignInScreen({ userAgent }: Props) {
                   autoCorrect="off"
                   spellCheck={false}
                   translate="no"
-                  value={email}
+                  // Uncontrolled: a controlled input is reset to React state
+                  // on the first post-hydration render, erasing pre-hydration
+                  // keystrokes. next() reads the DOM value directly.
+                  defaultValue={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
                   disabled={disabled}
@@ -362,7 +388,7 @@ export function SignInScreen({ userAgent }: Props) {
                     autoCorrect="off"
                     spellCheck={false}
                     translate="no"
-                    value={password}
+                    defaultValue={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && next()}
                     disabled={disabled}

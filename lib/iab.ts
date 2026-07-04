@@ -18,6 +18,7 @@ export type InAppBrowserSource =
   | "facebook"
   | "snapchat"
   | "twitter"
+  | "reddit"
   | "linkedin"
   | "wechat"
   | "line"
@@ -39,7 +40,12 @@ const PATTERNS: Array<{ source: Exclude<InAppBrowserSource, null | "unknown">; r
   { source: "instagram",  regex: /\bInstagram\b/i },
   { source: "facebook",   regex: /\b(FBAN|FBAV|FB_IAB|FBIOS|FB4A)\b/i },
   { source: "snapchat",   regex: /\bSnapchat\b/i },
-  { source: "twitter",    regex: /\bTwitter\b/i },
+  // No trailing \b: the Android X app stamps "TwitterAndroid" (one token), the
+  // iOS app "Twitter for iPhone" — \bTwitter\b matched only the latter.
+  { source: "twitter",    regex: /\bTwitter/i },
+  // Reddit iOS stamps "Reddit/Version 2026.x"; Android mostly uses Chrome
+  // Custom Tabs (a real browser) but some builds stamp the same token.
+  { source: "reddit",     regex: /\bReddit\//i },
   { source: "linkedin",   regex: /\bLinkedInApp\b/i },
   { source: "wechat",     regex: /\bMicroMessenger\b/i },
   { source: "line",       regex: /\bLine\//i },
@@ -96,6 +102,7 @@ export function sourceLabel(source: InAppBrowserSource): string {
     case "facebook": return "Facebook"
     case "snapchat": return "Snapchat"
     case "twitter": return "X (Twitter)"
+    case "reddit": return "Reddit"
     case "linkedin": return "LinkedIn"
     case "wechat": return "WeChat"
     case "line": return "Line"
@@ -117,7 +124,11 @@ export function openInBrowserInstructions(source: InAppBrowserSource, platform: 
     case "facebook":
       return "Tap ⋯ in the corner → Open in external browser"
     case "twitter":
-      return "Tap the share icon → Open in Safari"
+      return platform === "android"
+        ? "Tap ⋮ → Open in Chrome"
+        : "Tap the share icon → Open in Safari"
+    case "reddit":
+      return "Tap ⋯ → Open in browser"
     default:
       break
   }

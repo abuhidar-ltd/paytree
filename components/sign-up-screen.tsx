@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { IABBanner } from "@/components/iab-banner"
 import { signUp, signIn } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
-import { track, type EventName } from "@/lib/analytics"
+import { track, captureAttribution, type EventName } from "@/lib/analytics"
+import { logSignupStage } from "@/lib/signup-telemetry"
 import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react"
 
@@ -63,10 +64,14 @@ export function SignUpScreen({ userAgent }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const fired = useRef<Set<string>>(new Set())
 
-  function fireOnce(stage: EventName, props: Record<string, string | number | boolean | null> = {}) {
+  function fireOnce(
+    stage: EventName,
+    props: Record<string, string | number | boolean | null> = {},
+    urgent = false,
+  ) {
     if (fired.current.has(stage)) return
     fired.current.add(stage)
-    track(stage, props)
+    track(stage, props, { urgent })
   }
 
   // Restore draft on first mount — the WebView may have killed the tab
@@ -74,19 +79,45 @@ export function SignUpScreen({ userAgent }: Props) {
   // restored (never persisted); if the draft says we were on the password
   // step, clamp back to the email step so the user re-enters credentials.
   useEffect(() => {
+    // First-touch attribution (twclid/rdt_cid/utm_*). Ads deep-link straight
+    // to /register, so capture must happen here too — not only on the homepage.
+    captureAttribution()
+
+    // Anything typed BEFORE hydration exists only in the DOM — those
+    // keystrokes never fired onChange. Adopt the DOM value so the user's
+    // typing survives; it also outranks any stale draft.
+    const preTyped = inputRef.current?.value ?? ""
+
+    let draftName = ""
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
       if (raw) {
         const d = JSON.parse(raw) as Partial<Draft>
-        if (typeof d.name === "string") setName(d.name)
+        if (typeof d.name === "string") draftName = d.name
         if (typeof d.email === "string") setEmail(d.email)
-        if (typeof d.step === "number" && d.step > 0) {
+        // Never yank the user off the name step if they're mid-typing.
+        if (typeof d.step === "number" && d.step > 0 && !preTyped) {
           setStep(Math.min(d.step, 1))
         }
       }
     } catch {}
 
-    track("view_signup", { wizard: true })
+    const effectiveName = preTyped || draftName
+    if (effectiveName) {
+      setName(effectiveName)
+      // Inputs are uncontrolled (see BigInput usage) — state alone won't
+      // repaint the field, so restore the draft into the DOM as well.
+      if (inputRef.current && !inputRef.current.value) {
+        inputRef.current.value = effectiveName
+      }
+    }
+
+    // hydration_ms ≈ how long the SSR'd form was visible-but-inert. This is
+    // the window where the pre-fix wipe bug ate signups; keep measuring it.
+    const hydrationMs = Math.round(performance.now())
+    track("view_signup", { wizard: true, hydration_ms: hydrationMs })
+    logSignupStage("hydrated", { ms: hydrationMs })
+
     const params = new URLSearchParams(window.location.search)
     if (params.get("google_error")) {
       setError("Google sign-in didn't complete. Email works right here.")
@@ -131,16 +162,29 @@ export function SignUpScreen({ userAgent }: Props) {
   function next() {
     setError("")
     if (step === 0) {
-      if (name.trim().length < 2) return setError("Enter your name (2+ characters).")
+      // Read the DOM, not React state: keystrokes typed before hydration
+      // never reach onChange, and iOS autofill can populate a field without
+      // firing events. The ref value is the ground truth.
+      const rawName = (inputRef.current?.value ?? name).trim()
+      if (rawName.length < 2) {
+        logSignupStage("validation_failed", { step: "name", reason: "too_short" })
+        return setError("Enter your name (2+ characters).")
+      }
+      setName(rawName)
       fireOnce("start_signup", { wizard: true })
+      logSignupStage("step_done", { step: "name" })
       setStep(1)
     } else if (step === 1) {
       // Normalize as the user advances — mobile keyboards autofill emails with
       // a trailing space or a random uppercase first letter, both of which
       // silently create phantom accounts the user can never sign back into.
-      const cleaned = email.trim().toLowerCase()
-      if (!/.+@.+\..+/.test(cleaned)) return setError("Enter a valid email.")
-      if (cleaned !== email) setEmail(cleaned)
+      const cleaned = (inputRef.current?.value ?? email).trim().toLowerCase()
+      if (!/.+@.+\..+/.test(cleaned)) {
+        logSignupStage("validation_failed", { step: "email", reason: "invalid_email" })
+        return setError("Enter a valid email.")
+      }
+      setEmail(cleaned)
+      logSignupStage("step_done", { step: "email" })
       setStep(2)
     } else if (step === 2) {
       submit()
@@ -153,27 +197,27 @@ export function SignUpScreen({ userAgent }: Props) {
   }
 
   async function submit() {
-    if (password.length < 8) return setError("Password must be 8+ characters.")
+    // Same DOM-first read as next(): the password field may hold characters
+    // React never saw. Never trim the password — users may intentionally
+    // include leading/trailing spaces and we must respect that.
+    const pw = inputRef.current?.value ?? password
+    if (pw.length < 8) {
+      logSignupStage("validation_failed", { step: "password", reason: "too_short" })
+      return setError("Password must be 8+ characters.")
+    }
+    if (pw !== password) setPassword(pw)
 
     fireOnce("submit_signup", { wizard: true })
     setLoading(true)
     setError("")
     setIsNetworkError(false)
 
-    // Final normalization guard. Never trim the password — users may
-    // intentionally include leading/trailing spaces and we must respect that.
     const payload = {
       email: email.trim().toLowerCase(),
-      password,
+      password: pw,
       name: name.trim(),
       callbackURL: "/onboarding",
     }
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "unknown"
-    console.log("[signup] request started", {
-      email: payload.email,
-      name: payload.name,
-      userAgent,
-    })
     let timedOutOnce = false
     let result: Awaited<ReturnType<typeof signUp.email>> | null = null
     let lastNetworkError: unknown = null
@@ -187,7 +231,7 @@ export function SignUpScreen({ userAgent }: Props) {
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1])
       try {
-        console.log("[signup] creating user...", { email: payload.email, name: payload.name, attempt })
+        logSignupStage("submit", { attempt })
         const raced = await Promise.race([
           signUp.email(payload),
           sleep(ATTEMPT_TIMEOUT_MS).then(() => TIMED_OUT as typeof TIMED_OUT),
@@ -206,15 +250,6 @@ export function SignUpScreen({ userAgent }: Props) {
         result = raced
         break
       } catch (err) {
-        console.error("[signup] attempt threw", {
-          error: err,
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
-          email: payload.email,
-          name: payload.name,
-          userAgent,
-          attempt,
-        })
         lastNetworkError = err
       }
     }
@@ -225,6 +260,7 @@ export function SignUpScreen({ userAgent }: Props) {
         setIsNetworkError(true)
         setError("Connection issue — tap to try again")
         track("error_signup", { reason: "network", detail: msg.slice(0, 80), timed_out: timedOutOnce })
+        logSignupStage("submit_result", { ok: false, reason: "network", detail: msg.slice(0, 60) })
         return
       }
       const authError = (result as { error?: unknown }).error
@@ -238,38 +274,34 @@ export function SignUpScreen({ userAgent }: Props) {
         const status = errObj.status ?? errObj.statusCode
         if (timedOutOnce && (errObj.code === "USER_ALREADY_EXISTS" || status === 409)) {
           try {
-            const s = await signIn.email({ email, password, callbackURL: "/onboarding" })
+            const s = await signIn.email({ email: payload.email, password: pw, callbackURL: "/onboarding" })
             if (!(s as { error?: unknown }).error) {
               try { localStorage.removeItem(DRAFT_KEY) } catch {}
-              fireOnce("create_account", { recovered: "timeout_signin", wizard: true })
+              // urgent: hardNavigate tears the document down — a deferred
+              // track() would be dropped and the funnel loses its success event.
+              fireOnce("create_account", { recovered: "timeout_signin", wizard: true }, true)
+              logSignupStage("submit_result", { ok: true, recovered: "timeout_signin" })
               hardNavigate("/onboarding")
               return
             }
-          } catch {}
+          } catch {
+            logSignupStage("submit_result", { ok: false, reason: "timeout_signin_recovery_failed" })
+          }
         }
         const msg = errObj.message || friendlyMessage(errObj.code, status) || "Sign up failed"
         setError(msg)
         track("error_signup", { reason: errObj.code ?? msg.slice(0, 80), status: status ?? null })
+        logSignupStage("submit_result", { ok: false, code: errObj.code ?? null, status: status ?? null })
         return
       }
-      console.log("[signup] user + session created successfully", {
-        email: payload.email,
-        name: payload.name,
-      })
       try { localStorage.removeItem(DRAFT_KEY) } catch {}
-      fireOnce("create_account", { wizard: true })
+      fireOnce("create_account", { wizard: true }, true)
+      logSignupStage("submit_result", { ok: true })
       hardNavigate("/onboarding")
     } catch (err) {
-      console.error("[signup] submit threw", {
-        error: err,
-        message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-        email: payload.email,
-        name: payload.name,
-        userAgent,
-      })
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
+      logSignupStage("submit_result", { ok: false, reason: "client_exception", detail: msg.slice(0, 60) })
     } finally {
       setLoading(false)
     }
@@ -279,7 +311,7 @@ export function SignUpScreen({ userAgent }: Props) {
   const progress = Math.round(((step + 1) / 3) * 100)
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: "#030303" }}>
+    <div className="min-h-screen min-h-dvh text-white relative overflow-hidden" style={{ background: "#030303" }}>
       {/* Ambient */}
       <div
         aria-hidden
@@ -393,7 +425,11 @@ export function SignUpScreen({ userAgent }: Props) {
                   autoCapitalize="words"
                   spellCheck={false}
                   translate="no"
-                  value={name}
+                  // Uncontrolled (defaultValue) on purpose: a controlled input
+                  // gets reset to React state on the first post-hydration
+                  // render, silently erasing anything the user typed while the
+                  // JS bundle was still loading. next() reads the DOM value.
+                  defaultValue={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
                   disabled={disabled}
@@ -418,7 +454,7 @@ export function SignUpScreen({ userAgent }: Props) {
                   autoCorrect="off"
                   spellCheck={false}
                   translate="no"
-                  value={email}
+                  defaultValue={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && next()}
                   disabled={disabled}
@@ -443,7 +479,7 @@ export function SignUpScreen({ userAgent }: Props) {
                     autoCorrect="off"
                     spellCheck={false}
                     translate="no"
-                    value={password}
+                    defaultValue={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && next()}
                     disabled={disabled}
