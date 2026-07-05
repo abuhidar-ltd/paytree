@@ -2,9 +2,9 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { detectIAB } from "@/lib/iab"
 import { HomeHero } from "./home-hero"
 import { HomePageView } from "./home-page-view"
-import { HomeMarquee } from "./home-marquee"
 import { HomeStickyCTA } from "./home-sticky-cta"
 import { TrackedLink } from "@/components/tracked-link"
 
@@ -15,9 +15,14 @@ const HomeShowcase = dynamic(() => import("./home-showcase").then(m => m.HomeSho
 const HomePricingSection = dynamic(() => import("./home-pricing-section").then(m => m.HomePricingSection), { ssr: true })
 
 export default async function HomePage() {
+  const reqHeaders = await headers()
   // Session check via Better Auth — cookie-cached, single DB hit on miss.
-  const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
+  const session = await auth.api.getSession({ headers: reqHeaders }).catch(() => null)
   const isLoggedIn = !!session
+  // Server-side detection (per lib/iab.ts) so the sticky CTA's extra bottom
+  // padding for X's native chrome is correct on first paint — no client
+  // effect, no hydration flash.
+  const isTwitterIAB = detectIAB(reqHeaders.get("user-agent") ?? undefined).platform === "twitter"
 
   return (
     // pb-32 on mobile keeps the footer/pricing CTAs visible above the sticky
@@ -48,17 +53,29 @@ export default async function HomePage() {
           }}
         />
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-3 font-bold text-xl hover:opacity-90 transition-opacity h-11 -ml-1 pl-1"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
-            <span className="text-[#f0f0f0] font-semibold">Paytree</span>
-          </Link>
+          <div className="flex flex-col items-start">
+            <Link
+              href="/"
+              className="flex items-center gap-3 font-bold text-xl hover:opacity-90 transition-opacity h-11 -ml-1 pl-1"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
+              <span className="font-semibold">
+                <span className="text-[#00ff88]">Paytree</span>
+                <span className="text-[#f0f0f0]">.to</span>
+              </span>
+            </Link>
+            {/* Same green accent divider used between the hero headline and
+                CTA, echoed under the wordmark as a small brand underline. */}
+            <div
+              aria-hidden
+              className="h-px w-full"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)" }}
+            />
+          </div>
           <nav className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/pricing"
-              className="text-[#999] hover:text-white transition-colors text-sm font-mono hidden sm:flex items-center min-h-11 px-2"
+              className="text-white hover:text-white transition-colors text-sm font-mono hidden sm:flex items-center min-h-11 px-2"
             >
               Pricing
             </Link>
@@ -78,7 +95,7 @@ export default async function HomePage() {
                   event="click_signin"
                   source="header"
                   href="/login"
-                  className="hidden sm:inline-flex items-center text-[#aaa] hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 rounded-lg hover:border-white/[0.25] min-h-11"
+                  className="hidden sm:inline-flex items-center text-white hover:text-white transition-colors text-sm font-mono border border-white/[0.1] px-3 rounded-lg hover:border-white/[0.25] min-h-11"
                 >
                   Sign in
                 </TrackedLink>
@@ -98,32 +115,32 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Sections */}
+      {/* Sections — head-to-head comparison sits right after the hero, at
+          the top of the page, since it's our strongest conversion hook. */}
       <HomeHero isLoggedIn={isLoggedIn} />
-      <HomeMarquee />
       <HomeComparison />
       <HomeFeatures />
       <HomeShowcase />
       <HomePricingSection isLoggedIn={isLoggedIn} />
 
-      <HomeStickyCTA isLoggedIn={isLoggedIn} />
+      <HomeStickyCTA isLoggedIn={isLoggedIn} isTwitterIAB={isTwitterIAB} />
 
       {/* Footer */}
       <footer className="border-t border-white/[0.05] bg-[rgba(3,3,3,0.8)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)]" />
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_15px_rgba(0,255,136,0.3)]" />
               <span className="font-bold text-white">Paytree</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-[#999] font-mono">
+            <div className="flex items-center gap-6 text-sm text-white font-mono">
               <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             </div>
           </div>
           <div className="border-t border-white/[0.05] mt-6 pt-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#777] font-mono">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white font-mono">
               <div>&copy; {new Date().getFullYear()} Paytree. All rights reserved.</div>
               <div>0% platform fees on every paid plan. Stripe processing fees apply.</div>
             </div>

@@ -173,7 +173,7 @@ export function ProfileClient({
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                 className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-white font-mono">{formatNumber(user.statsStudents)}</div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">{user.statsLabel1 || "Students"}</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white mt-1">{user.statsLabel1 || "Students"}</div>
               </motion.div>
             )}
             {user.statsWinRate > 0 && (
@@ -185,14 +185,14 @@ export function ProfileClient({
                 >
                   {user.statsWinRate}%
                 </div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">{user.statsLabel2 || "Win Rate"}</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white mt-1">{user.statsLabel2 || "Win Rate"}</div>
               </motion.div>
             )}
             {user.statsFollowers > 0 && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
                 className={`bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4 text-center ${user.statsStudents > 0 && user.statsWinRate > 0 ? "col-span-2" : ""}`}>
                 <div className="text-2xl font-bold text-white font-mono">{formatNumber(user.statsFollowers)}</div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">{user.statsLabel3 || "Followers"}</div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white mt-1">{user.statsLabel3 || "Followers"}</div>
               </motion.div>
             )}
           </div>
@@ -220,7 +220,7 @@ export function ProfileClient({
           <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-10 text-center">
             <div className="text-4xl mb-3 opacity-30">🔗</div>
             <p className="text-sm font-medium text-white">No links yet</p>
-            <p className="text-xs text-[#555] mt-1">This terminal is just getting started</p>
+            <p className="text-xs text-white mt-1">This terminal is just getting started</p>
           </div>
         </div>
       )}
@@ -245,7 +245,7 @@ export function ProfileClient({
       {/* ─── Branding ─── */}
       {!removeBranding && !isOwner && !isPreview && (
         <div className="text-center py-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-[#444] hover:text-[#666] transition-colors text-xs font-mono">
+          <Link href="/" className="inline-flex items-center gap-2 text-white hover:text-white/70 transition-colors text-xs font-mono">
             Made with Paytree · paytree.to
           </Link>
         </div>
@@ -340,7 +340,7 @@ function ClassicHero({ user, socialBlocks, socialIconPosition, isPublished, isLi
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
-            className="text-sm text-[#888] mt-2 max-w-xs mx-auto leading-relaxed"
+            className="text-sm text-white mt-2 max-w-xs mx-auto leading-relaxed"
           >
             {user.bio}
           </motion.p>

@@ -125,7 +125,7 @@ export default function ProfileView({ user }: ProfileViewProps) {
               href="/"
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-md rounded-full text-sm font-medium text-gray-600 hover:bg-white/60 hover:text-gray-900 transition-all hover:scale-105 shadow-sm border border-white/50"
             >
-              <div className="w-4 h-4 bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] rounded-sm" />
+              <div className="w-4 h-4 bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] rounded-full" />
               <span>Create your Paytree</span>
             </Link>
           </div>

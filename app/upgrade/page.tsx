@@ -44,7 +44,7 @@ export default async function UpgradePage() {
       <header className="relative z-10 border-b border-[rgba(255,255,255,0.05)] bg-[rgba(3,3,3,0.8)] backdrop-blur-xl sticky top-0 safe-top">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 font-bold text-lg sm:text-xl hover:opacity-90 transition-opacity">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.3)]" />
             <span className="text-white hidden sm:inline">Paytree</span>
           </Link>
           <Link href="/dashboard">

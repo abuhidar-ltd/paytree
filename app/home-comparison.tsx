@@ -19,13 +19,13 @@ function Mark({ value }: { value: Cell }) {
   }
   if (value) {
     return (
-      <svg className="w-5 h-5 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
       </svg>
     )
   }
   return (
-    <svg className="w-5 h-5 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
     </svg>
   )
@@ -33,9 +33,10 @@ function Mark({ value }: { value: Cell }) {
 
 export function HomeComparison() {
   return (
-    <section className="py-16 sm:py-32 relative">
+    <section className="-mt-6 sm:-mt-4 pb-16 sm:pb-28 relative">
       <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-16">
-        {/* Badge */}
+        {/* Badge — above the headline, true yellow (not amber/orange) to
+            stand apart from the green brand accent used everywhere else. */}
         <motion.div
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
@@ -43,8 +44,8 @@ export function HomeComparison() {
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-6"
         >
-          <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#888] text-xs font-mono px-3 py-1.5 rounded-full">
-            Head to head
+          <span className="inline-flex items-center gap-2 bg-[#FAF11B]/[0.1] text-[#FAF11B] text-base sm:text-lg font-mono px-3 py-1.5 rounded-full">
+            Why choose Paytree?
           </span>
         </motion.div>
 
@@ -60,7 +61,7 @@ export function HomeComparison() {
         </motion.h2>
 
         <motion.p
-          className="text-[#888] text-base sm:text-lg mb-8"
+          className="text-white text-base sm:text-lg mb-8"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -69,59 +70,62 @@ export function HomeComparison() {
           Same idea. Better product. Half the price.
         </motion.p>
 
-        {/* Vs table */}
-        <motion.div
-          className="relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden"
-          initial={{ opacity: 1, y: 24 }}
-          whileInView={{ y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 120, damping: 22 }}
-        >
-          {/* Reflection */}
-          <div
-            className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)" }}
-          />
-
+        {/* Rows — split by the same green accent line used in the hero and
+            features section (10% thicker here), instead of a bordered table. */}
+        <div>
           {/* Header row */}
-          <div className="grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 border-b border-white/[0.06]">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#444]">Feature</div>
+          <div className="grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 py-3">
+            <div className="text-xs sm:text-sm font-mono uppercase tracking-widest text-white">Feature</div>
             <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#444]" />
-              <span className="text-xs sm:text-sm font-mono text-[#888]">Linktree</span>
+              <div className="w-2 h-2 rounded-full bg-[#666]" />
+              <span className="text-sm sm:text-base font-mono text-white">Linktree</span>
             </div>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_rgba(0,255,136,0.6)]" />
-              <span className="text-xs sm:text-sm font-mono text-[#00ff88]">Paytree</span>
+              <span className="text-sm sm:text-base font-mono text-[#00ff88]">Paytree</span>
             </div>
           </div>
 
+          <div
+            aria-hidden
+            className="w-full"
+            style={{ height: "1.1px", background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)" }}
+          />
+
           {/* Rows */}
           {ROWS.map((row, i) => (
-            <motion.div
-              key={i}
-              className={`grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 px-4 sm:px-6 py-4 ${
-                i < ROWS.length - 1 ? "border-b border-white/[0.04]" : ""
-              } ${row.highlight ? "bg-[#00ff88]/[0.015]" : ""}`}
-              initial={{ opacity: 1, y: 6 }}
-              whileInView={{ y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ delay: i * 0.04, type: "spring", stiffness: 200, damping: 24 }}
-            >
-              <span className="text-[13px] sm:text-sm text-[#d8d8d8] leading-snug">{row.feature}</span>
-              <div className="flex justify-center">
-                <span className={typeof row.linktree === "string" ? "font-mono text-sm text-red-400/90 line-through" : ""}>
-                  <Mark value={row.linktree} />
-                </span>
-              </div>
-              <div className="flex justify-center">
-                <span className={typeof row.paytree === "string" ? "font-mono text-sm text-[#00ff88]" : ""}>
-                  <Mark value={row.paytree} />
-                </span>
-              </div>
-            </motion.div>
+            <div key={i}>
+              <motion.div
+                className={`grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_140px_140px] items-center gap-2 py-4 ${
+                  row.highlight ? "bg-[#00ff88]/[0.02]" : ""
+                }`}
+                initial={{ opacity: 1, y: 6 }}
+                whileInView={{ y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ delay: i * 0.04, type: "spring", stiffness: 200, damping: 24 }}
+              >
+                <span className="text-sm sm:text-base text-[#d8d8d8] leading-snug">{row.feature}</span>
+                <div className="flex justify-center">
+                  <span className={typeof row.linktree === "string" ? "font-mono text-base sm:text-lg text-red-400/90 line-through" : ""}>
+                    <Mark value={row.linktree} />
+                  </span>
+                </div>
+                <div className="flex justify-center">
+                  <span className={typeof row.paytree === "string" ? "font-mono text-base sm:text-lg text-[#00ff88]" : ""}>
+                    <Mark value={row.paytree} />
+                  </span>
+                </div>
+              </motion.div>
+              {i < ROWS.length - 1 && (
+                <div
+                  aria-hidden
+                  className="w-full"
+                  style={{ height: "1.1px", background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)" }}
+                />
+              )}
+            </div>
           ))}
-        </motion.div>
+        </div>
 
       </div>
     </section>

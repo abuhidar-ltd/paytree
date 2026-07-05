@@ -10,6 +10,7 @@ import { track, captureAttribution, type EventName } from "@/lib/analytics"
 import { logSignupStage } from "@/lib/signup-telemetry"
 import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { XSupportPill } from "./x-support-pill"
 
 /**
  * One-field wizard. Built for TikTok's WebView where the user is
@@ -335,10 +336,10 @@ export function SignUpScreen({ userAgent }: Props) {
             <ArrowLeft size={16} className="text-white" />
           </button>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]" />
-            <span className="font-semibold text-[13px] text-white">Paytree</span>
-            <span className="text-[9px] font-mono text-[#00ff88] border border-[rgba(0,255,136,0.35)] rounded px-1.5 py-0.5">
-              v3
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]" />
+            <span className="font-semibold text-[13px]">
+              <span className="text-[#00ff88]">Paytree</span>
+              <span className="text-white">.to</span>
             </span>
           </Link>
           <div className="w-11" />
@@ -346,7 +347,7 @@ export function SignUpScreen({ userAgent }: Props) {
 
         {/* Progress rail */}
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#666]">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-white">
             step {step + 1} of 3
           </span>
           <span className="text-[10px] font-mono text-[#00ff88] font-bold">
@@ -393,7 +394,7 @@ export function SignUpScreen({ userAgent }: Props) {
             </button>
             <div className="flex items-center gap-2 my-3">
               <div className="flex-1 h-px bg-white/[0.08]" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#555]">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-white">
                 or email · 3 steps
               </span>
               <div className="flex-1 h-px bg-white/[0.08]" />
@@ -489,7 +490,7 @@ export function SignUpScreen({ userAgent }: Props) {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#666] hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white hover:text-white"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -612,7 +613,7 @@ export function SignUpScreen({ userAgent }: Props) {
         )}
 
         {/* Sign in */}
-        <p className="mt-6 text-center text-[12px] text-[#666] font-mono">
+        <p className="mt-6 text-center text-[12px] text-white font-mono">
           Already have an account?{" "}
           <Link href="/login" className="text-[#00ff88] font-semibold">
             Sign in
@@ -621,12 +622,14 @@ export function SignUpScreen({ userAgent }: Props) {
 
         {/* Legal footer — required for Google OAuth review + basic
             trust signal that measurably lifts signup conversion. */}
-        <p className="mt-4 text-center text-[11px] text-[#444] leading-relaxed">
+        <p className="mt-4 text-center text-[11px] text-white leading-relaxed">
           By creating an account you agree to our{" "}
-          <Link href="/terms" className="text-[#666] underline hover:text-[#888]">Terms</Link>
+          <Link href="/terms" className="text-white underline hover:text-white/70">Terms</Link>
           {" "}and{" "}
-          <Link href="/privacy" className="text-[#666] underline hover:text-[#888]">Privacy Policy</Link>.
+          <Link href="/privacy" className="text-white underline hover:text-white/70">Privacy Policy</Link>.
         </p>
+
+        <XSupportPill />
       </main>
     </div>
   )
@@ -651,7 +654,7 @@ function StepShell({
       <h1 className="text-[32px] font-bold text-white leading-[1.05]">
         {title}
       </h1>
-      <p className="mt-2 text-[13px] text-[#888]">{sub}</p>
+      <p className="mt-2 text-[13px] text-white">{sub}</p>
       <div className="mt-6">{children}</div>
     </div>
   )

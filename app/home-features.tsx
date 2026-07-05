@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
+import { Bot } from "lucide-react"
 import { MiniGlobe } from "./home-mini-globe"
 
 export function HomeFeatures() {
@@ -16,7 +17,7 @@ export function HomeFeatures() {
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-4"
         >
-          <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#888] text-xs font-mono px-3 py-1.5 rounded-full">
+          <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-white text-xs font-mono px-3 py-1.5 rounded-full">
             Features
           </span>
         </motion.div>
@@ -28,29 +29,40 @@ export function HomeFeatures() {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ delay: 0.1, type: "spring", stiffness: 120, damping: 20 }}
         >
-          Built different.
+          What sets us apart.
         </motion.h2>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
-          {/* Card 1: AI Sales Agent */}
+        {/* Rows — split by the same green accent line used in the hero,
+            instead of boxed cards. Single column so the divider reads
+            cleanly at every width. */}
+        <div className="flex flex-col">
+          {/* Row 1: AI Sales Agent */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="flex flex-col py-6 sm:py-8"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0, type: "spring", stiffness: 120, damping: 20 }}
           >
-            <div className="bg-[#00ff88]/[0.06] rounded-xl p-4 w-fit mb-5">
-              <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-              </svg>
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{
+                  background: "rgba(0,255,136,0.06)",
+                  border: "0.5px solid rgba(0,255,136,0.25)",
+                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
+                }}
+              >
+                <Bot size={24} strokeWidth={2} className="text-[#00ff88]" />
+              </div>
+              <span className="text-sm font-mono uppercase tracking-widest text-[#00ff88] font-semibold">
+                AI
+              </span>
             </div>
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               Your AI sells while you sleep
             </h3>
-            <p className="text-[#888] text-sm leading-relaxed mb-6">
+            <p className="text-white text-sm leading-relaxed mb-6">
               An AI trained on your content answers questions and closes sales 24/7.
             </p>
 
@@ -64,7 +76,7 @@ export function HomeFeatures() {
                 transition={{ delay: 0.1 }}
               >
                 <div className="bg-white/[0.06] rounded-xl rounded-br-none px-3 py-2 max-w-[80%]">
-                  <p className="text-[11px] text-[#aaa]">How much is the course?</p>
+                  <p className="text-[11px] text-white">How much is the course?</p>
                 </div>
               </motion.div>
               <motion.div
@@ -92,24 +104,42 @@ export function HomeFeatures() {
             </div>
           </motion.div>
 
-          {/* Card 2: Globe Analytics */}
+          {/* Green accent divider — same treatment used in the hero. */}
+          <div
+            aria-hidden
+            className="h-px w-full"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)" }}
+          />
+
+          {/* Row 2: Globe Analytics */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="flex flex-col py-6 sm:py-8"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 20 }}
           >
-            <div className="bg-[#00ff88]/[0.06] rounded-xl p-4 w-fit mb-5">
-              <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-              </svg>
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{
+                  background: "rgba(0,255,136,0.06)",
+                  border: "0.5px solid rgba(0,255,136,0.25)",
+                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
+                }}
+              >
+                <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                </svg>
+              </div>
+              <span className="text-sm font-mono uppercase tracking-widest text-[#00ff88] font-semibold">
+                Advanced analytics
+              </span>
             </div>
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               See your audience from space
             </h3>
-            <p className="text-[#888] text-sm leading-relaxed mb-6">
+            <p className="text-white text-sm leading-relaxed mb-6">
               Watch visitors appear as glowing dots across a 3D globe in real time.
             </p>
 
@@ -125,24 +155,42 @@ export function HomeFeatures() {
             </motion.div>
           </motion.div>
 
-          {/* Card 3: Drop Countdown */}
+          {/* Green accent divider — same treatment used in the hero. */}
+          <div
+            aria-hidden
+            className="h-px w-full"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)" }}
+          />
+
+          {/* Row 3: Drop Countdown */}
           <motion.div
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-8 transition-colors duration-300 flex flex-col h-full hover:border-white/[0.18] hover:bg-white/[0.035]"
-            whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 24 } }}
+            className="flex flex-col py-6 sm:py-8"
             initial={{ opacity: 1, y: 30 }}
             whileInView={{ y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ delay: 0.24, type: "spring", stiffness: 120, damping: 20 }}
           >
-            <div className="bg-[#00ff88]/[0.06] rounded-xl p-4 w-fit mb-5">
-              <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{
+                  background: "rgba(0,255,136,0.06)",
+                  border: "0.5px solid rgba(0,255,136,0.25)",
+                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
+                }}
+              >
+                <svg className="w-6 h-6 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-mono uppercase tracking-widest text-[#00ff88] font-semibold">
+                Live drops
+              </span>
             </div>
             <h3 className="text-xl font-semibold text-[#f0f0f0] mb-2">
               Launches that sell out
             </h3>
-            <p className="text-[#888] text-sm leading-relaxed mb-6">
+            <p className="text-white text-sm leading-relaxed mb-6">
               Create urgency with countdown timers that drive instant action on your biggest launches.
             </p>
 
@@ -211,7 +259,7 @@ function CountdownDemo() {
         <span className="text-[#00ff88]/40">:</span>
         <span>{pad(time.s)}</span>
       </div>
-      <p className="text-[10px] text-[#888] mt-2">Pro Signals Course — $49</p>
+      <p className="text-[10px] text-white mt-2">Pro Signals Course — $49</p>
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { detectIAB, type IABInfo } from "@/lib/iab"
 import { track, captureAttribution, type EventName } from "@/lib/analytics"
 import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, ArrowLeft, Eye, EyeOff, LogIn } from "lucide-react"
+import { XSupportPill } from "./x-support-pill"
 
 /**
  * Login wizard — email step → password step. Matches the register wizard
@@ -277,7 +278,7 @@ export function SignInScreen({ userAgent }: Props) {
             <ArrowLeft size={16} className="text-white" />
           </button>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]" />
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]" />
             <span className="font-semibold text-[13px] text-white">Paytree</span>
             <span className="text-[9px] font-mono text-[#00ff88] border border-[rgba(0,255,136,0.35)] rounded px-1.5 py-0.5">
               v2
@@ -486,6 +487,8 @@ export function SignInScreen({ userAgent }: Props) {
           {" "}and{" "}
           <Link href="/privacy" className="text-[#666] underline hover:text-[#888]">Privacy Policy</Link>.
         </p>
+
+        <XSupportPill />
       </main>
     </div>
   )

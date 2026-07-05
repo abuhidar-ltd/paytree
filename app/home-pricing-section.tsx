@@ -19,7 +19,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
           className="mb-4"
         >
-          <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-[#888] text-xs font-mono px-3 py-1.5 rounded-full">
+          <span className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-white text-xs font-mono px-3 py-1.5 rounded-full">
             Pricing
           </span>
         </motion.div>
@@ -35,7 +35,7 @@ export function HomePricingSection({ isLoggedIn }: HomePricingSectionProps) {
         </motion.h2>
 
         <motion.p
-          className="text-[#888] text-base sm:text-lg mb-8 sm:mb-12"
+          className="text-white text-base sm:text-lg mb-8 sm:mb-12"
           initial={{ opacity: 1, y: 20 }}
           whileInView={{ y: 0 }}
           viewport={{ once: true, margin: "-60px" }}

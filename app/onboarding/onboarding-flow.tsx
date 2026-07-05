@@ -421,7 +421,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         >
           {/* Logo mark */}
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 mb-8 mx-auto">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.4)]" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)] shadow-[0_0_20px_rgba(0,255,136,0.4)]" />
           </div>
 
           <div className="text-[#00ff88] font-mono text-sm uppercase tracking-[0.3em] mb-4">

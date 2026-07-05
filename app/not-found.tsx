@@ -20,7 +20,7 @@ export default function NotFound() {
       <div className="relative z-10 max-w-md w-full text-center">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#00ff88]/[0.06] border border-[#00ff88]/[0.18] mb-8">
           <div
-            className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]"
+            className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00ff88] to-[rgba(0,255,136,0.5)]"
             style={{ boxShadow: "0 0 20px rgba(0,255,136,0.3)" }}
           />
         </div>

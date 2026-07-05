@@ -1325,3 +1325,20 @@ select {
   100% { background-position: 0% 50%; }
 }
 
+/* Site-wide entrance animations (slideUp/fadeIn/etc.) use `animation: ... both`
+ * with a from-state of opacity:0 — with prefers-reduced-motion active and no
+ * override, browsers can leave those elements frozen at that 0%-keyframe
+ * FOREVER (permanently invisible), since "both" fill-mode holds the from-state
+ * until the animation actually runs. Collapsing duration to near-zero (rather
+ * than `animation: none`, which would freeze at that same invisible base
+ * state) lets every animation still complete instantly and land on its real
+ * end state, keeping content visible for users with reduced-motion enabled. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

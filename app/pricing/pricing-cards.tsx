@@ -102,7 +102,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           className={`min-h-[40px] px-5 rounded-full text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
             interval === "monthly"
               ? "bg-[#00ff88] text-black"
-              : "text-[#888888] hover:text-white"
+              : "text-white hover:text-white"
           }`}
         >
           Monthly
@@ -112,7 +112,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           className={`min-h-[40px] px-5 rounded-full text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
             interval === "yearly"
               ? "bg-[#00ff88] text-black"
-              : "text-[#888888] hover:text-white"
+              : "text-white hover:text-white"
           }`}
         >
           Yearly
@@ -135,11 +135,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
           </div>
 
           <div className="flex items-baseline gap-1 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold text-[#e0e0e0]">$0</span>
-            <span className="text-lg text-[#888888]">/mo</span>
+            <span className="text-4xl sm:text-5xl font-bold text-white">$0</span>
+            <span className="text-lg text-white">/mo</span>
           </div>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">Start building. No credit card.</p>
-          <p className="text-xs text-[#444] mb-4">Publish your page, sell products, and keep 100% of every sale.</p>
+          <p className="text-sm text-white mb-2 font-semibold">Start building. No credit card.</p>
+          <p className="text-xs text-white mb-4">Publish your page, sell products, and keep 100% of every sale.</p>
           <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
             <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
             0% platform fees
@@ -153,11 +153,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-[#444] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                <span className={`text-sm ${f.included ? "text-[#cccccc]" : "text-[#555]"}`}>{f.text}</span>
+                <span className={`text-sm ${f.included ? "text-white" : "text-red-400"}`}>{f.text}</span>
               </li>
             ))}
           </ul>
@@ -209,11 +209,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
           <div className="flex items-baseline gap-1 mb-2">
             <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{proPrice}</span>
-            <span className="text-lg text-[#888888]">{proPer}</span>
+            <span className="text-lg text-white">{proPer}</span>
           </div>
           <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">For creators who are serious.</p>
-          <p className="text-xs text-[#444] mb-4">Drops, vaults, globe analytics, and a fully cinematic page.</p>
+          <p className="text-sm text-white mb-2 font-semibold">For creators who are serious.</p>
+          <p className="text-xs text-white mb-4">Drops, vaults, globe analytics, and a fully cinematic page.</p>
           <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
             <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
             0% platform fees
@@ -227,11 +227,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-[#444] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                <span className={`text-sm ${f.included ? "text-[#cccccc]" : "text-[#555]"}`}>{f.text}</span>
+                <span className={`text-sm ${f.included ? "text-white" : "text-red-400"}`}>{f.text}</span>
               </li>
             ))}
           </ul>
@@ -254,7 +254,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               >
                 {loading === "pro" ? "Loading…" : "Try free for 7 days →"}
               </Button>
-              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+              <p className="text-center text-[10px] text-white font-mono mt-2">No charge until after your trial ends</p>
             </>
           ) : (
             <Link
@@ -265,7 +265,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Try free for 7 days →
               </Button>
-              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+              <p className="text-center text-[10px] text-white font-mono mt-2">No charge until after your trial ends</p>
             </Link>
           )}
         </motion.div>
@@ -289,11 +289,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
 
           <div className="flex items-baseline gap-1 mb-2">
             <span className="text-4xl sm:text-5xl font-bold text-[#00ff88]">{ultraPrice}</span>
-            <span className="text-lg text-[#888888]">{ultraPer}</span>
+            <span className="text-lg text-white">{ultraPer}</span>
           </div>
           <p className="text-xs text-[#00ff88] font-mono mb-2">7-day free trial included</p>
-          <p className="text-sm text-[#555555] mb-2 font-semibold">For creators who want to dominate.</p>
-          <p className="text-xs text-[#444] mb-4">Everything in Pro, plus an AI sales agent that sells while you sleep.</p>
+          <p className="text-sm text-white mb-2 font-semibold">For creators who want to dominate.</p>
+          <p className="text-xs text-white mb-4">Everything in Pro, plus an AI sales agent that sells while you sleep.</p>
           <p className="inline-flex items-center gap-1.5 text-[10px] text-[#00ff88] font-mono mb-6">
             <span className="w-1 h-1 rounded-full bg-[#00ff88]" />
             0% platform fees
@@ -307,11 +307,11 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-[#444] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
-                <span className={`text-sm ${f.included ? "text-[#cccccc]" : "text-[#555]"}`}>{f.text}</span>
+                <span className={`text-sm ${f.included ? "text-white" : "text-red-400"}`}>{f.text}</span>
               </li>
             ))}
           </ul>
@@ -339,7 +339,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               >
                 {loading === "ultra" ? "Loading…" : "Try free for 7 days →"}
               </Button>
-              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+              <p className="text-center text-[10px] text-white font-mono mt-2">No charge until after your trial ends</p>
             </>
           ) : (
             <Link
@@ -350,7 +350,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
               <Button variant="accent-solid" className="w-full min-h-[48px] font-bold">
                 Try free for 7 days →
               </Button>
-              <p className="text-center text-[10px] text-[#444] font-mono mt-2">No charge until after your trial ends</p>
+              <p className="text-center text-[10px] text-white font-mono mt-2">No charge until after your trial ends</p>
             </Link>
           )}
         </motion.div>
@@ -360,7 +360,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       <div
         style={{
           textAlign: "center",
-          color: "#888",
+          color: "#fff",
           fontSize: 12,
           fontFamily: "var(--font-mono, ui-monospace, monospace)",
           marginTop: 24,
@@ -381,7 +381,7 @@ export function PricingCards({ isLoggedIn, isActive, currentPlan }: PricingCards
       {/* Comparison callout */}
       <div className="max-w-3xl mx-auto text-center mt-10">
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-          <p className="text-sm text-[#e0e0e0] font-mono">
+          <p className="text-sm text-white font-mono">
             vs Linktree Premium ($35/mo) — Paytree Ultra is <span className="text-[#00ff88] font-bold">$20/mo cheaper</span> with more features. <span className="text-[#00ff88] font-bold">0% fees on every paid plan.</span>
           </p>
         </div>

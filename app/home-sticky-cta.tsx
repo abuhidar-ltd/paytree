@@ -6,7 +6,19 @@ import { track } from "@/lib/analytics"
 
 interface HomeStickyCTAProps {
   isLoggedIn: boolean
+  /**
+   * Detected server-side (app/page.tsx, via lib/iab.ts) from the request's
+   * user-agent header — correct on first paint, no client effect needed.
+   */
+  isTwitterIAB: boolean
 }
+
+// X's in-app browser draws its own native bottom toolbar (back/forward/share/
+// Safari icons) OVER the WebView content — it lives outside our DOM entirely,
+// so no z-index on our side can win against it. env(safe-area-inset-bottom)
+// doesn't account for it either (it's app chrome, not a hardware safe area).
+// The only fix is to lift our fixed bar above where that toolbar sits.
+const TWITTER_IAB_CHROME_HEIGHT = 56
 
 /**
  * Mobile-only sticky bottom CTA. Appears after the user scrolls past the
@@ -14,7 +26,7 @@ interface HomeStickyCTAProps {
  * insurance for bounce-prone landing traffic (TikTok/IG visitors who don't
  * scroll back up after exploring).
  */
-export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
+export function HomeStickyCTA({ isLoggedIn, isTwitterIAB }: HomeStickyCTAProps) {
   const [visible, setVisible] = useState(false)
   const engagedFired = useRef(false)
 
@@ -49,7 +61,9 @@ export function HomeStickyCTA({ isLoggedIn }: HomeStickyCTAProps) {
         // iOS-feel spring approximation via cubic-bezier — animating from
         // off-screen, lands without overshoot. 320ms is the iOS sheet duration.
         transition: "transform 320ms cubic-bezier(0.22,1,0.36,1), opacity 200ms ease",
-        paddingBottom: "max(env(safe-area-inset-bottom, 12px), 12px)",
+        paddingBottom: isTwitterIAB
+          ? TWITTER_IAB_CHROME_HEIGHT
+          : "max(env(safe-area-inset-bottom, 12px), 12px)",
         paddingTop: 12,
         paddingLeft: 16,
         paddingRight: 16,

@@ -49,22 +49,30 @@ export function MiniGlobe() {
     function draw() {
       ctx.clearRect(0, 0, W, H)
 
-      // Sphere background
+      // Sphere background — outer stop is deliberately NOT the page's #030303,
+      // otherwise the globe's edge disappears into the section background.
       const bg = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.3, 0, cx, cy, r)
-      bg.addColorStop(0, "#121212")
-      bg.addColorStop(1, "#030303")
+      bg.addColorStop(0, "#1a3327")
+      bg.addColorStop(1, "#08140f")
       ctx.fillStyle = bg
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       ctx.fill()
+
+      // Defining edge so the sphere reads as a distinct shape at a glance.
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.strokeStyle = "rgba(0,255,136,0.35)"
+      ctx.lineWidth = 1
+      ctx.stroke()
 
       // Grid lines (clipped to sphere)
       ctx.save()
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       ctx.clip()
-      ctx.strokeStyle = "rgba(0,255,136,0.08)"
-      ctx.lineWidth = 0.5
+      ctx.strokeStyle = "rgba(0,255,136,0.28)"
+      ctx.lineWidth = 0.75
 
       for (const lat of [-60, -30, 0, 30, 60]) {
         ctx.beginPath()
@@ -106,24 +114,24 @@ export function MiniGlobe() {
         const [px, py, z] = project(lat, lng)
         if (z < 0) continue
 
-        const glow = ctx.createRadialGradient(px, py, 0, px, py, 12)
-        glow.addColorStop(0, "rgba(0,255,136,0.4)")
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, 16)
+        glow.addColorStop(0, "rgba(0,255,136,0.65)")
         glow.addColorStop(1, "rgba(0,255,136,0)")
         ctx.fillStyle = glow
         ctx.beginPath()
-        ctx.arc(px, py, 12, 0, Math.PI * 2)
+        ctx.arc(px, py, 16, 0, Math.PI * 2)
         ctx.fill()
 
         ctx.fillStyle = "#00ff88"
         ctx.beginPath()
-        ctx.arc(px, py, 3, 0, Math.PI * 2)
+        ctx.arc(px, py, 4, 0, Math.PI * 2)
         ctx.fill()
       }
 
       // Atmosphere rim
-      const atm = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.05)
+      const atm = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.08)
       atm.addColorStop(0, "rgba(0,255,136,0)")
-      atm.addColorStop(1, "rgba(0,255,136,0.08)")
+      atm.addColorStop(1, "rgba(0,255,136,0.28)")
       ctx.fillStyle = atm
       ctx.beginPath()
       ctx.arc(cx, cy, r * 1.05, 0, Math.PI * 2)
@@ -143,8 +151,8 @@ export function MiniGlobe() {
   return (
     <canvas
       ref={canvasRef}
-      className="w-[180px] h-[120px]"
-      style={{ width: 180, height: 120 }}
+      className="w-[220px] h-[200px]"
+      style={{ width: 220, height: 200 }}
     />
   )
 }

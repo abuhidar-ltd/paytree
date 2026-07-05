@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Sparkles, Bot, Lock, Timer, Globe, Percent, type LucideIcon } from "lucide-react"
+import { Sparkles, Bot, Lock, Timer, Globe, type LucideIcon } from "lucide-react"
 import { PhoneMockup } from "./home-phone-mockup"
 import { track } from "@/lib/analytics"
 
@@ -9,14 +9,10 @@ interface HomeHeroProps {
   isLoggedIn: boolean
 }
 
-// Full feature set, rendered as a clean 2-column icon grid. Icons are
-// lucide-react outline glyphs inside green glass squares.
-const FEATURES: { Icon: LucideIcon; label: string; wide?: boolean }[] = [
-  {
-    Icon: Sparkles,
-    label: "Sell products, services and content, share your links, & get paid instantly",
-    wide: true,
-  },
+// Full feature set, rendered as a single-column list split by the green
+// accent line. Icons are lucide-react outline glyphs in green glass squares.
+const FEATURES: { Icon: LucideIcon; label: string }[] = [
+  { Icon: Sparkles, label: "Sell products, services and content, share your links, & get paid instantly" },
   { Icon: Bot, label: "24/7 AI Sales Agent" },
   { Icon: Lock, label: "Vault — lock premium content" },
   { Icon: Timer, label: "Countdown Card" },
@@ -27,7 +23,7 @@ const FEATURES: { Icon: LucideIcon; label: string; wide?: boolean }[] = [
 // the local @keyframes below) — no framer-motion in the first-paint chunk.
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   return (
-    <section className="min-h-[calc(100svh-64px)] flex items-start pt-24 sm:pt-28 lg:pt-32 pb-16 relative overflow-hidden">
+    <section className="min-h-[calc(100svh-64px)] flex items-start pt-24 sm:pt-28 lg:pt-32 pb-0 sm:pb-1 relative overflow-hidden">
       {/* Background glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -42,55 +38,39 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
           {/* Left column — content */}
           <div className="flex-[3] w-full max-w-2xl">
 
-            {/* Top-right badge. In normal flow (right-aligned) on mobile/tablet
-                so it can never overlap the headline; pinned to the section's
-                top-right corner from lg up, where the space is empty. */}
-            <div
-              className="flex justify-end mb-5 lg:mb-0 lg:absolute lg:top-28 lg:right-16 lg:z-20"
-              style={{ animation: "fadeIn 0.5s ease 0.05s both" }}
-            >
-              <span
-                className="inline-flex items-center gap-2.5 rounded-full pl-3 pr-4 py-2"
-                style={{
-                  background: "rgba(0,255,136,0.10)",
-                  border: "0.5px solid rgba(0,255,136,0.35)",
-                  boxShadow: "inset 0 1px 0 rgba(0,255,136,0.18), 0 0 28px rgba(0,255,136,0.20)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                }}
-              >
-                <span
-                  className="grid place-items-center w-6 h-6 rounded-full"
-                  style={{ background: "rgba(0,255,136,0.18)" }}
-                >
-                  <Percent size={14} strokeWidth={2.5} className="text-[#00ff88]" />
-                </span>
-                <span className="font-mono tracking-tight leading-none">
-                  <span className="text-base sm:text-lg font-extrabold text-[#00ff88]">0%</span>{" "}
-                  <span className="text-sm sm:text-[15px] font-semibold text-white">platform commission</span>
-                </span>
-              </span>
-            </div>
-
             {/* Headline — centered neon-green hook with soft glow, white
-                resolution line beneath. */}
+                supporting line SMALLER than the headline (scale reinforces
+                the hierarchy), then a centered CTA so it can never sit
+                where X's in-app-browser chrome would cover it. */}
             <h1
               className="font-bold tracking-tight text-center"
               style={{ animation: "slideUp 0.5s ease 0.1s both" }}
             >
               <span
-                className="block text-[40px] leading-[1.04] sm:text-5xl lg:text-[64px] lg:leading-[1.02] text-[#00ff88]"
+                className="block text-[30px] leading-[1.14] sm:text-[40px] lg:text-[46px] lg:leading-[1.1] text-[#00ff88]"
                 style={{
                   textShadow:
                     "0 0 24px rgba(0,255,136,0.45), 0 0 52px rgba(0,255,136,0.22), 0 2px 8px rgba(0,0,0,0.35)",
                 }}
               >
-                Your entire business
-              </span>
-              <span className="block mt-2.5 sm:mt-3 text-xl sm:text-2xl lg:text-3xl font-semibold text-white/95">
-                in one place
+                The all-in-one page for creators and freelancers
               </span>
             </h1>
+
+            <p
+              className="mt-4 text-center text-lg leading-[1.4] sm:text-xl lg:text-2xl font-semibold tracking-tight text-white max-w-xl mx-auto"
+              style={{ animation: "slideUp 0.5s ease 0.14s both" }}
+            >
+              Sell products, services, and content. Share all your links{" "}
+              <span className="text-[#00ff88]">&amp;</span> get paid instantly.
+            </p>
+
+            <p
+              className="mt-2 text-center text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-[#00ff88]"
+              style={{ animation: "slideUp 0.5s ease 0.17s both" }}
+            >
+              0% platform commission
+            </p>
 
             {/* Green accent divider — centered with a symmetric fade so it sits
                 cleanly under the centered heading block. */}
@@ -103,42 +83,11 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               }}
             />
 
-            {/* Feature grid — 1 col on mobile, 2 cols from sm up. */}
-            <ul
-              className="mt-6 sm:mt-7 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 max-w-xl"
-              style={{ animation: "slideUp 0.5s ease 0.15s both" }}
-            >
-              {FEATURES.map(({ Icon, label, wide }) => (
-                <li
-                  key={label}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
-                    wide ? "sm:col-span-2" : ""
-                  }`}
-                  style={{
-                    background: "rgba(255,255,255,0.02)",
-                    border: "0.5px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <span
-                    className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
-                    style={{
-                      background: "rgba(0,255,136,0.06)",
-                      border: "0.5px solid rgba(0,255,136,0.25)",
-                      boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
-                    }}
-                  >
-                    <Icon size={18} strokeWidth={2.25} className="text-[#00ff88]" />
-                  </span>
-                  <span className="text-sm sm:text-[15px] leading-snug font-medium text-white/90">
-                    {label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA */}
+            {/* CTA — centered so it's dead-center of the viewport on mobile,
+                never near the edges where an in-app browser draws its own
+                chrome (X's bottom toolbar, TikTok's top bar, etc). */}
             <div
-              className="mt-7 sm:mt-8 w-full max-w-sm"
+              className="mt-7 sm:mt-8 w-full max-w-sm mx-auto flex flex-col items-center"
               style={{ animation: "slideUp 0.5s ease 0.2s both" }}
             >
               {isLoggedIn ? (
@@ -172,96 +121,54 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)]"
                     style={{ minHeight: 56 }}
                   >
-                    Create your free page
+                    Create your free business page
                     <span className="transition-transform group-hover:translate-x-0.5">→</span>
                   </Link>
                   <p className="mt-2.5 text-sm font-mono text-[#00ff88] font-semibold text-center">
-                    No Credit Card Required
+                    Free plan for everyone &middot; No credit card required
                   </p>
                 </>
               )}
             </div>
 
-            {/* Fee comparison — elevated glass card, visual only (no $ amounts). */}
-            <div
-              className="mt-8 max-w-md relative overflow-hidden rounded-2xl p-4 sm:p-5"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "0.5px solid rgba(255,255,255,0.08)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-                animation: "fadeIn 0.5s ease 0.32s both",
-              }}
+            {/* Feature list — moved below the CTA: most of these (AI agent,
+                vault, drops, globe analytics) are Pro/Ultra features, so they
+                shouldn't compete with "free page" as the first thing a free
+                signup sees. Rows are split by the same green accent line used
+                between the headline and CTA, instead of boxed cards. */}
+            <ul
+              className="mt-8 sm:mt-9 max-w-xl mx-auto"
+              style={{ animation: "slideUp 0.5s ease 0.24s both" }}
             >
-              {/* Reflection line */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute left-0 right-0 top-0 h-px"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 50%, transparent)" }}
-              />
-
-              <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[#666] mb-4">
-                Platform fee on every sale
-              </p>
-
-              <div className="space-y-4">
-                {/* Linktree — red bite out of the bar */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
-                      <span className="text-sm font-mono text-[#888]">Linktree</span>
-                    </div>
-                    <span className="text-[11px] font-mono text-red-400/80">their cut</span>
-                  </div>
-                  <div className="relative h-7 rounded-lg overflow-hidden bg-white/[0.03] flex">
-                    <div className="h-full" style={{ width: "91%", background: "rgba(255,255,255,0.05)" }} />
-                    <div
-                      className="h-full relative origin-right"
-                      style={{
-                        width: "9%",
-                        background: "rgba(248,113,113,0.25)",
-                        boxShadow: "inset 0 0 10px rgba(248,113,113,0.35)",
-                        animation: "barGrow 0.9s cubic-bezier(0.22,1,0.36,1) 0.6s both",
-                      }}
-                    />
-                  </div>
-                  <p className="text-[11px] font-mono text-red-400/70 mt-1.5">
-                    platform takes a cut — every time
-                  </p>
-                </div>
-
-                {/* Paytree — full green, nothing taken */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full bg-[#00ff88]"
-                        style={{ boxShadow: "0 0 5px rgba(0,255,136,0.7)" }}
-                      />
-                      <span className="text-sm font-mono text-[#00ff88]">Paytree</span>
-                    </div>
-                    <span className="text-[11px] font-mono text-[#00ff88]/90">100% yours</span>
-                  </div>
-                  <div
-                    className="relative h-7 rounded-lg overflow-hidden origin-left"
-                    style={{
-                      background: "rgba(0,255,136,0.14)",
-                      boxShadow: "0 0 18px rgba(0,255,136,0.18)",
-                      animation: "barGrow 1.1s cubic-bezier(0.22,1,0.36,1) 0.85s both",
-                    }}
-                  >
+              {FEATURES.map(({ Icon, label }, i) => (
+                <li key={label}>
+                  {i > 0 && (
                     <div
                       aria-hidden
-                      className="absolute inset-0"
-                      style={{ boxShadow: "inset 0 1px 0 rgba(0,255,136,0.22)" }}
+                      className="mx-auto h-px w-full max-w-[200px]"
+                      style={{
+                        background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)",
+                      }}
                     />
+                  )}
+                  <div className="group flex items-center gap-3 px-3 py-3">
+                    <span
+                      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-transform group-hover:scale-105"
+                      style={{
+                        background: "rgba(0,255,136,0.06)",
+                        border: "0.5px solid rgba(0,255,136,0.25)",
+                        boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
+                      }}
+                    >
+                      <Icon size={15} strokeWidth={2.25} className="text-[#00ff88]" />
+                    </span>
+                    <span className="text-sm sm:text-[15px] leading-snug font-medium text-white/90">
+                      {label}
+                    </span>
                   </div>
-                  <p className="text-[11px] font-mono text-[#00ff88]/70 mt-1.5">
-                    zero fees — you keep everything
-                  </p>
-                </div>
-              </div>
-            </div>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Right column — phone (desktop only, so mobile reaches the CTA faster) */}
@@ -319,10 +226,6 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
         @keyframes slideInRight {
           from { transform: translateX(40px); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
-        }
-        @keyframes barGrow {
-          from { transform: scaleX(0); }
-          to   { transform: scaleX(1); }
         }
       `}</style>
     </section>
