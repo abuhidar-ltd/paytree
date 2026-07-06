@@ -2,6 +2,17 @@ import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server
 import { getSessionCookie } from "better-auth/cookies"
 import { rateLimit } from "@/lib/rate-limit"
 
+// Partner-affiliate first-touch cookie.
+//   - Set on any page load with `?ref=<slug>` if the visitor doesn't already
+//     have `ptaff` (never overwrite — the FIRST partner they touched wins).
+//   - Slug is DB-validated against an ACTIVE Affiliate before the cookie is
+//     issued. Invalid / inactive refs are silently ignored.
+//   - 90-day expiry, httpOnly, lax same-site — this is server-consumed at
+//     signup, no client access needed.
+const PTAFF_COOKIE = "ptaff"
+const PTAFF_MAX_AGE_S = 60 * 60 * 24 * 90 // 90 days
+const PTAFF_SLUG_RE = /^[a-z0-9-]{1,40}$/
+
 /**
  * Routes that require a signed-in session. API routes do their own auth via
  * `getCurrentUser()` in each handler, so we only gate page routes here.
@@ -81,7 +92,7 @@ function logVisit(request: NextRequest, pathname: string, event: NextFetchEvent)
   )
 }
 
-export function proxy(request: NextRequest, event: NextFetchEvent) {
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl
 
   if (VISIT_LOGGED_PATHS.has(pathname)) logVisit(request, pathname, event)
@@ -99,6 +110,12 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
     response = NextResponse.next()
   }
 
+  // Attribution cookie — first-touch, never overwrites. Runs on every path
+  // (partners often link straight to `/pricing`, `/sara`, etc.), gated on
+  // cheap conditions first so the sync fast path stays fast: no ?ref, or
+  // already-set cookie, or malformed slug → no DB call.
+  await maybeSetPtaffCookie(request, response)
+
   // Public routes (and API routes that gate themselves) pass through.
   if (!isProtected(pathname)) {
     return response
@@ -114,6 +131,37 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   }
 
   return response
+}
+
+async function maybeSetPtaffCookie(request: NextRequest, response: NextResponse): Promise<void> {
+  const rawRef = request.nextUrl.searchParams.get("ref")
+  if (!rawRef) return
+  if (request.cookies.get(PTAFF_COOKIE)) return
+
+  const slug = rawRef.trim().toLowerCase()
+  if (!PTAFF_SLUG_RE.test(slug)) return
+
+  // DB-validate the slug is an active partner. A single indexed lookup on the
+  // first partner-referred hit only — subsequent hits skip on the cookie check
+  // above. Errors are swallowed: attribution must never break the page.
+  try {
+    const { prisma } = await import("@/lib/prisma")
+    const found = await prisma.affiliate.findFirst({
+      where: { slug, active: true },
+      select: { id: true },
+    })
+    if (!found) return
+    response.cookies.set(PTAFF_COOKIE, slug, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: PTAFF_MAX_AGE_S,
+    })
+    console.log(`[ptaff] set slug=${slug}`)
+  } catch (err) {
+    console.error("[ptaff] lookup failed:", err)
+  }
 }
 
 export const config = {

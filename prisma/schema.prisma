@@ -97,6 +97,12 @@ model User {
   referredBy       String?
   referralEarnings Int      @default(0)
 
+  // Partner-affiliate attribution. Nullable, set at most once at signup by the
+  // ptaff cookie (first-touch), never rewritten. onDelete: SetNull so removing
+  // an affiliate doesn't wipe the users they brought in.
+  affiliateId String?
+  affiliate   Affiliate? @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -122,6 +128,7 @@ model User {
 
   @@index([username])
   @@index([email])
+  @@index([affiliateId])
 }
 
 // ===== BETTER AUTH =====
@@ -589,4 +596,46 @@ model PlanGrantLog {
 
   @@index([userId])
   @@index([grantedAt])
+}
+
+// ===== PARTNER AFFILIATES =====
+//
+// A partner is a person/brand who drives signups through their referral link.
+// slug is the URL identifier (paytree.to/?ref=<slug>). statsToken is an
+// independent unguessable token — separating them lets us regenerate the
+// public URL slug without breaking the partner's stats bookmark, and vice
+// versa. Payouts are computed on demand from linked users' current plan
+// prices; we don't cache them so retroactive commission changes just work.
+model Affiliate {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  statsToken        String   @unique
+  commissionPercent Decimal  @default(20) @db.Decimal(5, 2) // 0.00 – 100.00
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  users     User[]
+  auditLogs AffiliateAuditLog[]
+
+  @@index([active])
+}
+
+// Audit trail for affiliate CRUD — mirrors PlanGrantLog: never deleted, admin
+// email in performedBy, changes stored as JSON diff. Cascade-deletes with the
+// parent affiliate; if that ever bites us (e.g. we delete an affiliate then
+// want the audit history), we detach the FK before delete.
+model AffiliateAuditLog {
+  id          String   @id @default(cuid())
+  affiliateId String
+  action      String // "create" | "update" | "toggle_active" | "regenerate_slug"
+  changes     Json?
+  performedBy String
+  performedAt DateTime @default(now())
+
+  affiliate Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId])
+  @@index([performedAt])
 }

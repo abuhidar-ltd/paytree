@@ -8,7 +8,19 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/dashboard/", "/onboarding", "/checkout/", "/upgrade"],
+        disallow: [
+          "/api/",
+          "/dashboard/",
+          "/onboarding",
+          "/checkout/",
+          "/upgrade",
+          // Partner stats pages are token-gated by an unguessable URL and must
+          // never be crawlable — see app/partners/[statsToken]/page.tsx.
+          "/partners/",
+          // Admin console — the layout also 404s non-admins, but keep crawlers
+          // from wasting fetches on the login-gated pages.
+          "/admin",
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
