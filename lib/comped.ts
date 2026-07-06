@@ -119,6 +119,8 @@ export async function grantComp(opts: {
         compedReason: reason,
         compedBy: grantedBy,
         compedExpiresAt,
+        compedSource: "manual",
+        promoCodeId: null,
       },
     }),
   ])
@@ -174,6 +176,8 @@ async function revertCompToFree(userId: string, revokedAt: Date): Promise<void> 
         compedReason: null,
         compedBy: null,
         compedExpiresAt: null,
+        compedSource: null,
+        promoCodeId: null,
       },
     }),
   ])
@@ -198,4 +202,6 @@ export const CLEAR_COMP_FIELDS = {
   compedReason: null,
   compedBy: null,
   compedExpiresAt: null,
+  compedSource: null,
+  promoCodeId: null,
 } as const

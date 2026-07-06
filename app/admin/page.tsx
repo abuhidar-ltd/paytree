@@ -97,6 +97,9 @@ export default async function AdminOverviewPage({
     hydrationRows,
     telemetryGroups,
     connectActive,
+    promoActiveCodes,
+    promoMonthRedemptions,
+    promoTopCode,
   ] = await Promise.all([
     prisma.user.count(),
     // Users created in range — drives new-signup count, chart, and the funnel.
@@ -162,6 +165,20 @@ export default async function AdminOverviewPage({
       _count: { _all: true },
     }),
     prisma.user.count({ where: { stripeAccountStatus: "active" } }),
+    // Promo code summary — this calendar month (UTC), not the range toggle.
+    prisma.promoCode.count({ where: { active: true } }),
+    prisma.promoRedemption.count({
+      where: {
+        redeemedAt: {
+          gte: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)),
+        },
+      },
+    }),
+    prisma.promoCode.findFirst({
+      where: { timesRedeemed: { gt: 0 } },
+      orderBy: { timesRedeemed: "desc" },
+      select: { code: true, timesRedeemed: true },
+    }),
   ])
 
   // Key metrics from the cohort.
@@ -307,6 +324,24 @@ export default async function AdminOverviewPage({
         )}
         <p className="text-[11px] font-mono text-[#c9c9d1] mt-3">
           Comped = admin-granted plans (excluded from MRR). {nf(connectActive)} users have Stripe Connect active.
+        </p>
+      </Card>
+
+      <Card title="Promo codes">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <StatCard label="Active codes" value={nf(promoActiveCodes)} />
+          <StatCard label="Redemptions this month" value={nf(promoMonthRedemptions)} sub="calendar month, UTC" />
+          <StatCard
+            label="Most redeemed"
+            value={promoTopCode?.code ?? "—"}
+            sub={promoTopCode ? `${nf(promoTopCode.timesRedeemed)} redemptions` : "no redemptions yet"}
+          />
+        </div>
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-3">
+          Promo-redeemed users are comped (isComped=true) — excluded from MRR automatically.{" "}
+          <Link href="/admin/promo-codes" className="text-[#00ff88] hover:underline">
+            Manage codes →
+          </Link>
         </p>
       </Card>
 

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { PricingCards } from "./pricing-cards"
 import { PricingPageView } from "./pricing-page-view"
+import { PromoRedeem } from "@/components/promo-redeem"
 import Link from "next/link"
 
 // getCurrentUser() reads request headers, so this page can't be statically
@@ -61,6 +62,21 @@ export default async function PricingPage() {
           isActive={isActive}
           currentPlan={userPlan}
         />
+
+        {/* Promo code redemption — signed-in users can self-unlock a plan */}
+        <div className="mt-8 flex flex-col items-center text-center">
+          {currentUser ? (
+            <PromoRedeem className="flex flex-col items-center" />
+          ) : (
+            <p className="text-sm font-mono text-[#888888]">
+              Have a promo code?{" "}
+              <Link href="/login" className="text-[#00ff88] hover:underline">
+                Sign in
+              </Link>{" "}
+              to redeem it.
+            </p>
+          )}
+        </div>
 
         {/* Trust Signals */}
         <div className="mt-10 sm:mt-16 text-center space-y-6 sm:space-y-8">

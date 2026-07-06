@@ -83,6 +83,10 @@ model User {
   compedReason    String?   @db.Text
   compedBy        String?
   compedExpiresAt DateTime?
+  // How the comp was granted: "manual" (admin panel) | "promo" (self-serve
+  // code). promoCodeId points at the redeemed PromoCode for promo comps.
+  compedSource    String?
+  promoCodeId     String?
 
   // Branding toggle (Ultra plan removes "Made with Paytree" footer)
   removeBranding Boolean @default(false)
@@ -596,6 +600,45 @@ model PlanGrantLog {
 
   @@index([userId])
   @@index([grantedAt])
+}
+
+// ===== PROMO CODES (self-serve plan redemption) =====
+//
+// A promo code is a shareable string that unlocks a comped plan without
+// admin involvement. Redemption writes the SAME comped columns on User and
+// the SAME PlanGrantLog audit rows as manual grants (grantedBy="promo:CODE"),
+// so there is one unified free-access history. Codes are never deleted —
+// deactivate (active=false) preserves redemption history.
+model PromoCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  plan           String // "pro" | "ultra"
+  durationDays   Int? // null = lifetime, no expiry once redeemed
+  maxRedemptions Int? // null = unlimited uses
+  timesRedeemed  Int       @default(0)
+  expiresAt      DateTime? // code itself stops working after this date
+  active         Boolean   @default(true)
+  note           String? // internal note, e.g. "TikTok giveaway"
+  createdBy      String
+  createdAt      DateTime  @default(now())
+
+  redemptions PromoRedemption[]
+
+  @@index([active, createdAt])
+}
+
+model PromoRedemption {
+  id          String    @id @default(cuid())
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  userId      String
+  planGranted String
+  expiresAt   DateTime? // null = lifetime
+  redeemedAt  DateTime  @default(now())
+
+  @@index([promoCodeId])
+  @@index([userId])
+  @@index([redeemedAt])
 }
 
 // ===== PARTNER AFFILIATES =====

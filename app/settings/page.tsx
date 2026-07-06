@@ -8,6 +8,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PromoRedeem } from "@/components/promo-redeem"
 import { toast } from "sonner"
 
 interface SubscriptionInfo {
@@ -294,6 +295,7 @@ export default function SettingsPage() {
                   {isPro ? (profile?.subscriptionPlan === 'ultra' ? '⭐ Ultra' : '⭐ Pro') : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
                 </span>
               </div>
+              <PromoRedeem className="pt-2" onSuccess={loadProfile} />
             </div>
           </div>
 
