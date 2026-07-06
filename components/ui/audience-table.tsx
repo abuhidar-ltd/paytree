@@ -212,7 +212,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
           <p className="text-sm font-medium text-white mb-1.5">
             No emails captured yet
           </p>
-          <p className="text-xs font-mono text-[#666] max-w-[320px] mb-5 leading-relaxed">
+          <p className="text-xs font-mono text-[#b0b0b0] max-w-[320px] mb-5 leading-relaxed">
             Add a vault card to your page to start capturing emails from visitors.
           </p>
           <Link
@@ -253,7 +253,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
       {/* ── Header row: count + controls ──────────────────────────── */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-[11px] font-mono text-[#888] tabular-nums">
+          <span className="text-[11px] font-mono text-[#c9c9d1] tabular-nums">
             {totalContacts.toLocaleString()}{" "}
             {totalContacts === 1 ? "contact" : "contacts"} captured
           </span>
@@ -304,7 +304,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
           <div className="relative flex-1">
             <Search
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0b0b0]"
             />
             <input
               type="text"
@@ -347,7 +347,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                   />
                 </th>
                 <th
-                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888] cursor-pointer hover:text-white transition-colors"
+                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1] cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort("email")}
                 >
                   <span className="flex items-center gap-1.5">
@@ -360,14 +360,14 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                     )}
                   </span>
                 </th>
-                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888]">
+                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1]">
                   Source
                 </th>
-                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888]">
+                <th className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1]">
                   Vault item
                 </th>
                 <th
-                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#888] cursor-pointer hover:text-white transition-colors"
+                  className="text-left p-4 text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1] cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort("capturedAt")}
                 >
                   <span className="flex items-center gap-1.5">
@@ -399,8 +399,8 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                 ) : audience.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center">
-                      <p className="text-sm text-[#888]">No emails match your filters</p>
-                      <p className="text-xs font-mono text-[#555] mt-1">
+                      <p className="text-sm text-[#c9c9d1]">No emails match your filters</p>
+                      <p className="text-xs font-mono text-[#c9c9d1] mt-1">
                         Try clearing your search or source filter
                       </p>
                     </td>
@@ -436,7 +436,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                           className={`px-2 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider ${
                             member.source === "vault"
                               ? "bg-[rgba(0,255,136,0.1)] text-[#00ff88]"
-                              : "bg-[rgba(255,255,255,0.05)] text-[#888]"
+                              : "bg-[rgba(255,255,255,0.05)] text-[#c9c9d1]"
                           }`}
                         >
                           {member.source || "unknown"}
@@ -444,22 +444,22 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
                       </td>
                       <td className="p-4">
                         {member.vaultItem ? (
-                          <span className="flex items-center gap-2 text-sm text-[#888]">
+                          <span className="flex items-center gap-2 text-sm text-[#c9c9d1]">
                             <span>{member.vaultItem.icon || "🔒"}</span>
                             <span className="truncate max-w-[120px]">{member.vaultItem.title}</span>
                           </span>
                         ) : (
-                          <span className="text-[#555]">—</span>
+                          <span className="text-[#c9c9d1]">—</span>
                         )}
                       </td>
-                      <td className="p-4 text-sm font-mono text-[#888]">
+                      <td className="p-4 text-sm font-mono text-[#c9c9d1]">
                         {formatDate(member.capturedAt)}
                       </td>
                       <td className="p-4">
                         <button
                           onClick={() => handleDelete(member.id)}
                           disabled={deleting === member.id}
-                          className="p-2 text-[#666] hover:text-red-500 transition-colors disabled:opacity-50"
+                          className="p-2 text-[#b0b0b0] hover:text-red-500 transition-colors disabled:opacity-50"
                           aria-label="Delete contact"
                         >
                           {deleting === member.id ? (
@@ -480,7 +480,7 @@ export function AudienceTable({ className = "", userPlan = "free" }: AudienceTab
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between p-4 border-t border-[rgba(255,255,255,0.1)]">
-            <p className="text-xs font-mono text-[#888] tabular-nums">
+            <p className="text-xs font-mono text-[#c9c9d1] tabular-nums">
               Showing {((pagination.page - 1) * pagination.limit) + 1}–
               {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
               {pagination.total}

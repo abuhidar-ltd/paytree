@@ -398,13 +398,13 @@ export function AiAgentChat({ username, creatorName, accentColor = "#00ff88" }: 
                       animate={{ opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
-                    <p className="text-[10px] font-mono text-[#555]">Online · Powered by Paytree</p>
+                    <p className="text-[10px] font-mono text-[#c9c9d1]">Online · Powered by Paytree</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[#555] hover:text-[#e0e0e0] hover:bg-white/[0.06] transition-colors flex-shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[#c9c9d1] hover:text-[#e0e0e0] hover:bg-white/[0.06] transition-colors flex-shrink-0"
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" />

@@ -99,8 +99,8 @@ export function BlockCanvas({
           style={{ gridColumn: "span 12" }}
           className="border-2 border-dashed border-white/[0.05] rounded-xl min-h-[400px] flex flex-col items-center justify-center gap-3"
         >
-          <LayoutGrid className="w-8 h-8 text-[#333]" />
-          <p className="text-[#444] font-mono text-sm">Drag blocks here or</p>
+          <LayoutGrid className="w-8 h-8 text-[#b8b8b8]" />
+          <p className="text-[#b8b8b8] font-mono text-sm">Drag blocks here or</p>
           <button
             onClick={onAddBlock}
             className="bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-2.5 text-sm hover:opacity-90 transition-opacity"
@@ -208,7 +208,7 @@ function CanvasBlockCard({ block, isSelected, onSelect, onResize }: CanvasBlockC
         {...listeners}
         {...attributes}
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-2 left-2 cursor-grab active:cursor-grabbing text-[#333] text-sm select-none z-10 hover:text-[#555] transition-colors"
+        className="absolute top-2 left-2 cursor-grab active:cursor-grabbing text-[#b8b8b8] text-sm select-none z-10 hover:text-[#c9c9d1] transition-colors"
       >
         ⠿
       </div>
@@ -218,7 +218,7 @@ function CanvasBlockCard({ block, isSelected, onSelect, onResize }: CanvasBlockC
       </div>
 
       <div
-        className="absolute bottom-2 right-2 text-[#333] cursor-se-resize select-none text-xs z-10 hover:text-[#555] transition-colors"
+        className="absolute bottom-2 right-2 text-[#b8b8b8] cursor-se-resize select-none text-xs z-10 hover:text-[#c9c9d1] transition-colors"
         onPointerDown={handleResizeStart}
       >
         ⊞
@@ -236,7 +236,7 @@ function BlockPreview({ block }: { block: Block }) {
         <div className="flex items-center gap-3 pl-6">
           <span className="text-lg">{(cfg.icon as string | undefined) || "🔗"}</span>
           <span className="text-sm text-[#e0e0e0] font-mono truncate flex-1">{block.title}</span>
-          <span className="text-[#444]">→</span>
+          <span className="text-[#b8b8b8]">→</span>
         </div>
       )
 
@@ -319,7 +319,7 @@ function BlockPreview({ block }: { block: Block }) {
     case "social_link":
       return (
         <div className="flex items-center justify-center pl-6">
-          <Share2 className="w-5 h-5 text-[#888]" />
+          <Share2 className="w-5 h-5 text-[#c9c9d1]" />
         </div>
       )
 
@@ -327,21 +327,21 @@ function BlockPreview({ block }: { block: Block }) {
       return (
         <div className="flex flex-col items-center justify-center pl-6">
           <span className="text-2xl font-bold text-white font-mono">{(cfg.value as string | undefined) || "—"}</span>
-          <span className="text-[10px] text-[#444] font-mono uppercase tracking-wider">{block.title}</span>
+          <span className="text-[10px] text-[#b8b8b8] font-mono uppercase tracking-wider">{block.title}</span>
         </div>
       )
 
     case "text":
       return (
         <div className="flex items-center pl-6">
-          <span className="text-sm text-[#888] font-mono truncate">{block.title}</span>
+          <span className="text-sm text-[#c9c9d1] font-mono truncate">{block.title}</span>
         </div>
       )
 
     case "image":
       return (
         <div className="flex items-center justify-center pl-6">
-          <ImageIcon className="w-5 h-5 text-[#555]" />
+          <ImageIcon className="w-5 h-5 text-[#c9c9d1]" />
         </div>
       )
 
@@ -349,8 +349,8 @@ function BlockPreview({ block }: { block: Block }) {
       const items = Array.isArray(cfg.items) ? cfg.items.length : (cfg.question ? 1 : 1)
       return (
         <div className="flex items-center gap-2 pl-6">
-          <HelpCircle className="w-4 h-4 text-[#888]" />
-          <span className="text-sm text-[#888] font-mono">
+          <HelpCircle className="w-4 h-4 text-[#c9c9d1]" />
+          <span className="text-sm text-[#c9c9d1] font-mono">
             FAQ · {items} {items === 1 ? "question" : "questions"}
           </span>
         </div>
@@ -360,8 +360,8 @@ function BlockPreview({ block }: { block: Block }) {
     case "contact_form":
       return (
         <div className="flex items-center gap-2 pl-6">
-          <Mail className="w-4 h-4 text-[#888]" />
-          <span className="text-sm text-[#888] font-mono">Contact form</span>
+          <Mail className="w-4 h-4 text-[#c9c9d1]" />
+          <span className="text-sm text-[#c9c9d1] font-mono">Contact form</span>
         </div>
       )
 
@@ -376,7 +376,7 @@ function BlockPreview({ block }: { block: Block }) {
     default:
       return (
         <div className="flex items-center gap-3 pl-6">
-          <LucideLink className="w-4 h-4 text-[#555]" />
+          <LucideLink className="w-4 h-4 text-[#c9c9d1]" />
           <span className="text-sm text-[#e0e0e0] font-mono truncate">{block.title}</span>
         </div>
       )

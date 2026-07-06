@@ -148,7 +148,7 @@ export default async function AdminUsersPage({
         {/* Search + filters (GET form, no client JS) */}
         <form method="get" className="flex flex-wrap items-end gap-3 mb-5">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-widest text-[#666]">Search</label>
+            <label className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0]">Search</label>
             <input
               type="text"
               name="q"
@@ -171,7 +171,7 @@ export default async function AdminUsersPage({
           </button>
           <Link
             href="/admin/users"
-            className="rounded-lg px-4 py-2 text-xs font-mono text-[#888] border border-white/[0.1] hover:text-white"
+            className="rounded-lg px-4 py-2 text-xs font-mono text-[#c9c9d1] border border-white/[0.1] hover:text-white"
           >
             Reset
           </Link>
@@ -180,7 +180,7 @@ export default async function AdminUsersPage({
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4">Joined</th>
                 <th className="py-2 pr-4">Verified</th>
@@ -200,7 +200,7 @@ export default async function AdminUsersPage({
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td className="py-4 text-[#555]" colSpan={14}>No users match these filters.</td>
+                  <td className="py-4 text-[#c9c9d1]" colSpan={14}>No users match these filters.</td>
                 </tr>
               ) : (
                 users.map((u) => {
@@ -216,21 +216,21 @@ export default async function AdminUsersPage({
                           <Link
                             href={`/${u.username}`}
                             target="_blank"
-                            className="ml-2 text-[#555] hover:text-[#888]"
+                            className="ml-2 text-[#c9c9d1] hover:text-[#c9c9d1]"
                             title="Open public profile"
                           >
                             ↗
                           </Link>
                         ) : null}
-                        <div className="text-[#555]">
-                          <Link href={`/admin/users/${u.id}`} className="hover:text-[#888]">
+                        <div className="text-[#c9c9d1]">
+                          <Link href={`/admin/users/${u.id}`} className="hover:text-[#c9c9d1]">
                             {u.email}
                           </Link>
                         </div>
                       </td>
                       <td className="py-2 pr-4">{fmtDate(u.createdAt)}</td>
                       <td className="py-2 pr-4">{u.emailVerified ? "✓" : <span className="text-[#f59e0b]">no</span>}</td>
-                      <td className="py-2 pr-4">{u.onboarded ? "✓" : <span className="text-[#666]">no</span>}</td>
+                      <td className="py-2 pr-4">{u.onboarded ? "✓" : <span className="text-[#b0b0b0]">no</span>}</td>
                       <td className="py-2 pr-4">{u.pageStatus ?? "—"}</td>
                       <td className="py-2 pr-4">
                         {plan}
@@ -265,7 +265,7 @@ export default async function AdminUsersPage({
 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-5 text-xs font-mono">
-          <span className="text-[#555]">
+          <span className="text-[#c9c9d1]">
             {nf(total)} total · page {pageNum} of {totalPages}
           </span>
           <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export default async function AdminUsersPage({
                 ← Prev
               </Link>
             ) : (
-              <span className="rounded-lg px-3 py-1.5 text-[#333] border border-white/[0.04]">← Prev</span>
+              <span className="rounded-lg px-3 py-1.5 text-[#b8b8b8] border border-white/[0.04]">← Prev</span>
             )}
             {hasNext ? (
               <Link
@@ -287,7 +287,7 @@ export default async function AdminUsersPage({
                 Next →
               </Link>
             ) : (
-              <span className="rounded-lg px-3 py-1.5 text-[#333] border border-white/[0.04]">Next →</span>
+              <span className="rounded-lg px-3 py-1.5 text-[#b8b8b8] border border-white/[0.04]">Next →</span>
             )}
           </div>
         </div>
@@ -296,12 +296,12 @@ export default async function AdminUsersPage({
       {/* Accountability record: every manual grant/revoke, newest first. */}
       <Card title="Plan grant audit log (latest 20)">
         {recentGrants.length === 0 ? (
-          <p className="text-xs font-mono text-[#555]">No manual plan grants yet.</p>
+          <p className="text-xs font-mono text-[#c9c9d1]">No manual plan grants yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs font-mono whitespace-nowrap">
               <thead>
-                <tr className="text-[#555] text-left border-b border-white/[0.06]">
+                <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                   <th className="py-2 pr-4">User</th>
                   <th className="py-2 pr-4">Plan</th>
                   <th className="py-2 pr-4">Duration</th>
@@ -322,13 +322,13 @@ export default async function AdminUsersPage({
                             {u.username ? `@${u.username}` : u.email}
                           </Link>
                         ) : (
-                          <span className="text-[#555]">(deleted account)</span>
+                          <span className="text-[#c9c9d1]">(deleted account)</span>
                         )}
                       </td>
                       <td className="py-2 pr-4 uppercase">{g.plan}</td>
                       <td className="py-2 pr-4">{g.duration}</td>
                       <td className="py-2 pr-4 whitespace-normal max-w-[240px]">{g.reason}</td>
-                      <td className="py-2 pr-4 text-[#888]">{g.grantedBy}</td>
+                      <td className="py-2 pr-4 text-[#c9c9d1]">{g.grantedBy}</td>
                       <td className="py-2 pr-4">{fmtDate(g.grantedAt)}</td>
                       <td className="py-2 pr-4">
                         {g.revokedAt ? fmtDate(g.revokedAt) : <span className="text-[#00ff88]">active</span>}
@@ -358,7 +358,7 @@ function FilterSelect({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-mono uppercase tracking-widest text-[#666]">{label}</label>
+      <label className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0]">{label}</label>
       <select
         name={name}
         defaultValue={value}

@@ -44,7 +44,7 @@ function SidebarContent({ user, pathname, onClose }: SidebarContentProps) {
         {onClose && (
           <button
             onClick={onClose}
-            className="text-[#444] hover:text-[#888] transition-colors lg:hidden"
+            className="text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors lg:hidden"
           >
             <X className="w-4 h-4" />
           </button>
@@ -63,7 +63,7 @@ function SidebarContent({ user, pathname, onClose }: SidebarContentProps) {
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-mono transition-all ${
                 isActive
                   ? "bg-white/[0.05] text-[#e0e0e0]"
-                  : "text-[#444] hover:text-[#888] hover:bg-white/[0.03]"
+                  : "text-[#b8b8b8] hover:text-[#c9c9d1] hover:bg-white/[0.03]"
               }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
@@ -83,17 +83,17 @@ function SidebarContent({ user, pathname, onClose }: SidebarContentProps) {
               className="w-7 h-7 rounded-full flex-shrink-0 object-cover"
             />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-white/10 flex-shrink-0 flex items-center justify-center text-xs text-[#888]">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex-shrink-0 flex items-center justify-center text-xs text-[#c9c9d1]">
               {(user.name || user.username)?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
-          <span className="text-[#444] text-xs font-mono truncate">@{user.username}</span>
+          <span className="text-[#b8b8b8] text-xs font-mono truncate">@{user.username}</span>
         </div>
         <Link
           href={`/${user.username}`}
           target="_blank"
           onClick={onClose}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-mono text-[#444] hover:text-[#888] hover:bg-white/[0.03] transition-all"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-mono text-[#b8b8b8] hover:text-[#c9c9d1] hover:bg-white/[0.03] transition-all"
         >
           <ExternalLink className="w-4 h-4 flex-shrink-0" />
           View Live
@@ -142,7 +142,7 @@ export function DashboardSidebar({ user, children }: DashboardSidebarProps) {
         <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 h-14 border-b border-white/[0.06] bg-[#080808]">
           <button
             onClick={() => setOpen(true)}
-            className="text-[#444] hover:text-[#888] transition-colors p-1"
+            className="text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors p-1"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />

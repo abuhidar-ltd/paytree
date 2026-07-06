@@ -81,7 +81,7 @@ export function DropCard({ drop }: { drop: Drop }) {
 
       <div className="text-xl font-semibold text-white mb-1">{drop.title}</div>
       {drop.description && (
-        <div className="text-sm text-[#888] mb-4">{drop.description}</div>
+        <div className="text-sm text-[#c9c9d1] mb-4">{drop.description}</div>
       )}
 
       {!isLive ? (
@@ -100,14 +100,14 @@ export function DropCard({ drop }: { drop: Drop }) {
               >
                 {String(unit.value).padStart(2, "0")}
               </motion.div>
-              <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-[#444] mt-1">
+              <div className="text-[9px] sm:text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mt-1">
                 {unit.label}
               </div>
             </div>
           ))}
         </div>
       ) : soldOut ? (
-        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#c9c9d1] font-mono text-center">
           This drop has sold out
         </div>
       ) : drop.revealUrl ? (
@@ -125,7 +125,7 @@ export function DropCard({ drop }: { drop: Drop }) {
           {drop.revealText}
         </div>
       ) : (
-        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+        <div className="mt-2 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#c9c9d1] font-mono text-center">
           Drop ended
         </div>
       )}

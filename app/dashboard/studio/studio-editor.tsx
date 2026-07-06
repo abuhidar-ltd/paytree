@@ -293,7 +293,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
 
   // ── section label (simple, no sticky) ─────────────────────────────────────
   const SL = ({ children }: { children: string }) => (
-    <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">{children}</h2>
+    <h2 className="text-sm font-mono uppercase tracking-widest text-white/70 mb-4">{children}</h2>
   )
 
   // ── section wrapper class ──────────────────────────────────────────────────
@@ -308,7 +308,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => router.push("/dashboard")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#c9c9d1] hover:text-[#e0e0e0] hover:border-white/20 transition-colors"
             aria-label="Back to dashboard"
           >
             <ArrowLeft size={14} />
@@ -320,7 +320,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
         <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/${profile.username}`); toast.success("Link copied!") }}
-            className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
+            className="hidden sm:inline-flex bg-white/[0.03] border border-white/[0.08] text-[#c9c9d1] font-mono rounded-xl px-3 py-1.5 text-xs hover:border-white/20 hover:text-[#e0e0e0] transition-colors"
           >
             Copy link
           </button>
@@ -382,13 +382,13 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                     </label>
                     <input id="studio-profile-img" type="file" accept="image/*" className="hidden" onChange={handleProfileImageSelect} />
                   </div>
-                  <p className="text-[11px] font-mono text-[#444]">JPG, PNG or GIF · max 5MB</p>
+                  <p className="text-[11px] font-mono text-[#b8b8b8]">JPG, PNG or GIF · max 5MB</p>
                 </div>
 
                 {/* Name + bio */}
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest mb-1.5 block">Display name</label>
+                    <label className="text-[11px] font-mono text-[#c9c9d1] uppercase tracking-widest mb-1.5 block">Display name</label>
                     <input
                       value={profile.name || ""}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
@@ -398,7 +398,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[11px] font-mono text-[#555] uppercase tracking-widest block">Bio</label>
+                      <label className="text-[11px] font-mono text-[#c9c9d1] uppercase tracking-widest block">Bio</label>
                       <button
                         type="button"
                         onClick={() => {
@@ -426,8 +426,8 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none resize-none"
                     />
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-[11px] font-mono text-[#444]">@{profile.username}</span>
-                      <span className="text-[11px] font-mono text-[#333]">{(profile.bio || "").length}/160</span>
+                      <span className="text-[11px] font-mono text-[#b8b8b8]">@{profile.username}</span>
+                      <span className="text-[11px] font-mono text-[#b8b8b8]">{(profile.bio || "").length}/160</span>
                     </div>
                   </div>
                 </div>
@@ -455,10 +455,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       <div className="w-12 h-1.5 bg-white/[0.07] rounded" />
                       <div className="w-8 h-1 bg-white/[0.04] rounded" />
                     </div>
-                    <div className={`text-[12px] font-mono font-medium ${(profile.heroStyle ?? "classic") === "classic" ? "text-[#00ff88]" : "text-[#888]"}`}>
+                    <div className={`text-[12px] font-mono font-medium ${(profile.heroStyle ?? "classic") === "classic" ? "text-[#00ff88]" : "text-[#c9c9d1]"}`}>
                       Classic
                     </div>
-                    <div className="text-[10px] text-[#444] mt-0.5">Circular avatar</div>
+                    <div className="text-[10px] text-[#b8b8b8] mt-0.5">Circular avatar</div>
                   </button>
 
                   {/* Cinematic */}
@@ -481,10 +481,10 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                         <div className="w-8 h-1 bg-white/10 rounded" />
                       </div>
                     </div>
-                    <div className={`text-[12px] font-mono font-medium ${profile.heroStyle === "cinematic" ? "text-[#00ff88]" : "text-[#888]"}`}>
+                    <div className={`text-[12px] font-mono font-medium ${profile.heroStyle === "cinematic" ? "text-[#00ff88]" : "text-[#c9c9d1]"}`}>
                       Cinematic
                     </div>
-                    <div className="text-[10px] text-[#444] mt-0.5">Full photo blend</div>
+                    <div className="text-[10px] text-[#b8b8b8] mt-0.5">Full photo blend</div>
                   </button>
                 </div>
 
@@ -535,7 +535,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                 <SL>Buttons</SL>
 
                 {/* Style */}
-                <div className="text-[11px] font-mono text-[#444] uppercase tracking-widest mb-2.5">Style</div>
+                <div className="text-[11px] font-mono text-[#b8b8b8] uppercase tracking-widest mb-2.5">Style</div>
                 <div className="grid grid-cols-2 gap-2.5 mb-5">
                   {BUTTON_STYLES.map(({ value, label }) => {
                     const active = (profile.buttonStyle ?? "glass") === value
@@ -553,14 +553,14 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                         }`}
                       >
                         <ButtonStylePreview style={value} accent={accent} />
-                        <span className={`text-[11px] font-mono text-left ${active ? "text-[#00ff88]" : "text-[#888]"}`}>{label}</span>
+                        <span className={`text-[11px] font-mono text-left ${active ? "text-[#00ff88]" : "text-[#c9c9d1]"}`}>{label}</span>
                       </button>
                     )
                   })}
                 </div>
 
                 {/* Corner radius */}
-                <div className="text-[11px] font-mono text-[#444] uppercase tracking-widest mb-2.5">Corner radius</div>
+                <div className="text-[11px] font-mono text-[#b8b8b8] uppercase tracking-widest mb-2.5">Corner radius</div>
                 <div className="flex gap-2">
                   {RADIUS_OPTIONS.map(({ value, label, tw }) => {
                     const active = cornerRadius === value
@@ -575,7 +575,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                         }`}
                       >
                         <div className={`w-8 h-4 bg-white/[0.1] border border-white/[0.15] ${tw}`} />
-                        <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#555]"}`}>{label}</span>
+                        <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#c9c9d1]"}`}>{label}</span>
                       </button>
                     )
                   })}
@@ -595,14 +595,14 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       <option key={value} value={value} className="bg-[#111]">{label}</option>
                     ))}
                   </select>
-                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#b8b8b8] pointer-events-none" />
                 </div>
               </div>
 
               {/* ── Section 7: Social icons ──────────────────────────────────── */}
               <div className="pb-8 mb-2">
                 <SL>Social icons</SL>
-                <div className="text-[11px] font-mono text-[#444] mb-3">Position</div>
+                <div className="text-[11px] font-mono text-[#b8b8b8] mb-3">Position</div>
                 <div className="flex gap-2">
                   {["top", "bottom"].map((pos) => (
                     <button
@@ -611,7 +611,7 @@ export function StudioEditor({ initialProfile, initialLinks, initialSocialLinks,
                       className={`flex-1 py-2.5 rounded-xl text-sm font-mono capitalize transition-all ${
                         (profile.socialIconPosition ?? "bottom") === pos
                           ? "bg-[#00ff88]/[0.1] border border-[#00ff88]/[0.3] text-[#00ff88]"
-                          : "bg-white/[0.03] border border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                          : "bg-white/[0.03] border border-white/[0.07] text-[#b8b8b8] hover:border-white/20 hover:text-[#c9c9d1]"
                       }`}
                     >
                       {pos}

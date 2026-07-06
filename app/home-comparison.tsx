@@ -7,8 +7,8 @@ type Cell = string | boolean
 const ROWS: Array<{ feature: string; linktree: Cell; paytree: Cell; highlight?: boolean }> = [
   { feature: "Transaction fees on creator sales", linktree: "9%", paytree: "0%", highlight: true },
   { feature: "AI sales agent on your page", linktree: false, paytree: true },
-  { feature: "Countdown drop cards", linktree: false, paytree: true },
-  { feature: "Vault — gate any card by email/payment", linktree: false, paytree: true },
+  { feature: "Countdown drop links", linktree: false, paytree: true },
+  { feature: "Vault — gate any link by email/payment", linktree: false, paytree: true },
   { feature: "Globe analytics — country & city map", linktree: false, paytree: true },
   { feature: "Top tier monthly price", linktree: "$35", paytree: "$14.99", highlight: true },
 ]

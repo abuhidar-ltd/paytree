@@ -433,7 +433,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             <span className="text-[#00ff88]">One link.</span>
           </h1>
 
-          <p className="text-[#888] text-lg mb-10">
+          <p className="text-[#c9c9d1] text-lg mb-10">
             Let&apos;s build your page in under 2 minutes.
           </p>
 
@@ -450,7 +450,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             onClick={skipAll}
             disabled={isSkipping}
             style={{
-              color: isSkipping ? "#555" : "#666",
+              color: isSkipping ? "#a1a1aa" : "#a1a1aa",
               fontSize: 13,
               fontFamily: "monospace",
               background: "transparent",
@@ -463,8 +463,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               minHeight: 44,
               transition: "color 0.15s",
             }}
-            onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
-            onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
+            onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#c9c9d1" }}
+            onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa" }}
           >
             {isSkipping ? "Skipping..." : "Skip and go to dashboard →"}
           </button>
@@ -477,7 +477,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">Set up your identity</h2>
-        <p className="text-[#888] text-sm">This is what visitors see first.</p>
+        <p className="text-[#c9c9d1] text-sm">This is what visitors see first.</p>
       </div>
 
       {/* Photo upload */}
@@ -492,7 +492,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-white/[0.03] gap-1">
               <span className="text-xl">📷</span>
-              <span className="text-[10px] font-mono text-[#444] group-hover:text-[#888] transition-colors">
+              <span className="text-[10px] font-mono text-[#b8b8b8] group-hover:text-[#c9c9d1] transition-colors">
                 PHOTO
               </span>
             </div>
@@ -519,7 +519,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           className="hidden"
           onChange={handleImageUpload}
         />
-        <div className="text-sm text-[#555]">
+        <div className="text-sm text-[#c9c9d1]">
           <div className="text-[#e0e0e0] font-medium mb-0.5">Profile photo</div>
           <div>JPG, PNG, WebP, HEIC. Max 5MB.</div>
         </div>
@@ -527,7 +527,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       {/* Display name */}
       <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
           Display name <span className="text-red-400">*</span>
         </label>
         <input
@@ -542,11 +542,11 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       {/* Username */}
       <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
           Username
         </label>
         <div className="relative flex items-center">
-          <span className="absolute left-4 text-sm font-mono text-[#555] select-none">
+          <span className="absolute left-4 text-sm font-mono text-[#c9c9d1] select-none">
             paytree.to/
           </span>
           <input
@@ -559,7 +559,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             autoComplete="off"
           />
           {isCheckingUsername && (
-            <span className="absolute right-4 text-[#888] text-xs font-mono">...</span>
+            <span className="absolute right-4 text-[#c9c9d1] text-xs font-mono">...</span>
           )}
           {!isCheckingUsername && usernameAvailable === true && (
             <span className="absolute right-4 text-[#00ff88] text-sm">✓</span>
@@ -575,7 +575,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       {/* Bio */}
       <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
           Bio
         </label>
         <div className="relative">
@@ -586,7 +586,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             className="input-obsidian w-full resize-none"
             placeholder="What do you do? (optional)"
           />
-          <span className="absolute bottom-3 right-4 text-[10px] font-mono text-[#444]">
+          <span className="absolute bottom-3 right-4 text-[10px] font-mono text-[#b8b8b8]">
             {bio.length}/160
           </span>
         </div>
@@ -598,7 +598,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">Pick your accent color</h2>
-        <p className="text-[#888] text-sm">Sets the glow and highlight across your entire page.</p>
+        <p className="text-[#c9c9d1] text-sm">Sets the glow and highlight across your entire page.</p>
       </div>
 
       <StandaloneSwatch
@@ -612,7 +612,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
       />
 
       <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
           Custom hex
         </label>
         <input
@@ -641,7 +641,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">What best describes you?</h2>
-        <p className="text-[#888] text-sm">
+        <p className="text-[#c9c9d1] text-sm">
           We&apos;ll suggest the right blocks for your profile.
         </p>
       </div>
@@ -656,7 +656,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               className={`flex items-center gap-3 p-4 rounded-2xl border text-left transition-all ${
                 active
                   ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
-                  : "bg-white/[0.03] border-white/[0.07] text-[#888] hover:border-white/20 hover:text-[#e0e0e0]"
+                  : "bg-white/[0.03] border-white/[0.07] text-[#c9c9d1] hover:border-white/20 hover:text-[#e0e0e0]"
               }`}
               style={active ? { borderColor: `${accentColor}4d`, color: accentColor, background: `${accentColor}1a` } : undefined}
             >
@@ -673,7 +673,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-1">Add your first link</h2>
-        <p className="text-[#888] text-sm">Paste any URL — we&apos;ll detect the platform.</p>
+        <p className="text-[#c9c9d1] text-sm">Paste any URL — we&apos;ll detect the platform.</p>
       </div>
 
       {/* Quick platform buttons */}
@@ -686,7 +686,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
               setFirstLinkIcon(LINK_TYPE_ICONS[p.id] ?? "🔗")
               setFirstLinkTitle(LINK_TYPE_TITLES[p.id] ?? "My Link")
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[#888] text-xs font-mono hover:border-white/20 hover:text-[#e0e0e0] transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-[#c9c9d1] text-xs font-mono hover:border-white/20 hover:text-[#e0e0e0] transition-all"
           >
             <span>{p.icon}</span>
             <span>{p.label}</span>
@@ -696,7 +696,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       {/* URL input */}
       <div>
-        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+        <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
           URL
         </label>
         <div className="relative flex items-center">
@@ -720,7 +720,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           animate={{ opacity: 1, height: "auto" }}
           transition={{ duration: 0.2 }}
         >
-          <label className="block text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5">
+          <label className="block text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5">
             Title
           </label>
           <input
@@ -772,7 +772,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
 
       <div>
         <h2 className="text-3xl font-bold text-white mb-2">Your page is ready.</h2>
-        <p className="text-[#888] text-sm">
+        <p className="text-[#c9c9d1] text-sm">
           {isSaving ? "Saving your profile…" : "Share your link with the world."}
         </p>
       </div>
@@ -791,7 +791,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         </span>
         <span
           className="text-xs font-mono transition-colors"
-          style={{ color: copied ? accentColor : "#555" }}
+          style={{ color: copied ? accentColor : "#a1a1aa" }}
         >
           {copied ? "Copied ✓" : "Copy"}
         </span>
@@ -816,7 +816,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
         </button>
       </div>
 
-      <p className="text-xs text-[#444] font-mono">
+      <p className="text-xs text-[#b8b8b8] font-mono">
         Free forever. Upgrade to unlock payments &amp; more.
       </p>
     </div>
@@ -881,7 +881,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                   }}
                 />
               ))}
-              <span className="text-[#444] text-xs font-mono ml-2">
+              <span className="text-[#b8b8b8] text-xs font-mono ml-2">
                 {step + 1}/{STEP_LABELS.length}
               </span>
             </div>
@@ -891,7 +891,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                 onClick={skipAll}
                 disabled={isSkipping}
                 style={{
-                  color: isSkipping ? "#555" : "#666",
+                  color: isSkipping ? "#a1a1aa" : "#a1a1aa",
                   fontSize: 13,
                   fontFamily: "monospace",
                   background: "transparent",
@@ -903,8 +903,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                   minHeight: 44,
                   transition: "color 0.15s",
                 }}
-                onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#888" }}
-                onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#666" }}
+                onMouseEnter={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#c9c9d1" }}
+                onMouseLeave={(e) => { if (!isSkipping) (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa" }}
               >
                 {isSkipping ? "Skipping..." : "Skip →"}
               </button>
@@ -956,7 +956,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                   style={{
                     width: "100%",
                     textAlign: "center",
-                    color: "#666",
+                    color: "#a1a1aa",
                     fontSize: 13,
                     fontFamily: "monospace",
                     background: "transparent",
@@ -970,8 +970,8 @@ export function OnboardingFlow({ user }: { user: UserData }) {
                     justifyContent: "center",
                     transition: "color 0.15s",
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#888"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.4)" }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#666"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.2)" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#c9c9d1"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.4)" }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa"; (e.currentTarget as HTMLButtonElement).style.textDecorationColor = "rgba(255,255,255,0.2)" }}
                 >
                   Skip this step →
                 </button>
@@ -987,7 +987,7 @@ export function OnboardingFlow({ user }: { user: UserData }) {
             box that reserves real layout space matching the scaled size. */}
         <div className="w-full lg:w-[380px] lg:sticky lg:top-0 lg:h-screen flex items-center justify-center p-4 sm:p-8 bg-[#060606] border-t lg:border-t-0 lg:border-l border-white/[0.04]">
           <div className="text-center">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#333] mb-3 sm:mb-6">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-3 sm:mb-6">
               Live preview
             </div>
             {/* Mobile: scale 0.7 (240→168, 480→336). Desktop: full size. */}
@@ -1147,14 +1147,14 @@ function PhonePreview({
           >
             {displayName}
           </div>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: bio ? 4 : 0 }}>
+          <div style={{ fontSize: 10, color: "#a1a1aa", marginBottom: bio ? 4 : 0 }}>
             @{displayUsername}
           </div>
           {bio && (
             <div
               style={{
                 fontSize: 9,
-                color: "#888",
+                color: "#c9c9d1",
                 lineHeight: 1.4,
                 maxHeight: 32,
                 overflow: "hidden",
@@ -1212,7 +1212,7 @@ function PhonePreview({
               }}
             >
               <span style={{ fontSize: 13 }}>{card.icon}</span>
-              <span style={{ fontSize: 10, color: "#888" }}>{card.title}</span>
+              <span style={{ fontSize: 10, color: "#c9c9d1" }}>{card.title}</span>
             </div>
           ))}
 
@@ -1236,7 +1236,7 @@ function PhonePreview({
                   }}
                 >
                   <span style={{ fontSize: 13, opacity: 0.3 }}>{c.icon}</span>
-                  <span style={{ fontSize: 10, color: "#333" }}>{c.title}</span>
+                  <span style={{ fontSize: 10, color: "#a1a1aa" }}>{c.title}</span>
                 </div>
               ))}
             </>
@@ -1249,7 +1249,7 @@ function PhonePreview({
             textAlign: "center",
             marginTop: 20,
             fontSize: 8,
-            color: "#333",
+            color: "#a1a1aa",
             fontFamily: "monospace",
           }}
         >

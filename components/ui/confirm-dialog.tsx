@@ -104,7 +104,7 @@ export function ConfirmDialog({
                 </h2>
                 <p
                   id="confirm-desc"
-                  className="text-xs font-mono text-[#888] mt-1.5 leading-relaxed"
+                  className="text-xs font-mono text-[#c9c9d1] mt-1.5 leading-relaxed"
                 >
                   {description}
                 </p>

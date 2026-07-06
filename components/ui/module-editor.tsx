@@ -35,7 +35,7 @@ const MODULE_TYPES: { type: ModuleType; label: string; icon: string; span: numbe
   { type: "rss", label: "RSS Feed", icon: "📰", span: 2, proOnly: true },
   { type: "vault_teaser", label: "Vault Teaser", icon: "🔒", span: 2, proOnly: true },
   { type: "quick_tip", label: "Quick Tip", icon: "💸", span: 1, proOnly: true },
-  { type: "payment", label: "Product Card", icon: "🛒", span: 2, proOnly: true },
+  { type: "payment", label: "Product Link", icon: "🛒", span: 2, proOnly: true },
 ]
 
 export function ModuleEditor({ modules, onModulesChange, isPro }: ModuleEditorProps) {
@@ -154,7 +154,7 @@ export function ModuleEditor({ modules, onModulesChange, isPro }: ModuleEditorPr
               className="input-obsidian w-full"
               autoFocus
             />
-            <p className="text-xs font-mono text-[#444]">
+            <p className="text-xs font-mono text-[#b8b8b8]">
               Find this in your channel URL: youtube.com/channel/UC...
             </p>
           </>
@@ -189,7 +189,7 @@ export function ModuleEditor({ modules, onModulesChange, isPro }: ModuleEditorPr
               className="input-obsidian w-full"
               autoFocus
             />
-            <p className="text-xs font-mono text-[#444]">
+            <p className="text-xs font-mono text-[#b8b8b8]">
               Your podcast RSS feed URL
             </p>
           </>

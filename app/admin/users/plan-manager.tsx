@@ -55,7 +55,7 @@ export function PlanManager({
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
       {/* Current state */}
       <div className="flex flex-wrap items-center gap-2 mb-4 text-xs font-mono">
-        <span className="text-[#666]">Current plan:</span>
+        <span className="text-[#b0b0b0]">Current plan:</span>
         <span className="text-white font-bold uppercase">{currentPlan}</span>
         {isComped ? (
           <span className="text-[#f59e0b] border border-[#f59e0b]/30 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest">
@@ -63,7 +63,7 @@ export function PlanManager({
           </span>
         ) : null}
         {isComped ? (
-          <span className="text-[#555]">
+          <span className="text-[#c9c9d1]">
             {compedExpiresAt ? `until ${compedExpiresAt.slice(0, 10)}` : "lifetime"}
             {compedBy ? ` · by ${compedBy}` : ""}
             {compedReason ? ` · “${compedReason}”` : ""}
@@ -165,7 +165,7 @@ export function PlanManager({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-mono uppercase tracking-widest text-[#666]">{label}</label>
+      <label className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0]">{label}</label>
       {children}
     </div>
   )

@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     if ((data.type === "drop" || data.type === "vault") && !features.hasDrops) {
       return NextResponse.json(
         {
-          error: `${data.type === "drop" ? "Drop" : "Vault"} cards require a Pro plan.`,
+          error: `${data.type === "drop" ? "Drop" : "Vault"} links require a Pro plan.`,
           code: "UPGRADE_REQUIRED",
         },
         { status: 403 }
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     }
     if (data.lockType && data.lockType !== "none" && !features.hasLockedLinks) {
       return NextResponse.json(
-        { error: "Locked cards require a Pro plan.", code: "UPGRADE_REQUIRED" },
+        { error: "Locked links require a Pro plan.", code: "UPGRADE_REQUIRED" },
         { status: 403 }
       )
     }

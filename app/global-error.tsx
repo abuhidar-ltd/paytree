@@ -66,13 +66,13 @@ export default function GlobalError({
           >
             Paytree couldn&apos;t load.
           </h1>
-          <p style={{ color: "#888", fontSize: 14, lineHeight: 1.5, margin: "0 0 24px" }}>
+          <p style={{ color: "#c9c9d1", fontSize: 14, lineHeight: 1.5, margin: "0 0 24px" }}>
             Refresh and try again.
           </p>
           {error.digest && (
             <p
               style={{
-                color: "#444",
+                color: "#b8b8b8",
                 fontFamily: "monospace",
                 fontSize: 10,
                 margin: "0 0 16px",

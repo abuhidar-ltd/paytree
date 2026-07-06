@@ -16,9 +16,9 @@ export function StatCard({
       <div
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: glassReflection, pointerEvents: "none" }}
       />
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-1">{label}</div>
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0] mb-1">{label}</div>
       <div className="text-2xl font-bold text-white">{value}</div>
-      {sub ? <div className="text-xs font-mono text-[#555] mt-1">{sub}</div> : null}
+      {sub ? <div className="text-xs font-mono text-[#c9c9d1] mt-1">{sub}</div> : null}
     </div>
   )
 }
@@ -29,7 +29,7 @@ export function Card({ title, children }: { title?: string; children: React.Reac
       <div
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: glassReflection, pointerEvents: "none" }}
       />
-      {title ? <h2 className="text-sm font-mono uppercase tracking-widest text-[#888] mb-4">{title}</h2> : null}
+      {title ? <h2 className="text-sm font-mono uppercase tracking-widest text-[#c9c9d1] mb-4">{title}</h2> : null}
       {children}
     </section>
   )
@@ -39,7 +39,7 @@ export function PageTitle({ title, subtitle }: { title: string; subtitle?: strin
   return (
     <div className="mb-6">
       <h1 className="text-xl font-bold text-white">{title}</h1>
-      {subtitle ? <p className="text-xs font-mono text-[#555] mt-1">{subtitle}</p> : null}
+      {subtitle ? <p className="text-xs font-mono text-[#c9c9d1] mt-1">{subtitle}</p> : null}
     </div>
   )
 }

@@ -65,7 +65,7 @@ export default async function AdminAbusePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4 text-right">Messages</th>
                 <th className="py-2 pr-4 text-right">Sessions</th>
@@ -74,7 +74,7 @@ export default async function AdminAbusePage() {
             </thead>
             <tbody>
               {topAi.length === 0 ? (
-                <tr><td className="py-2 text-[#555]" colSpan={4}>No AI usage yet.</td></tr>
+                <tr><td className="py-2 text-[#c9c9d1]" colSpan={4}>No AI usage yet.</td></tr>
               ) : (
                 topAi.map((u, i) => (
                   <tr key={i} className="border-b border-white/[0.04] text-[#d0d0d0]">

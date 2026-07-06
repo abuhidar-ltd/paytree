@@ -69,7 +69,7 @@ interface Block {
 // Reveal payload picker — the card types a user can attach as a reveal
 const REVEAL_PICKER_TYPES = [
   { id: "product",    name: "Product",    icon: "ShoppingBag" as const, desc: "Sell a digital product" },
-  { id: "vault",      name: "Vault",      icon: "Lock"        as const, desc: "Gated content card" },
+  { id: "vault",      name: "Vault",      icon: "Lock"        as const, desc: "Gated content link" },
   { id: "link",       name: "Link",       icon: "LinkIcon"    as const, desc: "Open a URL" },
   { id: "collection", name: "Collection", icon: "Folder"      as const, desc: "Group of links" },
   { id: "text",       name: "Text",       icon: "AlignLeft"   as const, desc: "Message or heading" },
@@ -435,8 +435,8 @@ export default function DashboardPage() {
       track("hit_plan_gate", { feature: type, source: "picker" })
       toast(
         type === "drop"
-          ? "Drop cards are a Pro feature ($4.99/mo)"
-          : "Vault cards are a Pro feature ($4.99/mo)",
+          ? "Drop links are a Pro feature ($4.99/mo)"
+          : "Vault links are a Pro feature ($4.99/mo)",
         {
           action: {
             label: "Upgrade to Pro →",
@@ -457,16 +457,16 @@ export default function DashboardPage() {
           parentId: collectionViewId || undefined,
         }),
       })
-      if (!res.ok) { toast.error("Failed to create card"); return }
+      if (!res.ok) { toast.error("Failed to create link"); return }
       const block = await res.json()
       setBlocks(prev => [...prev, { ...block, children: [] }])
       setSelectedBlockId(block.id)
       setEditTab("content")
       refreshPreview()
       track("add_card", { type, source: "picker" })
-      toast.success("Card added")
+      toast.success("Link added")
     } catch {
-      toast.error("Failed to create card")
+      toast.error("Failed to create link")
     }
   }
 
@@ -483,15 +483,15 @@ export default function DashboardPage() {
           parentId: collectionViewId || undefined,
         }),
       })
-      if (!res.ok) { toast.error("Failed to create card"); return }
+      if (!res.ok) { toast.error("Failed to create link"); return }
       const block = await res.json()
       setBlocks(prev => [...prev, { ...block, children: [] }])
       setSelectedBlockId(block.id)
       setEditTab("content")
       refreshPreview()
-      toast.success("Card added")
+      toast.success("Link added")
     } catch {
-      toast.error("Failed to create card")
+      toast.error("Failed to create link")
     }
   }
 
@@ -551,7 +551,7 @@ export default function DashboardPage() {
       const block = await res.json()
       setBlocks(prev => [...prev, { ...block, children: [] }])
       refreshPreview()
-      toast.success("Card duplicated")
+      toast.success("Link duplicated")
     } catch {
       toast.error("Failed to duplicate")
     }
@@ -699,7 +699,7 @@ export default function DashboardPage() {
 
         {/* Nav items */}
         <nav className="flex-1 px-3 space-y-1">
-          <SidebarItem href="/dashboard" icon={LayoutGrid} label="Cards" active={pathname === "/dashboard"} />
+          <SidebarItem href="/dashboard" icon={LayoutGrid} label="Links" active={pathname === "/dashboard"} />
           <SidebarItem href="/dashboard/studio" icon={Paintbrush} label="Design" active={pathname.startsWith("/dashboard/studio")} />
           <SidebarItem href="/dashboard/analytics" icon={BarChart2} label="Analytics" active={pathname.startsWith("/dashboard/analytics")} />
           <SidebarItem href="/dashboard/payments" icon={CreditCard} label="Payments" active={pathname.startsWith("/dashboard/payments")} />
@@ -720,9 +720,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-mono text-[#888] truncate">@{profile.username}</p>
+                <p className="text-xs font-mono text-[#c9c9d1] truncate">@{profile.username}</p>
               </div>
-              <ArrowUpRight size={12} className="text-[#444] group-hover:text-[#888] transition-colors flex-shrink-0" />
+              <ArrowUpRight size={12} className="text-[#b8b8b8] group-hover:text-[#c9c9d1] transition-colors flex-shrink-0" />
             </Link>
           </div>
         )}
@@ -744,7 +744,7 @@ export default function DashboardPage() {
             >
               <div className="p-5 flex items-center justify-between flex-shrink-0">
                 <span className="text-[#00ff88] font-mono font-bold text-lg">Paytree</span>
-                <button onClick={() => setSidebarOpen(false)} className="text-[#555] hover:text-white transition-colors">
+                <button onClick={() => setSidebarOpen(false)} className="text-[#c9c9d1] hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -764,9 +764,9 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-mono text-[#00ff88] font-bold">{profile.username.charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-mono text-[#888] truncate">@{profile.username}</p>
+                      <p className="text-xs font-mono text-[#c9c9d1] truncate">@{profile.username}</p>
                     </div>
-                    <ArrowUpRight size={12} className="text-[#444] group-hover:text-[#888] transition-colors flex-shrink-0" />
+                    <ArrowUpRight size={12} className="text-[#b8b8b8] group-hover:text-[#c9c9d1] transition-colors flex-shrink-0" />
                   </Link>
                 </div>
               )}
@@ -783,13 +783,13 @@ export default function DashboardPage() {
         {/* Mobile hamburger */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden text-[#555] hover:text-white transition-colors mr-3"
+          className="lg:hidden text-[#c9c9d1] hover:text-white transition-colors mr-3"
           aria-label="Open menu"
         >
           <Menu size={18} />
         </button>
         <span className="text-[#00ff88] font-mono font-bold text-lg lg:hidden">Paytree</span>
-        <span className="hidden lg:block absolute left-1/2 lg:left-[calc(100px+50%)] -translate-x-1/2 text-[#444] font-mono text-sm">
+        <span className="hidden lg:block absolute left-1/2 lg:left-[calc(100px+50%)] -translate-x-1/2 text-[#b8b8b8] font-mono text-sm">
           @{profile?.username}
         </span>
         <div className="flex items-center gap-2 ml-auto">
@@ -798,7 +798,7 @@ export default function DashboardPage() {
           {previewUrl && (
             <button
               onClick={() => setShowMobilePreview(true)}
-              className="lg:hidden flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
+              className="lg:hidden flex items-center gap-1.5 text-[#c9c9d1] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
               style={{ minHeight: 36 }}
               aria-label="Open preview"
             >
@@ -807,7 +807,7 @@ export default function DashboardPage() {
           )}
           {profile?.username && (
             <Link href={`/${profile.username}`} target="_blank"
-              className="flex items-center gap-1.5 text-[#888] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
+              className="flex items-center gap-1.5 text-[#c9c9d1] hover:text-white text-xs font-mono transition-colors px-3 rounded-lg hover:bg-white/[0.04] active:scale-[0.97]"
               style={{ minHeight: 36 }}>
               Open <ArrowUpRight size={12} />
             </Link>
@@ -820,9 +820,9 @@ export default function DashboardPage() {
             }}
             className="flex items-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold text-xs rounded-lg px-2 sm:px-3 hover:opacity-90 active:scale-[0.97] transition-all"
             style={{ minHeight: 36 }}
-            aria-label="Add card"
+            aria-label="Add link"
           >
-            <Plus size={14} /> <span className="hidden sm:inline">Add card</span>
+            <Plus size={14} /> <span className="hidden sm:inline">Add link</span>
           </button>
         </div>
       </div>
@@ -881,7 +881,7 @@ export default function DashboardPage() {
               </Link>
               <button
                 onClick={dismissStripeBanner}
-                className="text-[11px] font-mono text-[#666] hover:text-[#aaa] transition-colors"
+                className="text-[11px] font-mono text-[#b0b0b0] hover:text-[#aaa] transition-colors"
               >
                 Dismiss
               </button>
@@ -911,7 +911,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-xs font-mono text-[#00ff88] font-medium">AI Sales Agent</p>
-                <p className="text-[10px] font-mono text-[#444]">
+                <p className="text-[10px] font-mono text-[#b8b8b8]">
                   {(profile.aiChatSessions ?? 0) > 0
                     ? `${profile.aiChatSessions} conversation${profile.aiChatSessions === 1 ? "" : "s"} · ${profile.aiChatMessages ?? 0} messages`
                     : "No conversations yet"}
@@ -920,7 +920,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-2.5">
-              <span className="text-[10px] font-mono text-[#444]">
+              <span className="text-[10px] font-mono text-[#b8b8b8]">
                 {profile.aiAgentEnabled ? "Active" : "Off"}
               </span>
               <motion.button
@@ -995,7 +995,7 @@ export default function DashboardPage() {
       {/* ─── Preview Panel (desktop only, fixed right) ─── */}
       {previewUrl && (
         <div className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[360px] z-40 bg-[#080808] border-l border-white/[0.06] flex-col items-center justify-center p-6">
-          <p className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-4">Preview</p>
+          <p className="text-[10px] text-[#b8b8b8] font-mono uppercase tracking-widest mb-4">Preview</p>
           <div
             style={{
               width: 280,
@@ -1023,7 +1023,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={refreshPreview}
-            className="flex items-center gap-1.5 text-[10px] text-[#555] font-mono mt-4 hover:text-[#888] transition-colors"
+            className="flex items-center gap-1.5 text-[10px] text-[#c9c9d1] font-mono mt-4 hover:text-[#c9c9d1] transition-colors"
           >
             ↻ Refresh preview
           </button>
@@ -1161,10 +1161,10 @@ export default function DashboardPage() {
                 <ChevronRight size={18} className="rotate-180" />
                 Back
               </button>
-              <span className="text-[#444] font-mono text-xs">Preview</span>
+              <span className="text-[#b8b8b8] font-mono text-xs">Preview</span>
               <button
                 onClick={refreshPreview}
-                className="text-[#888] text-xs font-mono active:scale-[0.97] transition-transform"
+                className="text-[#c9c9d1] text-xs font-mono active:scale-[0.97] transition-transform"
                 style={{ minHeight: 44, minWidth: 44 }}
                 aria-label="Refresh preview"
               >
@@ -1204,7 +1204,7 @@ function ToggleSwitch({ on, onClick }: { on: boolean; onClick: (e: React.MouseEv
         height: 18,
         background: on ? "#00ff88" : "rgba(255,255,255,0.1)",
       }}
-      aria-label="Toggle card"
+      aria-label="Toggle link"
     >
       <motion.span
         className="absolute top-[2px] rounded-full bg-white"
@@ -1228,8 +1228,8 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
     <div className="relative">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
-        className="text-[#444] hover:text-[#888] transition-colors"
-        aria-label="Card menu"
+        className="text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors"
+        aria-label="Link menu"
       >
         <MoreHorizontal size={14} />
       </button>
@@ -1251,11 +1251,11 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
               }}
             >
               <button onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit() }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-[#888] hover:bg-white/[0.04] hover:text-white transition-colors">
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-[#c9c9d1] hover:bg-white/[0.04] hover:text-white transition-colors">
                 <Pencil size={12} /> Edit
               </button>
               <button onClick={(e) => { e.stopPropagation(); setOpen(false); onDuplicate() }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-[#888] hover:bg-white/[0.04] hover:text-white transition-colors">
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-[#c9c9d1] hover:bg-white/[0.04] hover:text-white transition-colors">
                 <CopyPlus size={12} /> Duplicate
               </button>
               <button onClick={(e) => { e.stopPropagation(); setOpen(false); setConfirmDelete(true) }}
@@ -1268,9 +1268,9 @@ function CardMenu({ onEdit, onDuplicate, onDelete }: {
       </AnimatePresence>
       <ConfirmDialog
         open={confirmDelete}
-        title="Delete this card?"
-        description="The card and any data attached to it will be permanently removed. This cannot be undone."
-        confirmLabel="Delete card"
+        title="Delete this link?"
+        description="The link and any data attached to it will be permanently removed. This cannot be undone."
+        confirmLabel="Delete link"
         onConfirm={() => { setConfirmDelete(false); onDelete() }}
         onCancel={() => setConfirmDelete(false)}
       />
@@ -1357,10 +1357,10 @@ function SortableCanvasCard({ block, isSelected, onSelect, onToggle, onDelete, o
         >
           <div className="flex items-center gap-2">
             <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}
-              className="cursor-grab active:cursor-grabbing text-[#333] hover:text-[#666] transition-colors">
+              className="cursor-grab active:cursor-grabbing text-[#b8b8b8] hover:text-[#b0b0b0] transition-colors">
               <GripVertical size={12} />
             </button>
-            <span className="text-[9px] font-mono uppercase tracking-wider text-[#444]">{block.type.replace("_", " ")}</span>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#b8b8b8]">{block.type.replace("_", " ")}</span>
             {isStarred && <Star size={9} className="text-[#00ff88] fill-[#00ff88]" />}
           </div>
           <div className="flex items-center gap-2.5">
@@ -1412,9 +1412,9 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{block.title}</p>
-            {block.url && <p className="text-[10px] text-[#444] font-mono truncate">{block.url}</p>}
+            {block.url && <p className="text-[10px] text-[#b8b8b8] font-mono truncate">{block.url}</p>}
           </div>
-          <ArrowUpRight size={12} className="text-[#333] flex-shrink-0" />
+          <ArrowUpRight size={12} className="text-[#b8b8b8] flex-shrink-0" />
         </div>
       )
     }
@@ -1424,11 +1424,11 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
         <div className="px-4 py-3 flex items-center gap-3" style={{ minHeight: 72 }}
           onClick={(e) => { e.stopPropagation(); onOpenCollection() }}>
           <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-            <Folder size={16} className="text-[#555]" />
+            <Folder size={16} className="text-[#c9c9d1]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{block.title}</p>
-            <p className="text-[10px] text-[#555] font-mono">{block.children?.length || 0} links inside</p>
+            <p className="text-[10px] text-[#c9c9d1] font-mono">{block.children?.length || 0} links inside</p>
           </div>
           <ChevronRight size={14} className="text-[#00ff88] flex-shrink-0" />
         </div>
@@ -1482,7 +1482,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
               </span>
             </div>
             {limitedSpots !== null && (
-              <span className="text-[9px] font-mono text-[#555]">{spotsLeft} spots</span>
+              <span className="text-[9px] font-mono text-[#c9c9d1]">{spotsLeft} spots</span>
             )}
           </div>
           <p className="text-sm font-semibold text-white truncate">{block.title}</p>
@@ -1491,12 +1491,12 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
               {cdUnits.map((u, i) => (
                 <div key={i} className="flex items-baseline gap-0.5">
                   <span className="text-base font-mono font-bold text-[#00ff88] tabular-nums">{String(u.v).padStart(2, "0")}</span>
-                  <span className="text-[9px] font-mono text-[#555]">{u.l}</span>
+                  <span className="text-[9px] font-mono text-[#c9c9d1]">{u.l}</span>
                 </div>
               ))}
             </div>
           ) : (
-            dropAt && <p className="text-[10px] text-[#555] font-mono mt-1">{new Date(dropAt).toLocaleDateString()}</p>
+            dropAt && <p className="text-[10px] text-[#c9c9d1] font-mono mt-1">{new Date(dropAt).toLocaleDateString()}</p>
           )}
         </div>
       )
@@ -1570,7 +1570,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
       return (
         <div className="px-4 py-4 flex flex-col items-center justify-center text-center" style={{ minHeight: 80 }}>
           <p className="text-2xl font-bold text-[#00ff88] font-mono leading-none">{(cfg.value as string) || "0"}</p>
-          <p className="text-[9px] font-mono uppercase tracking-widest text-[#555] mt-1.5">{(cfg.label as string) || block.title}</p>
+          <p className="text-[9px] font-mono uppercase tracking-widest text-[#c9c9d1] mt-1.5">{(cfg.label as string) || block.title}</p>
         </div>
       )
 
@@ -1579,7 +1579,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
       return (
         <div className="flex flex-col items-center justify-center" style={{ height: 80 }}>
           <Share2 size={24} style={{ color }} />
-          <p className="text-[10px] font-mono text-[#888] mt-1.5 capitalize">{platform}</p>
+          <p className="text-[10px] font-mono text-[#c9c9d1] mt-1.5 capitalize">{platform}</p>
         </div>
       )
     }
@@ -1594,7 +1594,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{block.title === "Untitled" ? "WhatsApp" : block.title}</p>
-            <p className="text-[10px] font-mono text-[#444] truncate">{phone || "Set phone in CONTENT tab"}</p>
+            <p className="text-[10px] font-mono text-[#b8b8b8] truncate">{phone || "Set phone in CONTENT tab"}</p>
           </div>
         </div>
       )
@@ -1608,7 +1608,7 @@ function CanvasCardBody({ block, onOpenCollection }: { block: Block; onOpenColle
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{block.title}</p>
-            <p className="text-[10px] text-[#444] font-mono">{block.type.replace("_", " ")}</p>
+            <p className="text-[10px] text-[#b8b8b8] font-mono">{block.type.replace("_", " ")}</p>
           </div>
         </div>
       )
@@ -1667,7 +1667,7 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose, userPlan }: {
     <div className="lg:max-h-[70vh] flex flex-col min-h-0 flex-1">
       <div className="p-3 border-b border-white/[0.06] flex-shrink-0">
         <div className="flex items-center gap-2 rounded-xl px-3 h-11 lg:h-auto lg:py-2.5" style={glass.input}>
-          <Search size={16} className="text-[#555] flex-shrink-0" />
+          <Search size={16} className="text-[#c9c9d1] flex-shrink-0" />
           <input
             ref={inputRef}
             value={search}
@@ -1679,9 +1679,9 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose, userPlan }: {
             autoCorrect="off"
             spellCheck={false}
             placeholder="Paste any link to add instantly..."
-            className="flex-1 min-w-0 bg-transparent text-base lg:text-sm text-[#e0e0e0] font-mono outline-none placeholder:text-[#444]"
+            className="flex-1 min-w-0 bg-transparent text-base lg:text-sm text-[#e0e0e0] font-mono outline-none placeholder:text-[#b8b8b8]"
           />
-          <button onClick={onClose} aria-label="Close" className="text-[#555] hover:text-[#888] transition-colors p-1 -m-1">
+          <button onClick={onClose} aria-label="Close" className="text-[#c9c9d1] hover:text-[#c9c9d1] transition-colors p-1 -m-1">
             <X size={16} />
           </button>
         </div>
@@ -1719,7 +1719,7 @@ function AddBlockPicker({ onSelect, onPasteUrl, onClose, userPlan }: {
 
             {BLOCK_CATEGORIES.map((cat) => (
               <div key={cat.label} className="mb-2">
-                <p className="text-[9px] font-mono uppercase tracking-widest text-[#444] px-2 py-1.5">{cat.label}</p>
+                <p className="text-[9px] font-mono uppercase tracking-widest text-[#b8b8b8] px-2 py-1.5">{cat.label}</p>
                 {cat.items.map((item, idx) => (
                   <PickerItem key={`${cat.label}-${item.id}-${idx}`} item={item} locked={isFree && PRO_GATED_TYPES.has(item.id)} onSelect={() => onSelect(item.id)} />
                 ))}
@@ -1746,14 +1746,14 @@ function PickerItem({ item, onSelect, locked = false }: {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-[#e0e0e0] leading-tight">{item.name}</p>
-        <p className="text-[10px] text-[#555] font-mono truncate">{item.desc}</p>
+        <p className="text-[10px] text-[#c9c9d1] font-mono truncate">{item.desc}</p>
       </div>
       {locked ? (
         <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-[#00ff88] bg-[#00ff88]/[0.1] border border-[#00ff88]/30 rounded-full px-1.5 py-0.5 flex-shrink-0">
           <Lock size={8} /> Pro
         </span>
       ) : (
-        <ArrowUpRight size={14} className="text-[#333] group-hover:text-[#666] transition-colors flex-shrink-0" />
+        <ArrowUpRight size={14} className="text-[#b8b8b8] group-hover:text-[#b0b0b0] transition-colors flex-shrink-0" />
       )}
     </button>
   )
@@ -1786,8 +1786,8 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
           className="px-4 h-9 border-b border-white/[0.06] flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#00ff88] hover:bg-white/[0.02] transition-colors flex-shrink-0"
         >
           <ChevronRight size={12} className="rotate-180" />
-          <span className="text-[#555]">Reveal of</span>
-          <span className="text-[#888] normal-case tracking-normal">{revealEditParent.title || "Untitled"}</span>
+          <span className="text-[#c9c9d1]">Reveal of</span>
+          <span className="text-[#c9c9d1] normal-case tracking-normal">{revealEditParent.title || "Untitled"}</span>
         </button>
       )}
 
@@ -1797,9 +1797,9 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}12`, color }}>
             <Icon size={12} />
           </div>
-          <span className="text-xs font-mono text-[#888] uppercase tracking-wider">{block.type.replace("_", " ")}</span>
+          <span className="text-xs font-mono text-[#c9c9d1] uppercase tracking-wider">{block.type.replace("_", " ")}</span>
         </div>
-        <button onClick={onClose} className="text-[#555] hover:text-white transition-colors p-1">
+        <button onClick={onClose} className="text-[#c9c9d1] hover:text-white transition-colors p-1">
           <X size={16} />
         </button>
       </div>
@@ -1810,9 +1810,9 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
           key={`${block.id}-title`}
           defaultValue={block.title}
           onBlur={(e) => onUpdate(block.id, { title: e.target.value })}
-          placeholder="Card title..."
+          placeholder="Link title..."
           autoCapitalize="sentences"
-          className="w-full bg-transparent text-lg text-white outline-none placeholder:text-[#444]"
+          className="w-full bg-transparent text-lg text-white outline-none placeholder:text-[#b8b8b8]"
         />
       </div>
 
@@ -1821,7 +1821,7 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
         {(["content", "style", "settings"] as const).map((tab) => (
           <button key={tab} onClick={() => setEditTab(tab)}
             className={`flex-1 py-2.5 text-xs font-mono uppercase tracking-wider transition-colors relative ${
-              editTab === tab ? "text-[#00ff88]" : "text-[#555] hover:text-[#888]"
+              editTab === tab ? "text-[#00ff88]" : "text-[#c9c9d1] hover:text-[#c9c9d1]"
             }`}>
             {tab}
             {editTab === tab && (
@@ -1949,7 +1949,7 @@ function FaqItemsEditor({
                   type="button"
                   onClick={() => removeItem(item._id)}
                   aria-label="Delete question"
-                  className="text-[#555] hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/[0.08]"
+                  className="text-[#c9c9d1] hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/[0.08]"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -2232,7 +2232,7 @@ function ContentTab({ block, onUpdate, onAddReveal, onRemoveReveal, onEditReveal
       {/* ─── Lock section (not shown for product — always purchase-locked) ─── */}
       {block.type !== "product" && (
         <div className="border-t border-white/[0.06] pt-4">
-          <FieldGroup label="Lock this card">
+          <FieldGroup label="Lock this link">
             <div className="grid grid-cols-4 gap-1.5">
               {([
                 { id: "none", label: "None" },
@@ -2300,7 +2300,7 @@ function ContentTab({ block, onUpdate, onAddReveal, onRemoveReveal, onEditReveal
       {/* ─── REVEAL section — modular reveal payload ─── */}
       {showRevealSection && (
         <div className="border-t border-white/[0.06] pt-4">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-2">
             Reveal · after unlock
           </div>
           {block.revealBlock ? (
@@ -2341,7 +2341,7 @@ function RevealAttached({ reveal, onEdit, onRemove }: {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm text-white truncate">{reveal.title || "Untitled"}</div>
-        <div className="text-[10px] font-mono uppercase tracking-wider text-[#555]">{reveal.type.replace("_", " ")}</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#c9c9d1]">{reveal.type.replace("_", " ")}</div>
       </div>
       <button
         type="button"
@@ -2354,7 +2354,7 @@ function RevealAttached({ reveal, onEdit, onRemove }: {
         type="button"
         onClick={onRemove}
         aria-label="Remove reveal"
-        className="text-[#555] hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/[0.08] transition-colors"
+        className="text-[#c9c9d1] hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/[0.08] transition-colors"
       >
         <X size={14} />
       </button>
@@ -2406,8 +2406,8 @@ function RevealPicker({ onPick }: { onPick: (type: string) => void }) {
               className="flex flex-col items-center gap-1 px-2 py-3 rounded-lg hover:bg-white/[0.04] transition-colors"
               title={t.desc}
             >
-              <Icon size={16} className="text-[#888]" />
-              <span className="text-[10px] font-mono text-[#888]">{t.name}</span>
+              <Icon size={16} className="text-[#c9c9d1]" />
+              <span className="text-[10px] font-mono text-[#c9c9d1]">{t.name}</span>
             </button>
           )
         })}
@@ -2415,7 +2415,7 @@ function RevealPicker({ onPick }: { onPick: (type: string) => void }) {
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="w-full text-[10px] font-mono text-[#444] hover:text-[#888] transition-colors mt-1.5 py-1"
+        className="w-full text-[10px] font-mono text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors mt-1.5 py-1"
       >
         Cancel
       </button>
@@ -2439,7 +2439,7 @@ function StyleTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, da
     <>
       <FieldGroup label="Size">
         {forceFullAlways ? (
-          <div className="text-xs text-[#555] font-mono py-1">Full width only for this card type</div>
+          <div className="text-xs text-[#c9c9d1] font-mono py-1">Full width only for this link type</div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <SizeOption active={block.size !== "half"} onClick={() => onUpdate(block.id, { size: "full" })} full />
@@ -2448,7 +2448,7 @@ function StyleTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, da
         )}
       </FieldGroup>
 
-      <FieldGroup label="Card style">
+      <FieldGroup label="Link style">
         <div className="grid grid-cols-3 gap-2">
           {([
             { id: "glass", label: "Glass" },
@@ -2482,7 +2482,7 @@ function StyleTab({ block, onUpdate }: { block: Block; onUpdate: (id: string, da
 
       <FieldGroup label="Promo code">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-[#888] font-mono">Show promo code</span>
+          <span className="text-xs text-[#c9c9d1] font-mono">Show promo code</span>
           <ToggleSwitch on={showPromo} onClick={() => onUpdate(block.id, { config: { ...cfg, showPromo: !showPromo, promoCode: !showPromo ? (cfg.promoCode || "") : "" } })} />
         </div>
         {showPromo && (
@@ -2506,19 +2506,19 @@ function SettingsTab({ block, onUpdate, onDelete }: {
     <>
       <div className="space-y-1">
         <div className="flex items-center justify-between py-2">
-          <span className="text-xs text-[#888] font-mono">Clicks</span>
+          <span className="text-xs text-[#c9c9d1] font-mono">Clicks</span>
           <span className="text-xs text-[#e0e0e0] font-mono">{block.clickCount} clicks</span>
         </div>
         {block.createdAt && (
           <div className="flex items-center justify-between py-2">
-            <span className="text-xs text-[#888] font-mono">Created</span>
+            <span className="text-xs text-[#c9c9d1] font-mono">Created</span>
             <span className="text-xs text-[#e0e0e0] font-mono">{new Date(block.createdAt).toLocaleDateString()}</span>
           </div>
         )}
         <div className="flex items-center justify-between py-2">
-          <span className="text-xs text-[#888] font-mono">Block ID</span>
+          <span className="text-xs text-[#c9c9d1] font-mono">Block ID</span>
           <button onClick={() => { navigator.clipboard.writeText(block.id); toast.success("Copied!") }}
-            className="flex items-center gap-1.5 text-xs text-[#555] font-mono hover:text-[#888] transition-colors">
+            className="flex items-center gap-1.5 text-xs text-[#c9c9d1] font-mono hover:text-[#c9c9d1] transition-colors">
             {block.id.slice(0, 12)}... <Copy size={10} />
           </button>
         </div>
@@ -2526,7 +2526,7 @@ function SettingsTab({ block, onUpdate, onDelete }: {
 
       <div className="border-t border-white/[0.06] pt-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-[#888] font-mono">Schedule visibility</span>
+          <span className="text-xs text-[#c9c9d1] font-mono">Schedule visibility</span>
           <ToggleSwitch on={scheduleOn} onClick={() => {
             const next = !scheduleOn
             setScheduleOn(next)
@@ -2536,12 +2536,12 @@ function SettingsTab({ block, onUpdate, onDelete }: {
         {scheduleOn && (
           <div className="space-y-2">
             <div>
-              <label className="text-[10px] font-mono text-[#555] mb-1 block">Start</label>
+              <label className="text-[10px] font-mono text-[#c9c9d1] mb-1 block">Start</label>
               <GlassInput type="datetime-local" defaultValue={block.scheduleStart?.slice(0, 16) || ""}
                 onBlur={(e) => onUpdate(block.id, { scheduleStart: e.target.value ? new Date(e.target.value).toISOString() : null })} />
             </div>
             <div>
-              <label className="text-[10px] font-mono text-[#555] mb-1 block">End</label>
+              <label className="text-[10px] font-mono text-[#c9c9d1] mb-1 block">End</label>
               <GlassInput type="datetime-local" defaultValue={block.scheduleEnd?.slice(0, 16) || ""}
                 onBlur={(e) => onUpdate(block.id, { scheduleEnd: e.target.value ? new Date(e.target.value).toISOString() : null })} />
             </div>
@@ -2552,15 +2552,15 @@ function SettingsTab({ block, onUpdate, onDelete }: {
       <div className="border-t border-white/[0.06] pt-4 mt-2">
         <button onClick={() => setConfirmDelete(true)}
           className="w-full bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-xs rounded-xl py-3 hover:bg-red-500/20 transition-colors">
-          Delete card
+          Delete link
         </button>
       </div>
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Delete this card?"
-        description="The card and any data attached to it will be permanently removed. This cannot be undone."
-        confirmLabel="Delete card"
+        title="Delete this link?"
+        description="The link and any data attached to it will be permanently removed. This cannot be undone."
+        confirmLabel="Delete link"
         onConfirm={() => { setConfirmDelete(false); onDelete(block.id) }}
         onCancel={() => setConfirmDelete(false)}
       />
@@ -2573,7 +2573,7 @@ function SettingsTab({ block, onUpdate, onDelete }: {
 function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-1.5 block">{label}</label>
+      <label className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-1.5 block">{label}</label>
       {children}
     </div>
   )
@@ -2609,7 +2609,7 @@ function PillButton({ active, small, onClick, children }: {
       className={`${small ? "py-2 text-[10px]" : "py-2.5 text-xs"} flex-1 rounded-xl font-mono transition-colors ${
         active
           ? "bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88]"
-          : "bg-white/[0.03] border border-white/[0.07] text-[#888] hover:border-white/20"
+          : "bg-white/[0.03] border border-white/[0.07] text-[#c9c9d1] hover:border-white/20"
       }`}>
       {children}
     </button>
@@ -2625,7 +2625,7 @@ function SizeOption({ active, full, onClick }: { active: boolean; full?: boolean
       <div className="w-full flex justify-center">
         <div className={`h-2 rounded ${active ? "bg-[#00ff88]" : "bg-white/20"}`} style={{ width: full ? "80%" : "40%" }} />
       </div>
-      <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#888]"}`}>{full ? "Full width" : "Half width"}</span>
+      <span className={`text-[10px] font-mono ${active ? "text-[#00ff88]" : "text-[#c9c9d1]"}`}>{full ? "Full width" : "Half width"}</span>
     </button>
   )
 }
@@ -2694,7 +2694,7 @@ function EmptyDashboardState({ displayName, onSuggest, onOpenPicker }: {
     { type: "youtube",     icon: Youtube,        label: "YouTube",           sub: "Latest video" },
     { type: "social_link", icon: Share2,         label: "Social link",       sub: "Instagram, TikTok…" },
     { type: "product",     icon: ShoppingBag,    label: "Sell a product",    sub: "0% platform fees" },
-    { type: "stats",       icon: BarChart2,      label: "Stat card",         sub: "87% win rate" },
+    { type: "stats",       icon: BarChart2,      label: "Stat block",        sub: "87% win rate" },
   ]
 
   return (
@@ -2718,8 +2718,8 @@ function EmptyDashboardState({ displayName, onSuggest, onOpenPicker }: {
         <h2 className="text-2xl font-bold text-white">
           Welcome to Paytree, <span className="text-[#00ff88]">{displayName}</span>
         </h2>
-        <p className="text-sm text-[#888] font-mono mt-2">
-          Pick a card to start. Most pages need 3–5.
+        <p className="text-sm text-[#c9c9d1] font-mono mt-2">
+          Pick a link to start. Most pages need 3–5.
         </p>
       </div>
 
@@ -2752,9 +2752,9 @@ function EmptyDashboardState({ displayName, onSuggest, onOpenPicker }: {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-[#f0f0f0] truncate">{s.label}</div>
-                <div className="text-[11px] font-mono text-[#555] truncate">{s.sub}</div>
+                <div className="text-[11px] font-mono text-[#c9c9d1] truncate">{s.sub}</div>
               </div>
-              <Plus size={14} className="text-[#444] flex-shrink-0" />
+              <Plus size={14} className="text-[#b8b8b8] flex-shrink-0" />
             </motion.button>
           )
         })}
@@ -2764,7 +2764,7 @@ function EmptyDashboardState({ displayName, onSuggest, onOpenPicker }: {
         <button
           type="button"
           onClick={onOpenPicker}
-          className="text-xs font-mono text-[#888] hover:text-white transition-colors underline decoration-white/20 hover:decoration-white/40 underline-offset-4 px-3 py-2 rounded-lg"
+          className="text-xs font-mono text-[#c9c9d1] hover:text-white transition-colors underline decoration-white/20 hover:decoration-white/40 underline-offset-4 px-3 py-2 rounded-lg"
           style={{ minHeight: 36 }}
         >
           Browse all card types →
@@ -2786,7 +2786,7 @@ function SidebarItem({ href, icon: Icon, label, active, onClick }: {
       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-mono transition-all ${
         active
           ? "bg-[#00ff88]/[0.08] text-[#00ff88] border border-[#00ff88]/[0.15]"
-          : "text-[#444] hover:text-[#888] hover:bg-white/[0.03] border border-transparent"
+          : "text-[#b8b8b8] hover:text-[#c9c9d1] hover:bg-white/[0.03] border border-transparent"
       }`}
     >
       <Icon size={16} />

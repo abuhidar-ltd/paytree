@@ -16,7 +16,7 @@ import {
   YAxis,
 } from "recharts"
 
-const AXIS_TICK = { fill: "#555", fontSize: 10, fontFamily: "monospace" }
+const AXIS_TICK = { fill: "#b8b8b8", fontSize: 10, fontFamily: "monospace" }
 const TOOLTIP_STYLE = {
   background: "#080808",
   border: "1px solid rgba(255,255,255,0.1)",
@@ -87,7 +87,7 @@ export function DonutChart({
           <li key={d.name} className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
             <span className="text-[#d0d0d0]">{d.name}</span>
-            <span className="text-[#555]">
+            <span className="text-[#c9c9d1]">
               {d.value.toLocaleString("en-US")}
               {total > 0 ? ` · ${((d.value / total) * 100).toFixed(1)}%` : ""}
             </span>

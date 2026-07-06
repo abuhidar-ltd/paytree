@@ -164,13 +164,13 @@ export function AiBioWriter({
             </div>
             <div className="flex items-center gap-3">
               {remaining !== null && (
-                <span className="text-[10px] font-mono text-[#555] tabular-nums">
+                <span className="text-[10px] font-mono text-[#c9c9d1] tabular-nums">
                   {remaining} left today
                 </span>
               )}
               <button
                 onClick={onClose}
-                className="text-[#666] hover:text-white transition-colors"
+                className="text-[#b0b0b0] hover:text-white transition-colors"
                 aria-label="Close"
               >
                 <X size={16} />
@@ -183,7 +183,7 @@ export function AiBioWriter({
 
             {/* Niche input */}
             <div>
-              <label className="text-[10px] font-mono uppercase tracking-widest text-[#555] mb-2 block">
+              <label className="text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1] mb-2 block">
                 What do you do? (optional)
               </label>
               <input
@@ -243,14 +243,14 @@ export function AiBioWriter({
                   >
                     <Sparkles size={28} className="text-[#00ff88]" />
                   </motion.div>
-                  <p className="text-xs font-mono text-[#666]">Generating bio ideas…</p>
+                  <p className="text-xs font-mono text-[#b0b0b0]">Generating bio ideas…</p>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {bios.length > 0 && (
               <div className="space-y-3">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-[#555]">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1]">
                   Pick a bio
                 </div>
                 {bios.map((bio, i) => (
@@ -260,7 +260,7 @@ export function AiBioWriter({
                 <button
                   onClick={generate}
                   disabled={loading}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-[#888] font-mono rounded-xl px-4 py-2.5 text-xs hover:border-white/[0.18] hover:text-[#e0e0e0] transition-colors disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-[#c9c9d1] font-mono rounded-xl px-4 py-2.5 text-xs hover:border-white/[0.18] hover:text-[#e0e0e0] transition-colors disabled:opacity-50"
                 >
                   {loading ? (
                     <>
@@ -280,7 +280,7 @@ export function AiBioWriter({
             {/* ── Previous bios ────────────────────────────────── */}
             {history.length > 0 && (
               <div className="pt-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-[#555] mb-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1] mb-3">
                   <History size={11} /> Previous bios
                 </div>
                 <div className="space-y-2">
@@ -293,12 +293,12 @@ export function AiBioWriter({
                         border: "0.5px solid rgba(255,255,255,0.05)",
                       }}
                     >
-                      <p className="text-xs text-[#888] flex-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-[#c9c9d1] flex-1 line-clamp-2 leading-relaxed">
                         {h.bio}
                       </p>
                       <button
                         onClick={() => pick(h.bio)}
-                        className="text-[10px] font-mono text-[#666] hover:text-[#00ff88] transition-colors flex-shrink-0 px-2 py-1 rounded-md hover:bg-[#00ff88]/[0.06]"
+                        className="text-[10px] font-mono text-[#b0b0b0] hover:text-[#00ff88] transition-colors flex-shrink-0 px-2 py-1 rounded-md hover:bg-[#00ff88]/[0.06]"
                       >
                         Restore
                       </button>
@@ -309,7 +309,7 @@ export function AiBioWriter({
             )}
 
             {history.length === 0 && historyLoading && (
-              <div className="text-[10px] font-mono text-[#444] text-center py-2">
+              <div className="text-[10px] font-mono text-[#b8b8b8] text-center py-2">
                 Loading history…
               </div>
             )}
@@ -352,7 +352,7 @@ function BioCard({ bio, onUse, index }: { bio: string; onUse: () => void; index:
       <div className="p-4 pr-24">
         <p className="text-sm text-white leading-relaxed">{bio}</p>
         <div className="flex items-center justify-between mt-3">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8]">
             Option {index + 1}
           </span>
           <span

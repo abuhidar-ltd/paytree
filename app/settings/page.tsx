@@ -203,7 +203,7 @@ export default function SettingsPage() {
         <PremiumBackground />
         <div className="relative z-10 text-center">
           <div className="w-16 h-16 border-4 border-white/10 border-t-[#00ff88] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#444] text-sm">Loading settings...</p>
+          <p className="text-[#b8b8b8] text-sm">Loading settings...</p>
         </div>
       </div>
     )
@@ -229,7 +229,7 @@ export default function SettingsPage() {
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link 
               href="/dashboard" 
-              className="text-[#444] hover:text-[#e0e0e0] transition-colors text-sm min-h-[44px] flex items-center"
+              className="text-[#b8b8b8] hover:text-[#e0e0e0] transition-colors text-sm min-h-[44px] flex items-center"
             >
               Dashboard
             </Link>
@@ -242,7 +242,7 @@ export default function SettingsPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#444] hover:text-red-400 min-h-[44px]"
+              className="text-[#b8b8b8] hover:text-red-400 min-h-[44px]"
               onClick={async () => {
                 await signOut()
                 router.push("/")
@@ -259,7 +259,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => router.push("/dashboard")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#c9c9d1] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
             aria-label="Back to dashboard"
           >
             <ArrowLeft size={14} />
@@ -270,18 +270,18 @@ export default function SettingsPage() {
         <div className="space-y-4">
           {/* Account Information */}
           <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 sm:p-6">
-            <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">Account Information</h2>
+            <h2 className="text-sm font-mono uppercase tracking-widest text-white/70 mb-4">Account Information</h2>
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                <span className="text-[#444] text-xs font-mono uppercase tracking-wider">Username:</span>
+                <span className="text-[#b8b8b8] text-xs font-mono uppercase tracking-wider">Username:</span>
                 <span className="text-[#e0e0e0] text-sm font-mono">{profile?.username}</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                <span className="text-[#444] text-xs font-mono uppercase tracking-wider">Email:</span>
+                <span className="text-[#b8b8b8] text-xs font-mono uppercase tracking-wider">Email:</span>
                 <span className="text-[#e0e0e0] text-sm font-mono break-all">{user?.email}</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                <span className="text-[#444] text-xs font-mono uppercase tracking-wider">Subscription:</span>
+                <span className="text-[#b8b8b8] text-xs font-mono uppercase tracking-wider">Subscription:</span>
                 <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
                   isPro
                     ? 'bg-[#00ff88]/10 border-[#00ff88]/20 text-[#00ff88]'
@@ -289,7 +289,7 @@ export default function SettingsPage() {
                     ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
                     : isCanceled
                     ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                    : 'bg-white/5 border-white/10 text-[#888]'
+                    : 'bg-white/5 border-white/10 text-[#c9c9d1]'
                 }`}>
                   {isPro ? (profile?.subscriptionPlan === 'ultra' ? '⭐ Ultra' : '⭐ Pro') : isCanceling ? '⏳ Canceling' : isCanceled ? '❌ Canceled' : '🆓 Free'}
                 </span>
@@ -300,7 +300,7 @@ export default function SettingsPage() {
           {/* Subscription Management */}
           {isPro && (
             <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 sm:p-6">
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">Subscription Management</h2>
+              <h2 className="text-sm font-mono uppercase tracking-widest text-white/70 mb-4">Subscription Management</h2>
               
               {isCanceling ? (
                 <div className="space-y-4">
@@ -349,7 +349,7 @@ export default function SettingsPage() {
           {/* Canceled Subscription - Show resubscribe option */}
           {isCanceled && (
             <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 sm:p-6">
-              <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">Subscription Expired</h2>
+              <h2 className="text-sm font-mono uppercase tracking-widest text-white/70 mb-4">Subscription Expired</h2>
               <div className="space-y-4">
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
                   <p className="text-red-400 font-mono text-sm mb-2">❌ Subscription Ended</p>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
 
           {/* Payments */}
           <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 sm:p-6">
-            <h2 className="text-sm font-mono uppercase tracking-widest text-white/30 mb-4">Payments</h2>
+            <h2 className="text-sm font-mono uppercase tracking-widest text-white/70 mb-4">Payments</h2>
 
             {stripeStatus === "active" ? (
               <div className="space-y-4">
@@ -377,7 +377,7 @@ export default function SettingsPage() {
                   <div className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse" />
                   <span className="text-[#00ff88] text-sm font-mono font-semibold">Stripe Connected</span>
                 </div>
-                <p className="text-[#888] text-sm">
+                <p className="text-[#c9c9d1] text-sm">
                   Buyers pay directly to your Stripe account. <span className="text-[#00ff88]">0% platform fees</span> — you keep every dollar.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -404,7 +404,7 @@ export default function SettingsPage() {
                   <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
                   <span className="text-yellow-400 text-sm font-mono font-semibold">Onboarding Pending</span>
                 </div>
-                <p className="text-[#888] text-sm">
+                <p className="text-[#c9c9d1] text-sm">
                   Your Stripe account is created but onboarding isn&apos;t complete yet. Finish setup to start accepting payments.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -425,11 +425,11 @@ export default function SettingsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-[#888] text-sm">
+                <p className="text-[#c9c9d1] text-sm">
                   Connect your Stripe account to sell products and receive payments directly.
                 </p>
                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
-                  <p className="text-xs font-mono text-[#555]">
+                  <p className="text-xs font-mono text-[#c9c9d1]">
                     <span className="text-[#00ff88]">0% platform fees</span> on every paid plan · Stripe processing fees apply
                   </p>
                 </div>
@@ -485,7 +485,7 @@ export default function SettingsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE"
-                  className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full min-h-[48px] placeholder:text-[#444]"
+                  className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-[#e0e0e0] text-sm font-mono focus:border-[#00ff88]/30 outline-none w-full min-h-[48px] placeholder:text-[#b8b8b8]"
                 />
                 
                 <div className="flex gap-3">

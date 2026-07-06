@@ -114,7 +114,7 @@ export function PodcastModule({ config, span = 2 }: PodcastModuleProps) {
       <div
         className={`${spanClass} rounded-2xl bg-[rgba(255,180,0,0.04)] border border-[rgba(255,180,0,0.12)] p-5 flex items-center justify-center`}
       >
-        <div className="text-[#444] text-xs font-mono uppercase tracking-widest">
+        <div className="text-[#b8b8b8] text-xs font-mono uppercase tracking-widest">
           Could not load podcast
         </div>
       </div>
@@ -149,9 +149,9 @@ export function PodcastModule({ config, span = 2 }: PodcastModuleProps) {
           <div className="text-sm font-semibold text-white truncate mt-0.5">
             {data.episode.title}
           </div>
-          <div className="text-xs font-mono text-[#888] mt-0.5 flex items-center gap-2">
+          <div className="text-xs font-mono text-[#c9c9d1] mt-0.5 flex items-center gap-2">
             {displayDuration && <span>{displayDuration}</span>}
-            {displayDuration && dateLabel && <span className="text-[#444]">·</span>}
+            {displayDuration && dateLabel && <span className="text-[#b8b8b8]">·</span>}
             {dateLabel && <span>{dateLabel}</span>}
           </div>
         </div>
@@ -174,7 +174,7 @@ export function PodcastModule({ config, span = 2 }: PodcastModuleProps) {
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-[10px] font-mono text-[#666] tabular-nums w-9">
+        <span className="text-[10px] font-mono text-[#b0b0b0] tabular-nums w-9">
           {formatTime(currentTime)}
         </span>
         <input
@@ -194,7 +194,7 @@ export function PodcastModule({ config, span = 2 }: PodcastModuleProps) {
             background: `linear-gradient(to right, rgba(251,191,36,0.6) 0%, rgba(251,191,36,0.6) ${progressPct}%, rgba(255,255,255,0.06) ${progressPct}%, rgba(255,255,255,0.06) 100%)`,
           }}
         />
-        <span className="text-[10px] font-mono text-[#666] tabular-nums w-9 text-right">
+        <span className="text-[10px] font-mono text-[#b0b0b0] tabular-nums w-9 text-right">
           {duration > 0 ? formatTime(duration) : "--:--"}
         </span>
       </div>

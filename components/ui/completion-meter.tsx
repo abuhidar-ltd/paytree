@@ -30,7 +30,7 @@ export function CompletionMeter({ input, onAddCard, onPublish }: CompletionMeter
   const items = [
     { label: "Add a profile photo", done: input.hasPhoto, href: "/dashboard/studio" },
     { label: "Write a bio", done: input.hasBio, href: "/dashboard/studio" },
-    { label: "Add 3+ cards", done: input.hasThreeCards, action: onAddCard },
+    { label: "Add 3+ links", done: input.hasThreeCards, action: onAddCard },
     { label: "Connect Stripe to get paid", done: input.stripeConnected, href: "/dashboard/payments" },
     { label: "Publish your page", done: input.published, action: onPublish },
   ]
@@ -56,7 +56,7 @@ export function CompletionMeter({ input, onAddCard, onPublish }: CompletionMeter
         className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
         aria-expanded={expanded}
       >
-        <span className="text-[10px] font-mono uppercase tracking-widest text-[#444] flex-shrink-0">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] flex-shrink-0">
           Profile
         </span>
         <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -69,7 +69,7 @@ export function CompletionMeter({ input, onAddCard, onPublish }: CompletionMeter
           />
         </div>
         <span className="text-[11px] font-mono text-[#00ff88] flex-shrink-0">{percent}%</span>
-        <motion.span animate={{ rotate: expanded ? 180 : 0 }} className="text-[#444] flex-shrink-0">
+        <motion.span animate={{ rotate: expanded ? 180 : 0 }} className="text-[#b8b8b8] flex-shrink-0">
           <ChevronDown size={14} />
         </motion.span>
       </button>
@@ -103,7 +103,7 @@ export function CompletionMeter({ input, onAddCard, onPublish }: CompletionMeter
                     <span
                       className="text-xs"
                       style={{
-                        color: item.done ? "#444" : "#c0c0c0",
+                        color: item.done ? "#8a8a8a" : "#d4d4d8",
                         textDecoration: item.done ? "line-through" : "none",
                         textDecorationColor: "rgba(255,255,255,0.2)",
                       }}

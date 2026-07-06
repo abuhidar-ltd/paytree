@@ -49,9 +49,9 @@ test("375px journey: home → signup → skip → add card → publish", async (
   await expect(page.getByText("My favorite link — tap to edit").first()).toBeVisible()
 
   // 5. Add a card via the checklist's step-1 CTA (opens the picker)
-  await page.getByRole("button", { name: /add your first card/i }).click()
+  await page.getByRole("button", { name: /add your first link/i }).click()
   await page.getByRole("button", { name: /^Link Any URL$/ }).first().click()
-  await expect(page.getByText("Card added").first()).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText("Link added").first()).toBeVisible({ timeout: 15_000 })
 
   // Reload to close the edit sheet and re-derive checklist state from the DB.
   await page.reload({ waitUntil: "domcontentloaded" })

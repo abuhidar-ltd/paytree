@@ -268,7 +268,7 @@ function LegacyProBanner({ feature }: { feature: "drop" | "vault" }) {
         color: "#00ff88",
       }}
     >
-      🔒 {feature === "drop" ? "Drop cards" : "Vault cards"} now require Pro · Upgrade to keep using this card →
+      🔒 {feature === "drop" ? "Drop links" : "Vault links"} now require Pro · Upgrade to keep using this link →
     </NextLink>
   )
 }
@@ -406,7 +406,7 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
       return (
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 text-center">
           <div className="text-3xl font-bold font-mono" style={{ color: "var(--accent, #00ff88)" }}>{(cfg.value as string) || "0"}</div>
-          <div className="text-xs font-mono uppercase tracking-widest text-[#444] mt-2">{(cfg.label as string) || block.title}</div>
+          <div className="text-xs font-mono uppercase tracking-widest text-[#b8b8b8] mt-2">{(cfg.label as string) || block.title}</div>
         </div>
       )
     case "live_status":
@@ -419,7 +419,7 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
       return (cfg.style as string) === "heading" ? (
         <h2 className="text-2xl font-bold text-[#f0f0f0] text-center py-4">{block.title}</h2>
       ) : (
-        <p className="text-[#666] text-sm leading-relaxed px-1 py-2">{(cfg.content as string) || block.title}</p>
+        <p className="text-[#b0b0b0] text-sm leading-relaxed px-1 py-2">{(cfg.content as string) || block.title}</p>
       )
     case "image":
       return (
@@ -427,12 +427,12 @@ function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, 
           {(block.thumbnail || cfg.imageUrl) ? (
             <img src={(block.thumbnail || cfg.imageUrl) as string} alt={block.title || ""} loading="lazy" className="w-full rounded-2xl object-cover" />
           ) : (
-            <div className="bg-white/[0.03] border border-dashed border-white/[0.08] rounded-2xl p-8 text-center text-[#333] text-sm">
+            <div className="bg-white/[0.03] border border-dashed border-white/[0.08] rounded-2xl p-8 text-center text-[#b8b8b8] text-sm">
               Add an image URL in the dashboard
             </div>
           )}
           {block.title && block.title !== "Untitled" && (
-            <p className="text-xs text-[#555] font-mono mt-2 text-center">{block.title}</p>
+            <p className="text-xs text-[#c9c9d1] font-mono mt-2 text-center">{block.title}</p>
           )}
         </div>
       )
@@ -680,11 +680,11 @@ function ProfileCollectionCard({ block, userId, accentColor, buttonStyle, userna
         onClick={() => useTransition ? onOpenCollection!(block) : setExpanded(!expanded)}
       >
         <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-          <Folder size={16} className="text-[#555]" />
+          <Folder size={16} className="text-[#c9c9d1]" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">{block.title}</p>
-          <p className="text-[11px] text-[#555] font-mono">{children.length} links inside</p>
+          <p className="text-[11px] text-[#c9c9d1] font-mono">{children.length} links inside</p>
         </div>
         <motion.div
           animate={{ rotate: !useTransition && expanded ? 90 : 0 }}
@@ -892,7 +892,7 @@ function ProfileVaultCardInner({ block, userId, accentColor, buttonStyle, userna
           </div>
         </div>
         {(cfg.content as string) && (
-          <p className="text-sm text-[#888] font-mono select-none mb-3" style={{ filter: "blur(4px)" }}>
+          <p className="text-sm text-[#c9c9d1] font-mono select-none mb-3" style={{ filter: "blur(4px)" }}>
             {String(cfg.content).slice(0, 50)}
           </p>
         )}
@@ -1062,7 +1062,7 @@ function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, usernam
 
         <p className="text-[15px] font-semibold text-white mb-3">{block.title}</p>
         {block.description && (
-          <p className="text-xs text-[#888] mb-3">{block.description}</p>
+          <p className="text-xs text-[#c9c9d1] mb-3">{block.description}</p>
         )}
 
         {/* Countdown */}
@@ -1080,7 +1080,7 @@ function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, usernam
                 >
                   {String(unit.value).padStart(2, "0")}
                 </motion.div>
-                <div className="text-[8px] font-mono text-[#555] mt-1">{unit.label}</div>
+                <div className="text-[8px] font-mono text-[#c9c9d1] mt-1">{unit.label}</div>
               </div>
             ))}
           </div>
@@ -1090,7 +1090,7 @@ function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, usernam
         {isLive && !claimed && (
           <>
             {soldOut ? (
-              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#c9c9d1] font-mono text-center">
                 All spots claimed
               </div>
             ) : isPaidDrop ? (
@@ -1132,7 +1132,7 @@ function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, usernam
                 {cfg.revealText as string}
               </div>
             ) : (
-              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#888] font-mono text-center">
+              <div className="mt-1 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-[#c9c9d1] font-mono text-center">
                 Drop ended
               </div>
             )}
@@ -1170,7 +1170,7 @@ function ProfileDropCardInner({ block, accentColor, userId, buttonStyle, usernam
               </a>
             )}
             {!claimReveal.url && !claimReveal.text && (
-              <div className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-[#888] font-mono text-center">
+              <div className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-[#c9c9d1] font-mono text-center">
                 Spot claimed ✓
               </div>
             )}
@@ -1239,7 +1239,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
             <div className="w-12 h-12 rounded-full bg-[#ff0000] flex items-center justify-center">
               <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
-            <p className="text-xs font-mono text-[#888]">Paste a YouTube URL</p>
+            <p className="text-xs font-mono text-[#c9c9d1]">Paste a YouTube URL</p>
           </div>
         </div>
       )
@@ -1305,7 +1305,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
           <div className="text-center">
             <p className="text-sm font-semibold text-white">{block.title || "YouTube"}</p>
             {channelHandle && (
-              <p className="text-[11px] font-mono text-[#666] mt-0.5">{channelHandle}</p>
+              <p className="text-[11px] font-mono text-[#b0b0b0] mt-0.5">{channelHandle}</p>
             )}
           </div>
           {channelUrl && (
@@ -1368,7 +1368,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
       </motion.div>
       <div className="p-3">
         <p className="text-xs font-medium text-white line-clamp-2">{title}</p>
-        {views && <p className="text-[10px] text-[#555] font-mono mt-1">{views} views · {timeAgo}</p>}
+        {views && <p className="text-[10px] text-[#c9c9d1] font-mono mt-1">{views} views · {timeAgo}</p>}
       </div>
     </a>
   )
@@ -1418,7 +1418,7 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
       )}
       <div className="p-4">
         <p className="text-sm font-medium text-white mb-1">{block.title}</p>
-        {block.description && <p className="text-xs text-[#666] mb-2 line-clamp-2">{block.description}</p>}
+        {block.description && <p className="text-xs text-[#b0b0b0] mb-2 line-clamp-2">{block.description}</p>}
         {formattedPrice && (
           <p className="text-base font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{formattedPrice}</p>
         )}
@@ -1427,7 +1427,7 @@ function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
             className="rounded-xl px-3 py-2.5"
             style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)" }}
           >
-            <p className="text-xs text-[#888] font-mono mb-1.5">Set up payments to sell this product</p>
+            <p className="text-xs text-[#c9c9d1] font-mono mb-1.5">Set up payments to sell this product</p>
             <NextLink
               href="/dashboard/payments"
               className="inline-flex items-center gap-1 text-xs font-mono font-semibold hover:opacity-80 transition-opacity"
@@ -1465,7 +1465,7 @@ function PodcastBlock({ block, cfg }: { block: Block; cfg: Record<string, unknow
   if (error || (!data && !cfg.rssUrl)) {
     return (
       <div className="bg-amber-500/[0.03] border border-amber-500/[0.12] rounded-2xl p-5 text-center">
-        <p className="text-xs text-[#888] font-mono">Could not load podcast</p>
+        <p className="text-xs text-[#c9c9d1] font-mono">Could not load podcast</p>
       </div>
     )
   }
@@ -1491,7 +1491,7 @@ function PodcastBlock({ block, cfg }: { block: Block; cfg: Record<string, unknow
           <p className="text-[10px] font-mono uppercase tracking-widest text-amber-400/60 mb-0.5">{(data.showTitle as string) || "Podcast"}</p>
           <p className="text-sm font-medium text-white line-clamp-2">{(episode.title as string) || "Latest episode"}</p>
           {(formattedDuration || relativeDate) && (
-            <p className="text-[10px] text-[#555] font-mono mt-1">
+            <p className="text-[10px] text-[#c9c9d1] font-mono mt-1">
               {formattedDuration}{formattedDuration && relativeDate && " · "}{relativeDate}
             </p>
           )}
@@ -1519,7 +1519,7 @@ function SpotifyBlock({ block, cfg }: { block: Block; cfg: Record<string, unknow
       <div className="w-10 h-10 rounded-xl bg-[#1DB954]/10 flex items-center justify-center mx-auto mb-2">
         <SpotifyIcon size={20} />
       </div>
-      <p className="text-xs text-[#888] font-mono">Connect Spotify coming soon</p>
+      <p className="text-xs text-[#c9c9d1] font-mono">Connect Spotify coming soon</p>
     </div>
   )
 }
@@ -1592,13 +1592,13 @@ function TwitchBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown
             <p className="text-sm font-medium text-white">{block.title || twitchUsername}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-2 h-2 rounded-full bg-[#555]" />
-              <span className="text-[10px] font-mono text-[#555]">Currently offline</span>
+              <span className="text-[10px] font-mono text-[#c9c9d1]">Currently offline</span>
             </div>
           </div>
         </div>
       </div>
       <a href={`https://twitch.tv/${twitchUsername}`} target="_blank" rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 px-4 py-3 border-t border-white/[0.05] text-sm font-mono text-[#555] hover:text-[#888] hover:bg-white/[0.02] transition-colors">
+        className="flex items-center justify-center gap-2 px-4 py-3 border-t border-white/[0.05] text-sm font-mono text-[#c9c9d1] hover:text-[#c9c9d1] hover:bg-white/[0.02] transition-colors">
         Follow on Twitch →
       </a>
     </div>
@@ -1703,7 +1703,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
             </div>
             <div>
               <p className="text-sm font-semibold text-white">{block.title}</p>
-              <p className="text-xs text-[#888]">Unlock with email</p>
+              <p className="text-xs text-[#c9c9d1]">Unlock with email</p>
             </div>
           </div>
         </div>
@@ -1794,7 +1794,7 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
       <div className="bg-white/[0.02] border border-white/[0.07] rounded-2xl p-5 text-center">
         <div className="text-2xl mb-2">🔞</div>
         <p className="text-sm text-white font-semibold mb-1">{block.title}</p>
-        <p className="text-xs text-[#888] mb-4">You must be 18+ to view this content</p>
+        <p className="text-xs text-[#c9c9d1] mb-4">You must be 18+ to view this content</p>
         <button onClick={() => setAgeConfirmed(true)}
           className="text-black font-mono font-semibold rounded-xl px-6 py-3 text-sm"
           style={{ background: "var(--accent, #00ff88)" }}>
@@ -1831,7 +1831,7 @@ function FaqBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown> }
           <button onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
             className="w-full flex items-center justify-between px-5 py-4 text-left">
             <span className="text-sm font-medium text-[#e0e0e0]">{item.question}</span>
-            <motion.svg className="w-4 h-4 text-[#444] flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            <motion.svg className="w-4 h-4 text-[#b8b8b8] flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
               animate={{ rotate: expandedIdx === idx ? 180 : 0 }} transition={{ duration: 0.2 }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </motion.svg>
@@ -1840,7 +1840,7 @@ function FaqBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown> }
             {expandedIdx === idx && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.25, ease: "easeInOut" }} className="overflow-hidden">
-                <div className="px-5 pb-4 text-sm text-[#666] leading-relaxed">{item.answer}</div>
+                <div className="px-5 pb-4 text-sm text-[#b0b0b0] leading-relaxed">{item.answer}</div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1888,7 +1888,7 @@ function ContactFormBlock({ block, username }: { block: Block; username: string 
           </svg>
         </div>
         <p className="text-sm font-medium text-[#e0e0e0]">Message sent!</p>
-        <p className="text-xs text-[#555] mt-1">They&apos;ll get back to you soon.</p>
+        <p className="text-xs text-[#c9c9d1] mt-1">They&apos;ll get back to you soon.</p>
       </div>
     )
   }
@@ -1925,14 +1925,14 @@ function DiscountCodeBlock({ block, cfg }: { block: Block; cfg: Record<string, u
         </div>
         <button onClick={() => { navigator.clipboard.writeText(code); toast.success("Copied!") }}
           className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-white/20 transition-colors" title="Copy code">
-          <svg className="w-5 h-5 text-[#888]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-[#c9c9d1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth={1.5} />
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth={1.5} />
           </svg>
         </button>
       </div>
-      {description && <p className="text-xs text-[#555] mt-3">{description}</p>}
-      {expiresAt && <p className="text-xs text-[#444] mt-2 font-mono">Expires: {new Date(expiresAt).toLocaleDateString()}</p>}
+      {description && <p className="text-xs text-[#c9c9d1] mt-3">{description}</p>}
+      {expiresAt && <p className="text-xs text-[#b8b8b8] mt-2 font-mono">Expires: {new Date(expiresAt).toLocaleDateString()}</p>}
     </div>
   )
 }

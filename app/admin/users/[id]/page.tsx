@@ -112,7 +112,7 @@ export default async function AdminUserDetailPage({
   return (
     <>
       <div className="mb-4">
-        <Link href="/admin/users" className="text-xs font-mono text-[#888] hover:text-white">
+        <Link href="/admin/users" className="text-xs font-mono text-[#c9c9d1] hover:text-white">
           ← Back to Users
         </Link>
       </div>
@@ -137,12 +137,12 @@ export default async function AdminUserDetailPage({
         />
         {grantLog.length > 0 ? (
           <div className="mt-5 pt-4 border-t border-white/[0.06] overflow-x-auto">
-            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-3">
+            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0] mb-3">
               Grant history
             </h3>
             <table className="w-full text-xs font-mono whitespace-nowrap">
               <thead>
-                <tr className="text-[#555] text-left border-b border-white/[0.06]">
+                <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                   <th className="py-2 pr-4">Plan</th>
                   <th className="py-2 pr-4">Duration</th>
                   <th className="py-2 pr-4">Reason</th>
@@ -157,7 +157,7 @@ export default async function AdminUserDetailPage({
                     <td className="py-2 pr-4 uppercase">{g.plan}</td>
                     <td className="py-2 pr-4">{g.duration}</td>
                     <td className="py-2 pr-4 whitespace-normal max-w-[280px]">{g.reason}</td>
-                    <td className="py-2 pr-4 text-[#888]">{g.grantedBy}</td>
+                    <td className="py-2 pr-4 text-[#c9c9d1]">{g.grantedBy}</td>
                     <td className="py-2 pr-4">{fmtDateTime(g.grantedAt)}</td>
                     <td className="py-2 pr-4">
                       {g.revokedAt ? fmtDateTime(g.revokedAt) : <span className="text-[#00ff88]">active</span>}
@@ -243,7 +243,7 @@ export default async function AdminUserDetailPage({
         ) : (
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">Title</th>
                 <th className="py-2 pr-4">URL</th>
                 <th className="py-2 pr-4">Enabled</th>
@@ -254,8 +254,8 @@ export default async function AdminUserDetailPage({
               {recentLinks.map((l) => (
                 <tr key={l.id} className="border-b border-white/[0.04] text-[#d0d0d0]">
                   <td className="py-2 pr-4">{truncate(l.title, 40)}</td>
-                  <td className="py-2 pr-4 text-[#888]">{truncate(l.url, 50)}</td>
-                  <td className="py-2 pr-4">{l.enabled ? "✓" : <span className="text-[#666]">off</span>}</td>
+                  <td className="py-2 pr-4 text-[#c9c9d1]">{truncate(l.url, 50)}</td>
+                  <td className="py-2 pr-4">{l.enabled ? "✓" : <span className="text-[#b0b0b0]">off</span>}</td>
                   <td className="py-2 pr-4">{fmtDate(l.createdAt)}</td>
                 </tr>
               ))}
@@ -270,7 +270,7 @@ export default async function AdminUserDetailPage({
         ) : (
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">Title</th>
                 <th className="py-2 pr-4 text-right">Price</th>
                 <th className="py-2 pr-4">Enabled</th>
@@ -282,7 +282,7 @@ export default async function AdminUserDetailPage({
                 <tr key={p.id} className="border-b border-white/[0.04] text-[#d0d0d0]">
                   <td className="py-2 pr-4">{truncate(p.title, 40)}</td>
                   <td className="py-2 pr-4 text-right">{money(p.price)}</td>
-                  <td className="py-2 pr-4">{p.enabled ? "✓" : <span className="text-[#666]">off</span>}</td>
+                  <td className="py-2 pr-4">{p.enabled ? "✓" : <span className="text-[#b0b0b0]">off</span>}</td>
                   <td className="py-2 pr-4">{fmtDate(p.createdAt)}</td>
                 </tr>
               ))}
@@ -297,7 +297,7 @@ export default async function AdminUserDetailPage({
         ) : (
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">Product</th>
                 <th className="py-2 pr-4">Buyer</th>
                 <th className="py-2 pr-4 text-right">Amount</th>
@@ -309,7 +309,7 @@ export default async function AdminUserDetailPage({
               {recentPurchases.map((p) => (
                 <tr key={p.id} className="border-b border-white/[0.04] text-[#d0d0d0]">
                   <td className="py-2 pr-4">{truncate(p.product?.title ?? "—", 40)}</td>
-                  <td className="py-2 pr-4 text-[#888]">{p.buyerEmail}</td>
+                  <td className="py-2 pr-4 text-[#c9c9d1]">{p.buyerEmail}</td>
                   <td className="py-2 pr-4 text-right">{money(p.amount)}</td>
                   <td className="py-2 pr-4">{p.status}</td>
                   <td className="py-2 pr-4">{fmtDate(p.createdAt)}</td>
@@ -326,14 +326,14 @@ export default async function AdminUserDetailPage({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4 text-xs">
-      <dt className="font-mono text-[#666] flex-shrink-0">{label}</dt>
+      <dt className="font-mono text-[#b0b0b0] flex-shrink-0">{label}</dt>
       <dd className={`text-right text-[#d0d0d0] break-all ${mono ? "font-mono" : ""}`}>{value}</dd>
     </div>
   )
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs font-mono text-[#555]">{children}</p>
+  return <p className="text-xs font-mono text-[#c9c9d1]">{children}</p>
 }
 
 function truncate(s: string, max: number): string {

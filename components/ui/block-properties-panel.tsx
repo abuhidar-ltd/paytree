@@ -44,7 +44,7 @@ const STYLES = ["glass", "3d", "gradient", "glow", "neon"]
 const LOCK_TYPES = ["email", "payment", "password"]
 
 function BlockTypeIcon({ type }: { type: string }) {
-  const cls = "w-4 h-4 text-[#888]"
+  const cls = "w-4 h-4 text-[#c9c9d1]"
   switch (type) {
     case "link": return <LucideLink className={cls} />
     case "vault": return <Lock className={cls} />
@@ -114,7 +114,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
       <div className="flex items-center gap-3">
         <button
           onClick={onClose}
-          className="text-[#444] hover:text-[#888] transition-colors"
+          className="text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -130,7 +130,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
 
       {/* Size */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2">Size</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest text-white/70 mb-2">Size</p>
         <div className="flex gap-2">
           {SIZES.map((s) => (
             <button
@@ -139,7 +139,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
               className={`flex-1 px-2 py-2 rounded-xl text-xs font-mono border transition-all ${
                 block.size === s.value
                   ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
-                  : "bg-white/[0.03] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                  : "bg-white/[0.03] border-white/[0.07] text-[#b8b8b8] hover:border-white/20 hover:text-[#c9c9d1]"
               }`}
             >
               <span className="block text-[10px] opacity-60 mb-0.5">{s.visual}</span>
@@ -151,7 +151,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
 
       {/* Style */}
       <div>
-        <p className="text-[10px] font-mono uppercase tracking-widest text-white/30 mb-2">Style</p>
+        <p className="text-[10px] font-mono uppercase tracking-widest text-white/70 mb-2">Style</p>
         <div className="flex flex-wrap gap-1.5">
           {STYLES.map((s) => (
             <button
@@ -160,7 +160,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
               className={`px-3 py-1.5 rounded-lg text-[11px] font-mono capitalize border transition-all ${
                 block.style === s
                   ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
-                  : "bg-white/[0.03] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                  : "bg-white/[0.03] border-white/[0.07] text-[#b8b8b8] hover:border-white/20 hover:text-[#c9c9d1]"
               }`}
             >
               {s}
@@ -172,7 +172,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
       {/* Lock */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-white/30">Lock</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-white/70">Lock</p>
           <button
             onClick={handleLockToggle}
             className={`w-8 h-4 rounded-full transition-all ${
@@ -195,7 +195,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
                 className={`px-3 py-1.5 rounded-lg text-[11px] font-mono capitalize border transition-all ${
                   block.lockType === lt
                     ? "bg-[#00ff88]/10 border-[#00ff88]/30 text-[#00ff88]"
-                    : "bg-white/[0.03] border-white/[0.07] text-[#444] hover:border-white/20 hover:text-[#888]"
+                    : "bg-white/[0.03] border-white/[0.07] text-[#b8b8b8] hover:border-white/20 hover:text-[#c9c9d1]"
                 }`}
               >
                 {lt}
@@ -208,7 +208,7 @@ export function BlockPropertiesPanel({ block, onUpdate, onDelete, onClose }: Blo
       {/* Schedule */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-white/30">Schedule</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-white/70">Schedule</p>
           <button
             onClick={handleScheduleToggle}
             className={`w-8 h-4 rounded-full transition-all ${

@@ -30,8 +30,8 @@
   
   /* Text Colors */
   --color-text-primary: #ffffff;
-  --color-text-secondary: #888888;
-  --color-text-muted: #555555;
+  --color-text-secondary: #d4d4d8;
+  --color-text-muted: #b8b8b8;
   
   /* Nebula Background Colors */
   --color-nebula-purple: #1a0b2e;
@@ -608,7 +608,7 @@ select {
 }
 
 .text-muted {
-  color: #888888;
+  color: #d4d4d8;
 }
 
 /* ============================================

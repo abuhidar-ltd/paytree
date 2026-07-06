@@ -287,7 +287,7 @@ export function SignInScreen({ userAgent }: Props) {
           <div className="w-11" />
         </div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#666]">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0]">
             step {step + 1} of 2
           </span>
           <span className="text-[10px] font-mono text-[#00ff88] font-bold">{progress}%</span>
@@ -327,7 +327,7 @@ export function SignInScreen({ userAgent }: Props) {
             </button>
             <div className="flex items-center gap-2 my-3">
               <div className="flex-1 h-px bg-white/[0.08]" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#555]">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1]">
                 or email · 2 steps
               </span>
               <div className="flex-1 h-px bg-white/[0.08]" />
@@ -399,7 +399,7 @@ export function SignInScreen({ userAgent }: Props) {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#666] hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#b0b0b0] hover:text-white"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -472,7 +472,7 @@ export function SignInScreen({ userAgent }: Props) {
           )}
         </button>
 
-        <p className="mt-6 text-center text-[12px] text-[#666] font-mono">
+        <p className="mt-6 text-center text-[12px] text-[#b0b0b0] font-mono">
           New here?{" "}
           <Link href="/register" className="text-[#00ff88] font-semibold">
             Create your page
@@ -481,11 +481,11 @@ export function SignInScreen({ userAgent }: Props) {
 
         {/* Legal footer — mirrors /register so users see the same trust
             signal on both flows. */}
-        <p className="mt-4 text-center text-[11px] text-[#444] leading-relaxed">
+        <p className="mt-4 text-center text-[11px] text-[#b8b8b8] leading-relaxed">
           By signing in you agree to our{" "}
-          <Link href="/terms" className="text-[#666] underline hover:text-[#888]">Terms</Link>
+          <Link href="/terms" className="text-[#b0b0b0] underline hover:text-[#c9c9d1]">Terms</Link>
           {" "}and{" "}
-          <Link href="/privacy" className="text-[#666] underline hover:text-[#888]">Privacy Policy</Link>.
+          <Link href="/privacy" className="text-[#b0b0b0] underline hover:text-[#c9c9d1]">Privacy Policy</Link>.
         </p>
 
         <XSupportPill />
@@ -511,7 +511,7 @@ function StepShell({
         {kicker}
       </div>
       <h1 className="text-[32px] font-bold text-white leading-[1.05]">{title}</h1>
-      <p className="mt-2 text-[13px] text-[#888] break-all">{sub}</p>
+      <p className="mt-2 text-[13px] text-[#c9c9d1] break-all">{sub}</p>
       <div className="mt-6">{children}</div>
     </div>
   )
@@ -526,7 +526,7 @@ const BigInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInpu
         // 20px display font, but the raw value uses 16px minimum via CSS
         // to avoid iOS auto-zoom (see globals). font-semibold gives Sara/
         // sara@email.com the same weight-hierarchy the register wizard uses.
-        className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#444]"
+        className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#b8b8b8]"
         style={{
           background: "rgba(255,255,255,0.03)",
           border: "0.5px solid rgba(255,255,255,0.1)",

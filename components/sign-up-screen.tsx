@@ -667,7 +667,7 @@ const BigInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInpu
       <input
         {...props}
         ref={ref}
-        className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#444]"
+        className="w-full bg-transparent text-white text-[20px] font-semibold outline-none placeholder:text-[#b8b8b8]"
         style={{
           background: "rgba(255,255,255,0.03)",
           border: "0.5px solid rgba(255,255,255,0.1)",

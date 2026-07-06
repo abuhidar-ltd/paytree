@@ -148,7 +148,7 @@ function CelebrationOverlay({ username, onClose }: { username: string; onClose: 
             </motion.div>
 
             <h2 className="text-2xl font-bold text-white mb-1.5">Your page is live.</h2>
-            <p className="text-sm text-[#888] mb-6">Drop the link in your bio and start earning.</p>
+            <p className="text-sm text-[#c9c9d1] mb-6">Drop the link in your bio and start earning.</p>
 
             <div
               className="rounded-xl px-4 py-3 mb-4 font-mono text-sm text-[#e0e0e0] select-all break-all"
@@ -173,14 +173,14 @@ function CelebrationOverlay({ username, onClose }: { username: string; onClose: 
                 href={`/${username}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-mono text-[#888] hover:text-white transition-colors"
+                className="text-xs font-mono text-[#c9c9d1] hover:text-white transition-colors"
                 style={{ minHeight: 44, display: "inline-flex", alignItems: "center" }}
               >
                 View page ↗
               </a>
               <button
                 onClick={onClose}
-                className="text-xs font-mono text-[#555] hover:text-[#888] transition-colors"
+                className="text-xs font-mono text-[#c9c9d1] hover:text-[#c9c9d1] transition-colors"
                 style={{ minHeight: 44 }}
               >
                 Back to dashboard

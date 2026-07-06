@@ -38,7 +38,7 @@ export default async function AdminLayout({
             Admin
           </span>
         </div>
-        <span className="text-[#444] font-mono text-xs truncate max-w-[180px]">
+        <span className="text-[#b8b8b8] font-mono text-xs truncate max-w-[180px]">
           {admin.email}
         </span>
       </header>
@@ -49,7 +49,7 @@ export default async function AdminLayout({
           <Link
             key={item.href}
             href={item.href}
-            className="text-xs font-mono text-[#888] hover:text-white hover:bg-white/[0.04] rounded-lg px-3 py-1.5 whitespace-nowrap transition-colors"
+            className="text-xs font-mono text-[#c9c9d1] hover:text-white hover:bg-white/[0.04] rounded-lg px-3 py-1.5 whitespace-nowrap transition-colors"
           >
             {item.label}
           </Link>

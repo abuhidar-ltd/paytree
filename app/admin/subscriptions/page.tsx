@@ -97,7 +97,7 @@ export default async function AdminSubscriptionsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr className="text-[#555] text-left border-b border-white/[0.06]">
+              <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4">Plan</th>
                 <th className="py-2 pr-4">Interval</th>

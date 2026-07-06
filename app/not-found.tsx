@@ -33,7 +33,7 @@ export default function NotFound() {
           This page isn&apos;t here.
         </h1>
 
-        <p className="text-[#888] text-sm mb-8 leading-relaxed">
+        <p className="text-[#c9c9d1] text-sm mb-8 leading-relaxed">
           Maybe the creator hasn&apos;t claimed this username yet — or the link you followed is broken.
         </p>
 

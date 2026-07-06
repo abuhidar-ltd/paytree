@@ -158,7 +158,7 @@ function GlassCard({ children, className = "", padding = "p-5" }: {
 function SectionLabel({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">{children}</span>
+      <span className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8]">{children}</span>
       {right}
     </div>
   )
@@ -179,8 +179,8 @@ function MetricCard({
   const animated = useCountUp(value)
   return (
     <GlassCard padding="p-6">
-      <Icon size={16} className="absolute top-6 right-6 text-[#333]" />
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">{label}</div>
+      <Icon size={16} className="absolute top-6 right-6 text-[#b8b8b8]" />
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-2">{label}</div>
       <div className="flex items-baseline gap-2">
         <span className={`text-[32px] leading-none font-bold tabular-nums ${accent ? "text-[#00ff88]" : "text-white"}`}>
           {fmt(animated)}
@@ -194,7 +194,7 @@ function MetricCard({
           </span>
         )}
       </div>
-      {sub && <div className="text-[11px] font-mono text-[#555] mt-1.5">{sub}</div>}
+      {sub && <div className="text-[11px] font-mono text-[#c9c9d1] mt-1.5">{sub}</div>}
     </GlassCard>
   )
 }
@@ -211,7 +211,7 @@ function FunnelStrip({ steps }: { steps: { label: string; value: number }[] }) {
           return (
             <div key={step.label} className="flex items-center gap-3 flex-shrink-0">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[9px] font-mono uppercase tracking-widest text-[#444] truncate">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-[#b8b8b8] truncate">
                   {step.label}
                 </span>
                 <span className="text-base font-bold font-mono text-white tabular-nums leading-none">
@@ -219,7 +219,7 @@ function FunnelStrip({ steps }: { steps: { label: string; value: number }[] }) {
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <div className="flex items-center gap-1 text-[#444] px-2">
+                <div className="flex items-center gap-1 text-[#b8b8b8] px-2">
                   <span className="text-[10px] font-mono">{pct}%</span>
                   <ChevronRight size={12} />
                 </div>
@@ -252,7 +252,7 @@ function AreaTooltip({ active, payload, label }: {
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)",
       }}
     >
-      <div className="text-[#555] mb-0.5">{formattedLabel}</div>
+      <div className="text-[#c9c9d1] mb-0.5">{formattedLabel}</div>
       <div className="text-[#00ff88]">{payload[0].value} views</div>
     </div>
   )
@@ -261,13 +261,13 @@ function AreaTooltip({ active, payload, label }: {
 function ViewsAreaChart({ data, period, loading }: { data: ViewData[]; period: string; loading: boolean }) {
   return (
     <GlassCard className="h-full" padding="p-5">
-      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{period} days</span>}>
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#c9c9d1]">{period} days</span>}>
         Views · {period} days
       </SectionLabel>
       {loading ? (
-        <div className="h-[200px] flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+        <div className="h-[200px] flex items-center justify-center text-[#b8b8b8] text-xs font-mono">Loading…</div>
       ) : data.length === 0 ? (
-        <div className="h-[200px] flex items-center justify-center text-[#444] text-xs font-mono">No data yet</div>
+        <div className="h-[200px] flex items-center justify-center text-[#b8b8b8] text-xs font-mono">No data yet</div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -280,7 +280,7 @@ function ViewsAreaChart({ data, period, loading }: { data: ViewData[]; period: s
             <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: "#333", fontSize: 10, fontFamily: "monospace" }}
+              tick={{ fill: "#8a8a8a", fontSize: 10, fontFamily: "monospace" }}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
@@ -314,11 +314,11 @@ function TopBlocksList({ links, loading }: { links: LinkStat[]; loading: boolean
   const max = links[0]?.totalClicks || 1
   return (
     <GlassCard className="h-full" padding="p-5">
-      <SectionLabel>Top cards</SectionLabel>
+      <SectionLabel>Top links</SectionLabel>
       {loading ? (
-        <div className="h-32 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+        <div className="h-32 flex items-center justify-center text-[#b8b8b8] text-xs font-mono">Loading…</div>
       ) : links.length === 0 ? (
-        <div className="h-32 flex items-center justify-center text-[#444] text-xs font-mono">No clicks yet</div>
+        <div className="h-32 flex items-center justify-center text-[#b8b8b8] text-xs font-mono">No clicks yet</div>
       ) : (
         <div>
           {links.map((link, i) => {
@@ -579,7 +579,7 @@ function AudienceGlobePanel({ points, hasGlobeAccess, countryCount }: {
               <Lock size={16} className="text-[#00ff88]" />
             </div>
             <p className="text-sm font-medium text-white mb-1">See where your audience is</p>
-            <p className="text-xs font-mono text-[#666] mb-4 max-w-[260px]">
+            <p className="text-xs font-mono text-[#b0b0b0] mb-4 max-w-[260px]">
               Upgrade to Pro to unlock the audience globe and country-level insights.
             </p>
             <Link
@@ -592,7 +592,7 @@ function AudienceGlobePanel({ points, hasGlobeAccess, countryCount }: {
         )}
 
         {hasGlobeAccess && !hasReal && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-[#444]">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-mono text-[#b8b8b8]">
             No visits yet — showing sample locations
           </div>
         )}
@@ -611,15 +611,15 @@ function AudiencePanel({ topCountries, loading }: {
 
   return (
     <GlassCard className="h-full" padding="p-5">
-      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} visits</span>}>
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#c9c9d1]">{fmt(total)} visits</span>}>
         Audience
       </SectionLabel>
 
-      <p className="text-[10px] font-mono uppercase tracking-widest text-[#555] mb-3">Top countries</p>
+      <p className="text-[10px] font-mono uppercase tracking-widest text-[#c9c9d1] mb-3">Top countries</p>
       {loading ? (
-        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+        <div className="h-24 flex items-center justify-center text-[#b8b8b8] text-xs font-mono">Loading…</div>
       ) : topCountries.length === 0 ? (
-        <div className="text-[#444] text-xs font-mono py-3">No geo data yet</div>
+        <div className="text-[#b8b8b8] text-xs font-mono py-3">No geo data yet</div>
       ) : (
         <div className="space-y-3">
           {topCountries.slice(0, 7).map((c, i) => (
@@ -628,7 +628,7 @@ function AudiencePanel({ topCountries, loading }: {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[13px] text-[#d8d8d8] truncate">{c.country}</span>
-                  <span className="text-xs font-mono text-[#888] ml-2 tabular-nums flex-shrink-0">{c.count}</span>
+                  <span className="text-xs font-mono text-[#c9c9d1] ml-2 tabular-nums flex-shrink-0">{c.count}</span>
                 </div>
                 <div className="h-[3px] rounded-full" style={{ background: "rgba(0,255,136,0.12)" }}>
                   <motion.div
@@ -671,13 +671,13 @@ function DevicesPanel({
 
   return (
     <GlassCard className="h-full" padding="p-5">
-      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} views</span>}>
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#c9c9d1]">{fmt(total)} views</span>}>
         Devices
       </SectionLabel>
       {loading ? (
-        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+        <div className="h-24 flex items-center justify-center text-[#b8b8b8] text-xs font-mono">Loading…</div>
       ) : total === 0 ? (
-        <div className="text-[#444] text-xs font-mono py-3">No device data yet</div>
+        <div className="text-[#b8b8b8] text-xs font-mono py-3">No device data yet</div>
       ) : (
         <div className="space-y-4">
           {rows.map(({ device, count }, i) => {
@@ -704,7 +704,7 @@ function DevicesPanel({
                     transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.06 }}
                   />
                 </div>
-                <div className="text-[10px] font-mono text-[#555] mt-1 tabular-nums">
+                <div className="text-[10px] font-mono text-[#c9c9d1] mt-1 tabular-nums">
                   {fmt(count)} {count === 1 ? "view" : "views"}
                 </div>
               </div>
@@ -748,13 +748,13 @@ function SourcesPanel({
 
   return (
     <GlassCard className="h-full" padding="p-5">
-      <SectionLabel right={<span className="text-[10px] font-mono text-[#555]">{fmt(total)} views</span>}>
+      <SectionLabel right={<span className="text-[10px] font-mono text-[#c9c9d1]">{fmt(total)} views</span>}>
         Traffic sources
       </SectionLabel>
       {loading ? (
-        <div className="h-24 flex items-center justify-center text-[#444] text-xs font-mono">Loading…</div>
+        <div className="h-24 flex items-center justify-center text-[#b8b8b8] text-xs font-mono">Loading…</div>
       ) : total === 0 ? (
-        <div className="text-[#444] text-xs font-mono py-3">No referrer data yet</div>
+        <div className="text-[#b8b8b8] text-xs font-mono py-3">No referrer data yet</div>
       ) : (
         <div className="space-y-3">
           {merged.map((row, i) => {
@@ -772,7 +772,7 @@ function SourcesPanel({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[13px] text-[#d8d8d8] truncate">{meta.label}</span>
-                    <span className="text-xs font-mono text-[#888] ml-2 tabular-nums flex-shrink-0">
+                    <span className="text-xs font-mono text-[#c9c9d1] ml-2 tabular-nums flex-shrink-0">
                       {fmt(row.count)}
                     </span>
                   </div>
@@ -881,14 +881,14 @@ export default function AnalyticsDashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard")}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#555] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-[#c9c9d1] hover:text-[#e0e0e0] hover:border-white/20 transition-colors flex-shrink-0"
               aria-label="Back to dashboard"
             >
               <ArrowLeft size={14} />
             </button>
             <div>
               <h1 className="text-2xl font-bold text-white">Analytics</h1>
-              <p className="text-xs font-mono text-[#555] mt-1">Your audience, in numbers.</p>
+              <p className="text-xs font-mono text-[#c9c9d1] mt-1">Your audience, in numbers.</p>
             </div>
           </div>
           <select
@@ -1005,14 +1005,14 @@ function ConversionRateCard({ ctr, icon: Icon }: { ctr: number; icon: typeof Eye
   const animated = useCountUp(Math.round(ctr * 10), 1100) / 10
   return (
     <GlassCard padding="p-6">
-      <Icon size={16} className="absolute top-6 right-6 text-[#333]" />
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[#444] mb-2">Conversion rate</div>
+      <Icon size={16} className="absolute top-6 right-6 text-[#b8b8b8]" />
+      <div className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8] mb-2">Conversion rate</div>
       <div className="flex items-baseline gap-2">
         <span className="text-[32px] leading-none font-bold tabular-nums text-[#00ff88]">
           {animated.toFixed(1)}%
         </span>
       </div>
-      <div className="text-[11px] font-mono text-[#555] mt-1.5">clicks ÷ views</div>
+      <div className="text-[11px] font-mono text-[#c9c9d1] mt-1.5">clicks ÷ views</div>
     </GlassCard>
   )
 }

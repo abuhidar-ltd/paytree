@@ -15,7 +15,7 @@ const FEATURES: { Icon: LucideIcon; label: string }[] = [
   { Icon: Sparkles, label: "Sell products, services and content, share your links, & get paid instantly" },
   { Icon: Bot, label: "24/7 AI Sales Agent" },
   { Icon: Lock, label: "Vault — lock premium content" },
-  { Icon: Timer, label: "Countdown Card" },
+  { Icon: Timer, label: "Countdown Link" },
   { Icon: Globe, label: "Globe Analytics" },
 ]
 

@@ -270,7 +270,7 @@ export default async function AdminOverviewPage({
               className={`text-xs font-mono rounded-md px-3 py-1.5 transition-colors ${
                 r.id === range
                   ? "bg-[#00ff88] text-black font-bold"
-                  : "text-[#888] hover:text-white hover:bg-white/[0.04]"
+                  : "text-[#c9c9d1] hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               {r.label}
@@ -301,18 +301,18 @@ export default async function AdminOverviewPage({
 
       <Card title="Plan distribution (current, all users)">
         {planDonut.length === 0 ? (
-          <p className="text-xs font-mono text-[#555]">No users yet.</p>
+          <p className="text-xs font-mono text-[#c9c9d1]">No users yet.</p>
         ) : (
           <DonutChart data={planDonut} />
         )}
-        <p className="text-[11px] font-mono text-[#555] mt-3">
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-3">
           Comped = admin-granted plans (excluded from MRR). {nf(connectActive)} users have Stripe Connect active.
         </p>
       </Card>
 
       <Card title={`Signup → upgrade funnel (accounts created in the last ${range})`}>
         <FunnelBars steps={funnel} />
-        <p className="text-[11px] font-mono text-[#555] mt-4">
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-4">
           DB-state cohort funnel: each step counts users from this range&rsquo;s signups who reached
           that state. &ldquo;Upgraded&rdquo; = live Stripe subscription — comps never count.
         </p>
@@ -344,7 +344,7 @@ export default async function AdminOverviewPage({
       <Card title="Signup health (client telemetry)">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-3">
+            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0] mb-3">
               Hydration time on /register
               {p50 !== null ? (
                 <span className="text-[#00ff88] normal-case tracking-normal ml-2">
@@ -353,7 +353,7 @@ export default async function AdminOverviewPage({
               ) : null}
             </h3>
             {hydrationMs.length === 0 ? (
-              <p className="text-xs font-mono text-[#555]">
+              <p className="text-xs font-mono text-[#c9c9d1]">
                 No hydration beacons persisted yet — collection starts with this deploy.
               </p>
             ) : (
@@ -361,7 +361,7 @@ export default async function AdminOverviewPage({
             )}
           </div>
           <div>
-            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-3">
+            <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0] mb-3">
               Signup step funnel (event counts)
               {submitFailed > 0 ? (
                 <span className="text-[#ff5555] normal-case tracking-normal ml-2">{nf(submitFailed)} failed submits</span>
@@ -370,7 +370,7 @@ export default async function AdminOverviewPage({
             <FunnelBars steps={signupSteps} />
           </div>
         </div>
-        <p className="text-[11px] font-mono text-[#555] mt-4">
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-4">
           Raw beacon counts, not unique sessions — retries and multi-attempt users count more than
           once. The slow-hydration tail is the class of failure behind the July 4 signup outage.
         </p>
@@ -393,11 +393,11 @@ function FunnelBars({ steps }: { steps: { label: string; value: number }[] }) {
           <div key={s.label}>
             <div className="flex items-center justify-between text-xs font-mono mb-1">
               <span className="text-[#d0d0d0]">{s.label}</span>
-              <span className="text-[#888]">
+              <span className="text-[#c9c9d1]">
                 {nf(s.value)}
                 {i > 0 ? (
                   <>
-                    <span className="text-[#555]"> · {pct(s.value, prev)} of prev</span>
+                    <span className="text-[#c9c9d1]"> · {pct(s.value, prev)} of prev</span>
                     {drop > 0 ? <span className="text-[#ff5555]"> · −{nf(drop)}</span> : null}
                   </>
                 ) : null}
@@ -427,15 +427,15 @@ function TopList({
 }) {
   return (
     <div>
-      <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#666] mb-3">{title}</h3>
+      <h3 className="text-[10px] font-mono uppercase tracking-widest text-[#b0b0b0] mb-3">{title}</h3>
       {rows.length === 0 ? (
-        <p className="text-xs font-mono text-[#555]">No data in range.</p>
+        <p className="text-xs font-mono text-[#c9c9d1]">No data in range.</p>
       ) : (
         <ul className="space-y-1.5">
           {rows.map(([label, count]) => (
             <li key={label} className="flex items-center justify-between text-xs font-mono">
               <span className="text-[#d0d0d0] truncate mr-3">{label}</span>
-              <span className="text-[#555] flex-shrink-0">
+              <span className="text-[#c9c9d1] flex-shrink-0">
                 {nf(count)} · {pct(count, total)}
               </span>
             </li>

@@ -54,9 +54,9 @@ export default async function AdminFunnelPage() {
               <div key={s.label}>
                 <div className="flex items-center justify-between text-xs font-mono mb-1">
                   <span className="text-[#d0d0d0]">{s.label}</span>
-                  <span className="text-[#888]">
+                  <span className="text-[#c9c9d1]">
                     {nf(s.value)} · {pct(s.value, total)} of all
-                    {i > 0 ? <span className="text-[#555]"> · {pct(s.value, prev)} step</span> : null}
+                    {i > 0 ? <span className="text-[#c9c9d1]"> · {pct(s.value, prev)} step</span> : null}
                   </span>
                 </div>
                 <div className="h-2.5 rounded-md overflow-hidden bg-white/[0.04]">
@@ -69,14 +69,14 @@ export default async function AdminFunnelPage() {
             )
           })}
         </div>
-        <p className="text-[11px] font-mono text-[#555] mt-4">
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-4">
           &ldquo;Activated&rdquo; is a DB proxy (user created at least one link or block). True
           dashboard-visit activation is an event in Vercel Analytics.
         </p>
       </Card>
 
       <Card title="Event funnel (Vercel Analytics)">
-        <p className="text-xs font-mono text-[#888] mb-3">
+        <p className="text-xs font-mono text-[#c9c9d1] mb-3">
           These per-step conversion rates are not stored in the database. View them in Vercel
           Analytics → Events:
         </p>

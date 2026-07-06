@@ -13,14 +13,14 @@ interface PricingCardsProps {
 }
 
 const FREE_FEATURES = [
-  { text: "Unlimited link cards", included: true },
-  { text: "Product cards (sell anything)", included: true },
+  { text: "Unlimited links", included: true },
+  { text: "Product links (sell anything)", included: true },
   { text: "Stripe Connect — receive payments", included: true },
   { text: "0% platform fees", included: true },
   { text: "Basic analytics (views + clicks)", included: true },
   { text: "Custom accent color", included: true },
-  { text: "Countdown / drop cards", included: false },
-  { text: "Vault cards (email gating)", included: false },
+  { text: "Countdown / drop links", included: false },
+  { text: "Vault links (email gating)", included: false },
   { text: "Globe analytics", included: false },
   { text: "Cinematic hero style", included: false },
   { text: "AI sales agent", included: false },
@@ -29,8 +29,8 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   { text: "Everything in Free", included: true },
-  { text: "Countdown / drop cards", included: true },
-  { text: "Vault cards (email gating)", included: true },
+  { text: "Countdown / drop links", included: true },
+  { text: "Vault links (email gating)", included: true },
   { text: "Globe analytics", included: true },
   { text: "Cinematic hero style", included: true },
   { text: "Full analytics dashboard", included: true },

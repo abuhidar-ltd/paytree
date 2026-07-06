@@ -84,7 +84,7 @@ export function SocialProofToast({ username }: { username: string }) {
                 <div className="mt-1 w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[#e0e0e0] text-sm leading-snug">{event.message}</p>
-                  <p className="text-[#444] text-xs font-mono mt-1">
+                  <p className="text-[#b8b8b8] text-xs font-mono mt-1">
                     {event.country ? `${event.country} · ` : ""}
                     {timeAgo(event.createdAt)}
                   </p>

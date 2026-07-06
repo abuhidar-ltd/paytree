@@ -98,7 +98,7 @@ export function YoutubeChannelModule({ config, span = 2 }: YoutubeChannelModuleP
       <div
         className={`${spanClass} rounded-2xl bg-[rgba(255,60,60,0.05)] border border-[rgba(255,60,60,0.15)] p-5 flex items-center justify-center`}
       >
-        <div className="text-[#444] text-xs font-mono uppercase tracking-widest">
+        <div className="text-[#b8b8b8] text-xs font-mono uppercase tracking-widest">
           Could not load latest video
         </div>
       </div>
@@ -143,9 +143,9 @@ export function YoutubeChannelModule({ config, span = 2 }: YoutubeChannelModuleP
 
       <div className="p-3">
         <div className="text-sm font-semibold text-white line-clamp-2">{video.title}</div>
-        <div className="text-xs font-mono text-[#888] mt-1.5 flex items-center gap-2">
+        <div className="text-xs font-mono text-[#c9c9d1] mt-1.5 flex items-center gap-2">
           {video.viewCount !== undefined && <span>{formatViews(video.viewCount)}</span>}
-          {video.viewCount !== undefined && <span className="text-[#444]">·</span>}
+          {video.viewCount !== undefined && <span className="text-[#b8b8b8]">·</span>}
           <span>{timeAgo(video.publishedAt)}</span>
         </div>
       </div>

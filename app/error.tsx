@@ -29,12 +29,12 @@ export default function Error({
           A small glitch on our end.
         </h1>
 
-        <p className="text-[#888] text-sm mb-8 leading-relaxed">
+        <p className="text-[#c9c9d1] text-sm mb-8 leading-relaxed">
           We&apos;ve been notified. Try again — and if it keeps happening, head back home.
         </p>
 
         {error.digest && (
-          <p className="text-[10px] font-mono text-[#444] mb-6">
+          <p className="text-[10px] font-mono text-[#b8b8b8] mb-6">
             ref · {error.digest}
           </p>
         )}

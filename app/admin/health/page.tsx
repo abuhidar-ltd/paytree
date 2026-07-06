@@ -57,7 +57,7 @@ export default async function AdminHealthPage() {
             const set = !!process.env[key]
             return (
               <div key={key} className="flex items-center justify-between text-xs font-mono border border-white/[0.06] rounded-lg px-3 py-2">
-                <span className="text-[#888]">{label}</span>
+                <span className="text-[#c9c9d1]">{label}</span>
                 <span className={set ? "text-[#00ff88]" : "text-[#f59e0b]"}>{set ? "set" : "missing"}</span>
               </div>
             )
@@ -67,7 +67,7 @@ export default async function AdminHealthPage() {
 
       <Card title="Database">
         <div className="text-xs font-mono">
-          <span className="text-[#888]">Connectivity: </span>
+          <span className="text-[#c9c9d1]">Connectivity: </span>
           <span className={dbOk ? "text-[#00ff88]" : "text-red-400"}>{dbOk ? "connected" : "error"}</span>
         </div>
       </Card>
@@ -76,21 +76,21 @@ export default async function AdminHealthPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="text-xs font-mono border border-white/[0.06] rounded-lg px-3 py-3">
             <div className="text-2xl font-bold text-white">{nf(stripeIdButFree)}</div>
-            <div className="text-[#888] mt-1">Has Stripe sub ID but status &ldquo;free&rdquo;</div>
+            <div className="text-[#c9c9d1] mt-1">Has Stripe sub ID but status &ldquo;free&rdquo;</div>
           </div>
           <div className="text-xs font-mono border border-white/[0.06] rounded-lg px-3 py-3">
             <div className="text-2xl font-bold text-white">{nf(activeNoStripeId)}</div>
-            <div className="text-[#888] mt-1">Active but no Stripe sub ID</div>
+            <div className="text-[#c9c9d1] mt-1">Active but no Stripe sub ID</div>
           </div>
           <div className="text-xs font-mono border border-white/[0.06] rounded-lg px-3 py-3">
             <div className="text-2xl font-bold text-white">{nf(activeNotPublished)}</div>
-            <div className="text-[#888] mt-1">Paid/trial but page not published</div>
+            <div className="text-[#c9c9d1] mt-1">Paid/trial but page not published</div>
           </div>
         </div>
-        <p className="text-[11px] font-mono text-[#555] mt-4">
+        <p className="text-[11px] font-mono text-[#c9c9d1] mt-4">
           Non-zero values can indicate Stripe webhook drift. A dedicated webhook event log
           (V2) would make this authoritative — for now check the Stripe Dashboard and Vercel
-          function logs for <span className="text-[#888]">/api/stripe/webhook</span>.
+          function logs for <span className="text-[#c9c9d1]">/api/stripe/webhook</span>.
         </p>
       </Card>
     </>

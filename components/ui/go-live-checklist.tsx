@@ -37,11 +37,11 @@ export function GoLiveChecklist({ userId, state, onAddCard, onPublish, publishin
 
   const steps = [
     {
-      label: "Add your first card",
+      label: "Add your first link",
       hint: "A link, a product, anything",
       done: state.addedCard,
       action: onAddCard,
-      actionLabel: "Add card",
+      actionLabel: "Add link",
     },
     {
       label: "Make it yours",
@@ -92,7 +92,7 @@ export function GoLiveChecklist({ userId, state, onAddCard, onPublish, publishin
 
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#444]">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#b8b8b8]">
               {allDone ? "You're live" : "3 steps to go live"}
             </span>
             <span className="text-[10px] font-mono text-[#00ff88]">{doneCount}/3</span>
@@ -101,7 +101,7 @@ export function GoLiveChecklist({ userId, state, onAddCard, onPublish, publishin
             <button
               onClick={() => setDismissed(true)}
               aria-label="Dismiss checklist"
-              className="text-[#444] hover:text-[#888] transition-colors -m-2 p-2"
+              className="text-[#b8b8b8] hover:text-[#c9c9d1] transition-colors -m-2 p-2"
             >
               <X size={14} />
             </button>
@@ -144,7 +144,7 @@ export function GoLiveChecklist({ userId, state, onAddCard, onPublish, publishin
                   ) : (
                     <span
                       className="text-[10px] font-mono font-bold"
-                      style={{ color: isCurrent ? "#00ff88" : "#444" }}
+                      style={{ color: isCurrent ? "#00ff88" : "#b8b8b8" }}
                     >
                       {i + 1}
                     </span>
@@ -155,14 +155,14 @@ export function GoLiveChecklist({ userId, state, onAddCard, onPublish, publishin
                   <p
                     className="text-sm font-medium leading-tight"
                     style={{
-                      color: step.done ? "#555" : isCurrent ? "#f0f0f0" : "#888",
+                      color: step.done ? "#8a8a8a" : isCurrent ? "#f0f0f0" : "#d4d4d8",
                       textDecoration: step.done ? "line-through" : "none",
                       textDecorationColor: "rgba(255,255,255,0.2)",
                     }}
                   >
                     {step.label}
                   </p>
-                  <p className="text-[11px] text-[#444] leading-tight mt-0.5">{step.hint}</p>
+                  <p className="text-[11px] text-[#b8b8b8] leading-tight mt-0.5">{step.hint}</p>
                 </div>
 
                 {!step.done && isCurrent && (
