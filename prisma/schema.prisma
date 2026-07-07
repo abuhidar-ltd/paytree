@@ -107,6 +107,11 @@ model User {
   affiliateId String?
   affiliate   Affiliate? @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
 
+  // Fraud review tag — set MANUALLY from /admin/fraud only. Never gates
+  // login, features, or publishing; used for admin tracking and excluding
+  // suspected duplicate accounts from collab attribution counts.
+  flaggedSuspicious Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -129,6 +134,8 @@ model User {
   // Better Auth relations
   sessions Session[]
   accounts Account[]
+
+  signupFingerprint SignupFingerprint?
 
   @@index([username])
   @@index([email])
@@ -566,6 +573,33 @@ model Visit {
 
   @@index([createdAt])
   @@index([bot, createdAt])
+}
+
+// One row per signup: IP + coarse geo (Vercel edge headers), user agent, and
+// a client-side FingerprintJS device hash beaconed right after signup
+// (app/api/signup-fingerprint). Written by the user.create.after auth hook —
+// deviceHash lands a moment later and stays null for bots / Google OAuth /
+// JS-blocked clients (itself a signal). Read by lib/fraud-detection.ts and
+// /admin/fraud. FLAGGING data for manual admin review only — never used to
+// block anything automatically (shared IPs are normal: carrier NAT, WiFi,
+// VPNs, families).
+model SignupFingerprint {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip         String?
+  country    String?
+  region     String?
+  city       String?
+  latitude   Float?
+  longitude  Float?
+  userAgent  String?  @db.Text
+  deviceHash String?
+  createdAt  DateTime @default(now())
+
+  @@index([ip])
+  @@index([deviceHash])
+  @@index([city])
 }
 
 // One row per client-side signup stage beacon — persisted twin of the

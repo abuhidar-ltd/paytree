@@ -47,6 +47,16 @@ const VISIT_CLICK_IDS = ["twclid", "rdt_cid", "fbclid", "gclid", "gbraid", "wbra
 
 const BOT_UA = /bot|crawl|spider|slurp|preview|headless|scanner|monitor|facebookexternalhit|curl\/|python|go-http|axios|wget/i
 
+// Vercel geo headers are URL-encoded; a malformed value must not throw here.
+function decodeGeo(value: string | null): string | null {
+  if (!value) return null
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 function logVisit(request: NextRequest, pathname: string, event: NextFetchEvent): void {
   const accept = request.headers.get("accept") || ""
   // Documents only — skip prefetches, RSC payload fetches, and asset requests.
@@ -55,13 +65,22 @@ function logVisit(request: NextRequest, pathname: string, event: NextFetchEvent)
   const ua = request.headers.get("user-agent") || "<none>"
   const referer = request.headers.get("referer") || "-"
   const country = request.headers.get("x-vercel-ip-country") || "-"
+  // Finer geo, free from Vercel's edge (absent on localhost). City arrives
+  // URL-encoded ("S%C3%A3o%20Paulo") — decode for readable logs. Together
+  // with the client IP these lines are the raw material for spotting
+  // duplicate-signup bursts (see SignupFingerprint / /admin/fraud).
+  const region = request.headers.get("x-vercel-ip-country-region") || "-"
+  const city = decodeGeo(request.headers.get("x-vercel-ip-city")) || "-"
+  const lat = request.headers.get("x-vercel-ip-latitude") || "-"
+  const lng = request.headers.get("x-vercel-ip-longitude") || "-"
+  const visitIp = (request.headers.get("x-forwarded-for") || "").split(",")[0]?.trim() || "-"
   const sp = request.nextUrl.searchParams
   const ids = VISIT_CLICK_IDS.filter((k) => sp.has(k))
     .map((k) => `${k}=${(sp.get(k) || "").slice(0, 16)}`)
     .join(",")
   const bot = BOT_UA.test(ua)
   console.log(
-    `[visit] ${pathname} country=${country} bot=${bot} ref=${referer} ids=${ids || "-"} ua="${ua.slice(0, 140)}"`
+    `[visit] ${pathname} country=${country} region=${region} city=${city} loc=${lat},${lng} ip=${visitIp} bot=${bot} ref=${referer} ids=${ids || "-"} ua="${ua.slice(0, 140)}"`
   )
 
   // Persist the same line as a Visit row — console logs expire, /admin queries

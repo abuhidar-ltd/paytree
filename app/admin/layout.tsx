@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/funnel", label: "Funnel" },
   { href: "/admin/subscriptions", label: "Subscriptions" },
   { href: "/admin/abuse", label: "Abuse" },
+  { href: "/admin/fraud", label: "Fraud" },
   { href: "/admin/health", label: "Health" },
 ]
 

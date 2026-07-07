@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/admin"
 import { resolveUserPlan } from "@/lib/plans"
-import { Card, PageTitle, nf, fmtDate } from "../ui"
+import { getRiskForUsers, type RiskLevel, type RelatedAccount } from "@/lib/fraud-detection"
+import { Card, PageTitle, nf, fmtDate, fmtDateTime } from "../ui"
 
 export const dynamic = "force-dynamic"
 
@@ -121,6 +122,10 @@ export default async function AdminUsersPage({
     prisma.planGrantLog.findMany({ orderBy: { grantedAt: "desc" }, take: 20 }),
   ])
 
+  // Duplicate-signup risk for the visible page of users — two queries total
+  // (lib/fraud-detection.ts), not per-row.
+  const riskMap = await getRiskForUsers(users.map((u) => u.id))
+
   // The audit log stores userId only (rows must outlive account deletion) —
   // resolve emails for display in one lookup.
   const grantUsers = recentGrants.length
@@ -184,6 +189,7 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4">Joined</th>
                 <th className="py-2 pr-4">Verified</th>
+                <th className="py-2 pr-4">Risk</th>
                 <th className="py-2 pr-4">Onboarded</th>
                 <th className="py-2 pr-4">Page</th>
                 <th className="py-2 pr-4">Plan</th>
@@ -200,7 +206,7 @@ export default async function AdminUsersPage({
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td className="py-4 text-[#c9c9d1]" colSpan={14}>No users match these filters.</td>
+                  <td className="py-4 text-[#c9c9d1]" colSpan={15}>No users match these filters.</td>
                 </tr>
               ) : (
                 users.map((u) => {
@@ -230,6 +236,9 @@ export default async function AdminUsersPage({
                       </td>
                       <td className="py-2 pr-4">{fmtDate(u.createdAt)}</td>
                       <td className="py-2 pr-4">{u.emailVerified ? "✓" : <span className="text-[#f59e0b]">no</span>}</td>
+                      <td className="py-2 pr-4">
+                        <RiskCell risk={riskMap.get(u.id) ?? { riskLevel: "none" as const, related: [] }} />
+                      </td>
                       <td className="py-2 pr-4">{u.onboarded ? "✓" : <span className="text-[#b0b0b0]">no</span>}</td>
                       <td className="py-2 pr-4">{u.pageStatus ?? "—"}</td>
                       <td className="py-2 pr-4">
@@ -342,6 +351,64 @@ export default async function AdminUsersPage({
         )}
       </Card>
     </>
+  )
+}
+
+const RISK_STYLE: Record<RiskLevel, { label: string; className: string }> = {
+  none: { label: "—", className: "text-[#666]" },
+  low: { label: "low", className: "text-[#8a8a8a]" },
+  medium: {
+    label: "medium",
+    className: "text-[#f59e0b] border border-[#f59e0b]/30 rounded px-1.5 py-0.5",
+  },
+  high: {
+    label: "high",
+    className: "text-[#ff5555] border border-[#ff5555]/30 rounded px-1.5 py-0.5",
+  },
+}
+
+// Risk badge; medium/high expand (native <details>, no client JS) to list the
+// accounts sharing this user's device/IP so "one person, five accounts" and
+// "two people on the same WiFi" are distinguishable at a glance.
+function RiskCell({ risk }: { risk: { riskLevel: RiskLevel; related: RelatedAccount[] } }) {
+  const style = RISK_STYLE[risk.riskLevel]
+  const badge = (
+    <span className={`text-[10px] uppercase tracking-widest ${style.className}`}>{style.label}</span>
+  )
+  if (risk.related.length === 0) return badge
+
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none select-none">
+        {badge}
+        <span className="ml-1 text-[10px] text-[#888]">+{risk.related.length} ▾</span>
+      </summary>
+      <div
+        className="absolute left-0 z-10 mt-1 min-w-[340px] rounded-lg border border-white/[0.1] bg-[#0c0c0c] p-3 shadow-xl"
+        style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}
+      >
+        <div className="text-[10px] uppercase tracking-widest text-[#b0b0b0] mb-2">
+          Shares a signal with
+        </div>
+        {risk.related.map((r) => (
+          <div key={r.userId} className="flex items-center gap-2 py-1 border-b border-white/[0.04] last:border-0">
+            <Link href={`/admin/users/${r.userId}`} className="text-[#00ff88] hover:underline truncate max-w-[160px]">
+              {r.email}
+            </Link>
+            <span className="text-[10px] text-[#888]">{fmtDateTime(r.createdAt)}</span>
+            <span className="text-[10px]" title="shared signal">
+              {r.sharedDevice ? <span className="text-[#ff5555]">device</span> : null}
+              {r.sharedDevice && r.sharedIp ? <span className="text-[#666]">+</span> : null}
+              {r.sharedIp ? <span className="text-[#f59e0b]">ip</span> : null}
+            </span>
+            <span className="ml-auto text-[10px] text-[#888]">
+              {r.emailVerified ? "✓ verified" : "✗ unverified"} ·{" "}
+              {r.pageStatus === "published" ? "published" : r.onboarded ? "onboarded" : "new"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </details>
   )
 }
 

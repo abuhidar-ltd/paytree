@@ -69,6 +69,23 @@ function safeOrigin(rawUrl: string): string | null {
   }
 }
 
+// Vercel geo headers arrive URL-encoded ("Abu%20Dhabi"); a malformed value
+// must never throw inside a signup hook.
+function decodeGeoHeader(value: string | null): string | null {
+  if (!value) return null
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function parseCoord(value: string | null): number | null {
+  if (!value) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 const trustedOrigins = buildTrustedOrigins()
 
 if (process.env.NODE_ENV !== "test") {
@@ -265,8 +282,38 @@ const config: BetterAuthOptions = {
             throw err
           }
         },
-        after: async (user) => {
+        after: async (user, ctx) => {
           console.log(`[signup] user created id=${user.id} email=${user.email}`)
+          // Signup fingerprint: IP + coarse geo (Vercel edge headers) + UA,
+          // for duplicate-signup review in /admin/fraud. deviceHash arrives a
+          // moment later via /api/signup-fingerprint (client beacon) — bots
+          // and Google OAuth signups keep it null. FLAGGING data only; never
+          // read by anything that gates the user. Never throw — a fingerprint
+          // failure (e.g. table not migrated yet) must not abort a signup.
+          try {
+            const h = ctx?.request?.headers
+            if (h) {
+              await prisma.signupFingerprint.create({
+                data: {
+                  userId: user.id,
+                  ip: (h.get("x-forwarded-for") || "").split(",")[0]?.trim() || null,
+                  country: h.get("x-vercel-ip-country") || null,
+                  region: h.get("x-vercel-ip-country-region") || null,
+                  city: decodeGeoHeader(h.get("x-vercel-ip-city")),
+                  latitude: parseCoord(h.get("x-vercel-ip-latitude")),
+                  longitude: parseCoord(h.get("x-vercel-ip-longitude")),
+                  userAgent: (h.get("user-agent") || "").slice(0, 500) || null,
+                },
+              })
+              console.log(`[signup] fingerprint ok userId=${user.id}`)
+            } else {
+              console.log(`[signup] fingerprint skipped (no request ctx) userId=${user.id}`)
+            }
+          } catch (err) {
+            console.error(
+              `[signup] fingerprint FAILED userId=${user.id} err=${err instanceof Error ? err.message : String(err)}`
+            )
+          }
           // Starter card: the canvas must never be empty. Runs for every
           // account path (email AND Google OAuth). config.starter marks it so
           // the go-live checklist can tell it apart from user-added cards.

@@ -8,7 +8,7 @@ export const metadata = {
 // Legal doc dates are load-bearing (they set the "we changed this" clock for
 // notification obligations). Bump these when you materially change the policy.
 const EFFECTIVE_DATE = "July 4, 2026"
-const LAST_UPDATED = "July 4, 2026"
+const LAST_UPDATED = "July 7, 2026"
 
 export default function PrivacyPage() {
   return (
@@ -46,6 +46,7 @@ export default function PrivacyPage() {
             <li><strong className="text-[#e0e0e0]">Buyer email addresses:</strong> collected when a visitor unlocks a vault or completes a purchase, so we can deliver the item and let you contact them.</li>
             <li><strong className="text-[#e0e0e0]">Analytics:</strong> page views, link clicks, referrer, coarse geographic location (country / city), and device type. IP addresses are truncated within 30 days.</li>
             <li><strong className="text-[#e0e0e0]">Session data:</strong> a first-party authentication cookie so you stay signed in.</li>
+            <li><strong className="text-[#e0e0e0]">Fraud prevention &amp; security:</strong> when you create an account we record your IP address, approximate location (country, region, city), browser and device information, and a device fingerprint (a hash derived from technical characteristics of your browser). We use this solely to detect duplicate or fraudulent account creation and to secure the Service — it is never used for advertising, never sold, and never shared beyond the service providers listed below.</li>
             <li><strong className="text-[#e0e0e0]">Support communications:</strong> emails you send us and our replies.</li>
           </ul>
         </section>

@@ -8,6 +8,11 @@ import { signUp, signIn } from "@/lib/auth-client"
 import { detectIAB, type IABInfo } from "@/lib/iab"
 import { track, captureAttribution, type EventName } from "@/lib/analytics"
 import { logSignupStage } from "@/lib/signup-telemetry"
+import {
+  preloadDeviceFingerprint,
+  getDeviceFingerprint,
+  beaconSignupFingerprint,
+} from "@/lib/device-fingerprint"
 import { hardNavigate } from "@/lib/post-auth-nav"
 import { ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { XSupportPill } from "./x-support-pill"
@@ -125,7 +130,27 @@ export function SignUpScreen({ userAgent }: Props) {
     }
     const detected = detectIAB()
     if (detected.isIAB) setIab(detected)
+
+    // Duplicate-signup detection: start computing the device hash now so it's
+    // ready by the time the user finishes the 3-step wizard. Beaconed only
+    // after a successful signup (see submit()).
+    preloadDeviceFingerprint()
   }, [])
+
+  // Fire the device hash at the server after signup succeeds, capped so a
+  // slow fingerprint computation can never delay the /onboarding handoff.
+  // Missing hash is fine — the server row just keeps deviceHash null.
+  async function sendFingerprint() {
+    try {
+      const hash = await Promise.race([
+        getDeviceFingerprint(),
+        sleep(800).then(() => null),
+      ])
+      if (hash) beaconSignupFingerprint(hash)
+    } catch {
+      // Never let fingerprinting interfere with the signup flow.
+    }
+  }
 
   // Persist draft as user types so a WebView kill doesn't reset progress.
   // Password is deliberately omitted — see the Draft type comment.
@@ -282,6 +307,7 @@ export function SignUpScreen({ userAgent }: Props) {
               // track() would be dropped and the funnel loses its success event.
               fireOnce("create_account", { recovered: "timeout_signin", wizard: true }, true)
               logSignupStage("submit_result", { ok: true, recovered: "timeout_signin" })
+              await sendFingerprint()
               hardNavigate("/onboarding")
               return
             }
@@ -298,6 +324,7 @@ export function SignUpScreen({ userAgent }: Props) {
       try { localStorage.removeItem(DRAFT_KEY) } catch {}
       fireOnce("create_account", { wizard: true }, true)
       logSignupStage("submit_result", { ok: true })
+      await sendFingerprint()
       hardNavigate("/onboarding")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
