@@ -83,7 +83,9 @@ export function SignInScreen({ userAgent }: Props) {
   }, [])
 
   // If already signed in (returning tab, session cookie still valid), skip
-  // straight to /dashboard — same guard as production SignInScreen.
+  // straight to /dashboard — same guard as production SignInScreen. Unverified
+  // accounts go to the verification gate instead (middleware would bounce
+  // them anyway; navigating directly saves the redirect hop).
   useEffect(() => {
     if (!isPending && session && !navigatedRef.current) {
       navigatedRef.current = true
@@ -97,7 +99,7 @@ export function SignInScreen({ userAgent }: Props) {
         // within this mount, so the event can't fire on every revalidation.
         fireOnce("complete_login")
       }
-      hardNavigate("/dashboard")
+      hardNavigate(session.user.emailVerified ? "/dashboard" : "/verify-pending")
     }
   }, [isPending, session])
 
@@ -156,10 +158,14 @@ export function SignInScreen({ userAgent }: Props) {
     // request, and a raw single-shot signIn silently reads as "wrong
     // password" when the fetch times out. Never retry on credential errors
     // (401 / INVALID_EMAIL_OR_PASSWORD) — those are the user, not the wire.
+    //
+    // NO callbackURL on purpose: with one, Better Auth returns redirect:true
+    // and the client's Redirect fetch-plugin navigates on its own, racing the
+    // explicit hardNavigate below (ERR_ABORTED, and it can't know the
+    // verified-vs-unverified destination). Navigation is owned here.
     const payload = {
       email: email.trim().toLowerCase(),
       password: pw,
-      callbackURL: "/dashboard",
     }
     let result: Awaited<ReturnType<typeof signIn.email>> | null = null
     let lastNetworkError: unknown = null
@@ -238,7 +244,14 @@ export function SignInScreen({ userAgent }: Props) {
       } catch {
         track("complete_login", {}, { urgent: true })
       }
-      hardNavigate("/dashboard")
+      // Email-verification hard gate: an unverified login IS a login (the
+      // session exists) but lands on the gate, not the product. Defensive
+      // shape-read — if the response shape ever shifts, the middleware
+      // bounces them to /verify-pending anyway.
+      const unverified =
+        (result as { data?: { user?: { emailVerified?: boolean } } }).data?.user
+          ?.emailVerified === false
+      hardNavigate(unverified ? "/verify-pending" : "/dashboard")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)

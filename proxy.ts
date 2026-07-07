@@ -140,13 +140,42 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     return response
   }
 
-  // Protected pages: lightweight cookie presence check. The actual session
-  // validation (and onboarding redirect) happens in the page/layout via
-  // `getCurrentUser()`.
+  // Protected pages: lightweight cookie presence check first (no DB), then
+  // the email-verification hard gate. The onboarding redirect still happens
+  // in the page/layout via `getCurrentUser()`.
   const sessionCookie = getSessionCookie(request)
   if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url)
     return NextResponse.redirect(loginUrl)
+  }
+
+  // Email-verification HARD GATE (2026-07-07): a session whose account has
+  // not verified its email gets /verify-pending instead of the product —
+  // every protected prefix, pages and RSC fetches alike. Costs one session
+  // lookup per protected request; proxy.ts runs on the Node runtime so the
+  // dynamic import keeps better-auth un-evaluated for public paths. Fail
+  // OPEN on errors: getCurrentUser() (lib/get-user.ts) enforces the same
+  // gate underneath, so a transient DB error here degrades to the old
+  // behavior instead of 500ing every dashboard load.
+  try {
+    const { auth } = await import("@/lib/auth")
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) {
+      // Cookie present but stale/invalid — same destination as no cookie.
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+    if (!session.user.emailVerified) {
+      const pendingUrl = new URL("/verify-pending", request.url)
+      // In-flight verification links from before the gate carried
+      // callbackURL=/dashboard?verified=1&error=<CODE> — forward both params
+      // so /verify-pending can show the expired/invalid-link recovery UI.
+      const err = request.nextUrl.searchParams.get("error")
+      if (err) pendingUrl.searchParams.set("error", err)
+      console.log(`[gate] unverified → /verify-pending userId=${session.user.id} path=${pathname}`)
+      return NextResponse.redirect(pendingUrl)
+    }
+  } catch (err) {
+    console.error("[gate] verification check failed (failing open):", err)
   }
 
   return response

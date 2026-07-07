@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import { markEmailVerified } from "./helpers/verify-email"
 
 /**
  * In-app-browser signup journeys.
@@ -13,7 +14,11 @@ import { test, expect } from "@playwright/test"
  *  - the Google button is never shown inside an IAB (Google 403s OAuth in
  *    WebViews — the button is a guaranteed dead end)
  *  - the email/password path completes end-to-end: land → CTA → /register →
- *    fill → submit → /onboarding
+ *    fill → submit → /verify-pending (mandatory since 2026-07-07) → the
+ *    verification-link flip is noticed BY POLLING → /onboarding. Inside a
+ *    WebView the link opens in the system browser, so the polling hop is the
+ *    only thing keeping the user's flow alive — that's why it's asserted
+ *    here and not just in the chromium project.
  *
  * Created accounts use *@paytree-e2e.test emails — matched and removed by
  * scripts/cleanup-test-users.ts.
@@ -31,6 +36,10 @@ test("signup banner + Google gating are in the SSR HTML", async ({ request }, te
 
 test("full email signup journey inside the IAB", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("iab-"), "IAB projects only")
+  // Three IAB projects signup + poll the verification gate in parallel
+  // against a dev server — the default 30s test budget is too tight since
+  // the gate added a page hop. Same budget as activation.spec.ts.
+  test.setTimeout(120_000)
 
   // Swallow analytics beacons — no test traffic in production stats.
   await page.route("**/_vercel/insights/**", (r) => r.fulfill({ status: 200, body: "{}" }))
@@ -61,12 +70,17 @@ test("full email signup journey inside the IAB", async ({ page }, testInfo) => {
   await page.getByTestId("signup-password").fill("e2e-password-123")
   await page.getByTestId("signup-continue").click()
 
-  // 5. Account created → onboarding. Generous timeout: dev-server cold
-  //    compile of /onboarding plus a real DB roundtrip. The cinematic
-  //    onboarding lands on the welcome screen ("Let's go →") — we advance
-  //    once and then anchor on the name input testid so future copy tweaks
-  //    don't break the check.
-  await page.waitForURL("**/onboarding**", { timeout: 45_000 })
+  // 5. Account created → the mandatory verification gate, NOT onboarding.
+  //    Generous timeout: dev-server cold compile plus a real DB roundtrip.
+  await page.waitForURL("**/verify-pending**", { timeout: 45_000 })
+  await expect(page.getByText(/check your email/i)).toBeVisible({ timeout: 15_000 })
+
+  // 6. Simulate the verification-link click (DB flag flip — exactly what the
+  //    Better Auth endpoint does, but from "another browser" as far as this
+  //    WebView is concerned). The page's 4s polling must notice on its own
+  //    and advance to onboarding with zero interaction here.
+  await markEmailVerified(email)
+  await page.waitForURL("**/onboarding**", { timeout: 20_000 })
   await page.getByTestId("onboarding-welcome-next").click({ timeout: 15_000 })
   await expect(page.getByTestId("onboarding-name")).toBeVisible({ timeout: 15_000 })
 })

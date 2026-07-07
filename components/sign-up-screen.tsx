@@ -138,7 +138,7 @@ export function SignUpScreen({ userAgent }: Props) {
   }, [])
 
   // Fire the device hash at the server after signup succeeds, capped so a
-  // slow fingerprint computation can never delay the /onboarding handoff.
+  // slow fingerprint computation can never delay the /verify-pending handoff.
   // Missing hash is fine — the server row just keeps deviceHash null.
   async function sendFingerprint() {
     try {
@@ -242,7 +242,10 @@ export function SignUpScreen({ userAgent }: Props) {
       email: email.trim().toLowerCase(),
       password: pw,
       name: name.trim(),
-      callbackURL: "/onboarding",
+      // Rides into the verification EMAIL LINK (Better Auth embeds the
+      // sign-up callbackURL in the token URL) — the click must land on
+      // /verify-pending, which owns the whole verification UX.
+      callbackURL: "/verify-pending",
     }
     let timedOutOnce = false
     let result: Awaited<ReturnType<typeof signUp.email>> | null = null
@@ -298,9 +301,17 @@ export function SignUpScreen({ userAgent }: Props) {
           statusCode?: number
         }
         const status = errObj.status ?? errObj.statusCode
-        if (timedOutOnce && (errObj.code === "USER_ALREADY_EXISTS" || status === 409)) {
+        // better-auth 1.6.20 renamed the duplicate-email rejection to
+        // USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL (422) — prefix-match so the
+        // timeout recovery survives the next rename too. (The old exact
+        // match left this branch dead and slow-WebView signups stranded.)
+        const isDuplicateEmail =
+          !!errObj.code?.startsWith("USER_ALREADY_EXISTS") || status === 409 || status === 422
+        if (timedOutOnce && isDuplicateEmail) {
           try {
-            const s = await signIn.email({ email: payload.email, password: pw, callbackURL: "/onboarding" })
+            // No callbackURL: it would make the client's Redirect plugin
+            // navigate on its own, racing the hardNavigate below.
+            const s = await signIn.email({ email: payload.email, password: pw })
             if (!(s as { error?: unknown }).error) {
               try { localStorage.removeItem(DRAFT_KEY) } catch {}
               // urgent: hardNavigate tears the document down — a deferred
@@ -308,7 +319,7 @@ export function SignUpScreen({ userAgent }: Props) {
               fireOnce("create_account", { recovered: "timeout_signin", wizard: true }, true)
               logSignupStage("submit_result", { ok: true, recovered: "timeout_signin" })
               await sendFingerprint()
-              hardNavigate("/onboarding")
+              hardNavigate("/verify-pending")
               return
             }
           } catch {
@@ -325,7 +336,10 @@ export function SignUpScreen({ userAgent }: Props) {
       fireOnce("create_account", { wizard: true }, true)
       logSignupStage("submit_result", { ok: true })
       await sendFingerprint()
-      hardNavigate("/onboarding")
+      // Mandatory email verification (2026-07-07): onboarding only unlocks
+      // after the emailed link is clicked. Google OAuth skips this — Google
+      // asserts email_verified, so those accounts arrive pre-verified.
+      hardNavigate("/verify-pending")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again."
       setError(msg)
@@ -709,7 +723,7 @@ const BigInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInpu
 )
 
 function friendlyMessage(code: string | undefined, status: number | undefined): string | null {
-  if (code === "USER_ALREADY_EXISTS" || status === 409)
+  if (code?.startsWith("USER_ALREADY_EXISTS") || status === 409)
     return "An account with that email already exists. Try signing in."
   if (code === "INVALID_EMAIL") return "That email address looks invalid."
   if (code === "WEAK_PASSWORD")

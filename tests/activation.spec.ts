@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test"
+import { markEmailVerified } from "./helpers/verify-email"
 
 /**
  * The full 375px activation journey — the funnel that was leaking:
- * home → signup → onboarding (skip) → dashboard (starter card +
- * checklist) → add card → publish → celebration.
+ * home → signup → verify email (mandatory gate since 2026-07-07) →
+ * onboarding (skip) → dashboard (starter card + checklist) → add card →
+ * publish → celebration.
  *
  * Accounts use *@paytree-e2e.test emails; scripts/cleanup-test-users.ts
  * removes them.
@@ -34,7 +36,13 @@ test("375px journey: home → signup → skip → add card → publish", async (
   await page.getByTestId("signup-continue").click()
   await page.getByTestId("signup-password").fill("e2e-password-123")
   await page.getByTestId("signup-continue").click()
-  await page.waitForURL("**/onboarding**", { timeout: 45_000 })
+
+  // 2b. Verification gate: signup parks on /verify-pending. Simulate the
+  //     email-link click (DB flip); the page's polling must advance to
+  //     onboarding by itself.
+  await page.waitForURL("**/verify-pending**", { timeout: 45_000 })
+  await markEmailVerified(email)
+  await page.waitForURL("**/onboarding**", { timeout: 20_000 })
 
   // 3. Skip onboarding — smart skip must still land on a non-empty dashboard.
   //    Testid instead of copy — the button label ("Skip and go to dashboard")

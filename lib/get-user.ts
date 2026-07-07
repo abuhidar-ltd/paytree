@@ -20,6 +20,16 @@ export async function getCurrentUser() {
       console.warn("[getCurrentUser] session present but user not found in DB:", session.user.id)
       return null
     }
+    // Email-verification HARD GATE (2026-07-07): an unverified account is
+    // treated as signed-out by every page and API route that authenticates
+    // through here. proxy.ts owns the friendly redirect to /verify-pending;
+    // this is the enforcement layer a scripted client can't route around.
+    // getUserId() below stays ungated on purpose — the signup-fingerprint
+    // beacon must attach to brand-new (still unverified) accounts.
+    if (!user.emailVerified) {
+      console.log(`[getCurrentUser] unverified account gated userId=${user.id}`)
+      return null
+    }
     // Check-on-read: an admin-granted (comped) plan whose end date has passed
     // reverts to Free here, on the user's next authenticated request. Fires at
     // most once per comp — the revert clears isComped. Isolated try/catch: a

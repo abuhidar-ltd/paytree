@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import { markEmailVerified } from "./helpers/verify-email"
 
 /**
  * Regression: signup and sign-in must agree on how emails are stored.
@@ -31,7 +32,12 @@ test("email normalization: signup with whitespace/caps, signin cleanly", async (
   await page.getByTestId("signup-continue").click()
   await page.getByTestId("signup-password").fill("normalize-me-please-1")
   await page.getByTestId("signup-continue").click()
-  await page.waitForURL("**/onboarding**", { timeout: 45_000 })
+  // Signup parks on the mandatory verification gate. The lookup inside
+  // markEmailVerified uses cleanEmail — which doubles as an assertion that
+  // the messy signup was stored normalized (it throws on no match).
+  await page.waitForURL("**/verify-pending**", { timeout: 45_000 })
+  await markEmailVerified(cleanEmail)
+  await page.waitForURL("**/onboarding**", { timeout: 20_000 })
 
   // 2. Nuke cookies to simulate a fresh visit / signed-out state. Faster and
   //    more deterministic than driving the UI logout button — the assertion
@@ -40,7 +46,9 @@ test("email normalization: signup with whitespace/caps, signin cleanly", async (
 
   // 3. Sign back in with the clean lowercase version — if normalization is
   //    working, Better Auth finds the account under `cleanEmail` and accepts.
-  //    If not, we'd get INVALID_EMAIL_OR_PASSWORD.
+  //    If not, we'd get INVALID_EMAIL_OR_PASSWORD. The account is verified
+  //    (step above), so this also proves a verified/grandfathered login goes
+  //    straight through — no /verify-pending interruption.
   await page.goto("/login", { waitUntil: "networkidle" })
   // useSession finishes its /api/auth/get-session round-trip before we touch
   // the form — otherwise a click that races the hydration/session-fetch pair

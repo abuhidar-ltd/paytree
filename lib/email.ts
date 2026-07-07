@@ -35,6 +35,16 @@ export async function sendVerificationEmail({
   const firstName = (name || "").trim().split(/\s+/)[0]
   const greeting = firstName ? `Hey ${escapeHtml(firstName)},` : "Hey,"
 
+  // Playwright accounts use the reserved .test TLD (RFC 2606) — undeliverable
+  // by definition. A local RESEND_API_KEY was quietly firing a real bouncing
+  // send per test signup (159 in one session), and bounces erode
+  // noreply@paytree.to's sender reputation. Nothing legitimate can ever
+  // receive mail at *.test, so skip before Resend sees it.
+  if (to.toLowerCase().endsWith(".test")) {
+    console.log(`[email] verification skipped (reserved .test TLD) to=${to}`)
+    return
+  }
+
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({

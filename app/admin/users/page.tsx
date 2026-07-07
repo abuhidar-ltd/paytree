@@ -193,7 +193,12 @@ export default async function AdminUsersPage({
               <tr className="text-[#c9c9d1] text-left border-b border-white/[0.06]">
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4">Joined</th>
-                <th className="py-2 pr-4">Verified</th>
+                <th
+                  className="py-2 pr-4 cursor-help"
+                  title="Email verification — mandatory since 2026-07-07. Unverified accounts are blocked from the dashboard (stuck on /verify-pending) until they click the emailed link."
+                >
+                  Verified
+                </th>
                 <th className="py-2 pr-4">Risk</th>
                 <th className="py-2 pr-4">Onboarded</th>
                 <th className="py-2 pr-4">Page</th>
@@ -240,7 +245,18 @@ export default async function AdminUsersPage({
                         </div>
                       </td>
                       <td className="py-2 pr-4">{fmtDate(u.createdAt)}</td>
-                      <td className="py-2 pr-4">{u.emailVerified ? "✓" : <span className="text-[#f59e0b]">no</span>}</td>
+                      <td className="py-2 pr-4">
+                        {u.emailVerified ? (
+                          "✓"
+                        ) : (
+                          <span
+                            className="text-[#f59e0b] cursor-help"
+                            title="Blocked from the dashboard until verified — they're held at /verify-pending. If they report being stuck, have them tap “Resend email” or check spam."
+                          >
+                            no
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 pr-4">
                         <RiskCell risk={riskMap.get(u.id) ?? { riskLevel: "none" as const, related: [] }} />
                       </td>

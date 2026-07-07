@@ -142,9 +142,21 @@ const config: BetterAuthOptions = {
   }),
   emailAndPassword: {
     enabled: true,
-    // Deliberately false: verification is visibility, not a gate. Flipping
-    // this true would lock out every pre-verification account (all users
-    // before July 2026) and add friction to a signup flow we just fixed.
+    // HARD GATE — deliberately flipped from "visibility only" to mandatory on
+    // 2026-07-07 as an anti-fraud measure. Existing users were grandfathered
+    // via scripts/grandfather-email-verified.ts before enforcement shipped.
+    //
+    // The flag itself stays false ON PURPOSE: in better-auth 1.6.20 setting it
+    // true also (a) skips session creation on sign-up (dist/api/routes/
+    // sign-up.mjs → `token: null`), which strands the /verify-pending polling
+    // flow and forces WebView signups (94% of traffic) to re-type their
+    // password after verifying, and (b) turns duplicate-email signups into
+    // synthetic fake-success responses, breaking the "account exists → sign
+    // in" recovery. Unverified users therefore DO get a session — it just
+    // grants nothing. The gate is enforced one layer up:
+    //   proxy.ts          unverified session on any protected page → /verify-pending
+    //   lib/get-user.ts   getCurrentUser() → null until verified (every page + API)
+    //   sign-in/up screens  navigate unverified users straight to /verify-pending
     requireEmailVerification: false,
     minPasswordLength: 8,
   },
@@ -155,14 +167,16 @@ const config: BetterAuthOptions = {
     // for anyone who signs up on mobile and opens email on desktop at night.
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }) => {
-      // Better Auth builds `url` with callbackURL "/" unless the caller sent
-      // one (signup doesn't). Point the default at the dashboard so success
-      // lands with a toast; error codes append as &error=<CODE>. Explicit
-      // callbackURLs (e.g. a future change-email flow) pass through.
+      // Better Auth builds `url` with the caller's callbackURL (or "/" when
+      // absent). Land every default click on /verify-pending: that page owns
+      // the whole verification UX — success fires complete_verification and
+      // forwards to onboarding/dashboard; bad tokens append &error=<CODE> and
+      // surface the resend button right there. Explicit callbackURLs (e.g. a
+      // future change-email flow) pass through.
       const link = new URL(url)
       const cb = link.searchParams.get("callbackURL")
       if (!cb || cb === "/") {
-        link.searchParams.set("callbackURL", "/dashboard?verified=1")
+        link.searchParams.set("callbackURL", "/verify-pending")
       }
       // sendVerificationEmail catches internally — a Resend failure logs
       // instead of failing the signup this hook runs inside of.
@@ -192,6 +206,10 @@ const config: BetterAuthOptions = {
     customRules: {
       "/sign-up/email": { window: 60, max: 10 },
       "/sign-in/email": { window: 60, max: 10 },
+      // Resend button on /verify-pending and the dashboard banner. 5/min per
+      // IP is plenty for a human mashing "Resend" and keeps a bot from using
+      // us as an email cannon.
+      "/send-verification-email": { window: 60, max: 5 },
     },
   },
   // Register Google only when both credentials are present. Missing creds

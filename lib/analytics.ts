@@ -83,11 +83,17 @@ export type EventName =
   | "submit_vault_email"
   | "unlock_vault"
   | "open_ai_agent"
-  // Email verification — both fire SERVER-SIDE: send from lib/email.ts
-  // (signup hook AND banner resend), verify from Better Auth's
-  // afterEmailVerification hook in lib/auth.ts.
+  // Email verification — send/verify fire SERVER-SIDE: send from lib/email.ts
+  // (signup hook AND resends), verify from Better Auth's
+  // afterEmailVerification hook in lib/auth.ts. The gate events are CLIENT-
+  // side: view/resend/complete fire from /verify-pending (and the dashboard
+  // safety-net banner). complete_verification = the gate let the user
+  // through; verify_email = the token click itself.
   | "send_verification_email"
   | "verify_email"
+  | "view_verify_pending"
+  | "click_resend_verification"
+  | "complete_verification"
   // Money metrics — fired SERVER-SIDE (lib/analytics-server.ts); listed here
   // so the taxonomy has one registry.
   | "publish_page"

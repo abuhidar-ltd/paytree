@@ -46,6 +46,7 @@ export default defineConfig({
     "iab-signup.spec.ts",
     "signup-concurrency.spec.ts",
     "signup-normalization.spec.ts",
+    "verify-gate.spec.ts",
     "attribution.spec.ts",
     "activation.spec.ts",
   ],

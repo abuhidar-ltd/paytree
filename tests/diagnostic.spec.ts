@@ -197,10 +197,12 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
 
     await page.goto(BASE, { waitUntil: "domcontentloaded" })
 
-    const cta = await page.locator('a[href="/register"]').first()
-    const ctaExists = (await cta.count()) > 0
-    if (!ctaExists) {
-      log({ severity: "critical", area: "cta", msg: "No /register CTA on homepage" })
+    // The hero CTA testid — the header CTA (also href=/register) is
+    // display-hidden at 375px, which is exactly the trap a bare
+    // a[href="/register"] selector falls into.
+    const cta = page.getByTestId("home-hero-cta")
+    if ((await cta.count()) === 0) {
+      log({ severity: "critical", area: "cta", msg: "No home-hero-cta on homepage" })
       await context.close()
       return
     }
@@ -212,45 +214,48 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
       log({ severity: "critical", area: "cta", msg: `CTA click did NOT navigate. Still at ${page.url()}, was ${beforeUrl}` })
     })
 
-    // Wait for the actual form to render (Next streams the loading state first)
-    const formAppeared = await page.waitForSelector('form input[type="email"]', { timeout: 10_000 }).then(() => true).catch(() => false)
+    // The wizard's step 0 (name) must render — Next streams a loading state
+    // first, and a wizard that never hydrates its first input is the
+    // "signup looks broken" failure mode.
+    const formAppeared = await page
+      .getByTestId("signup-name")
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false)
     if (!formAppeared) {
-      log({ severity: "critical", area: "signup", msg: "/register never rendered the signup form (still on Loading state after 10s)" })
+      log({ severity: "critical", area: "signup", msg: "/register never rendered the wizard's name step (still loading after 10s)" })
     }
 
     // Screenshot signup page
     await page.screenshot({ path: path.join(OUT_DIR, "start-page-375px.png"), fullPage: true })
     await page.screenshot({ path: path.join(OUT_DIR, "start-above-fold-375px.png"), fullPage: false })
 
-    // Form measurements
+    // Wizard step-0 measurements (one input + one continue button)
     const formData = await page.evaluate((vh) => {
-      const form = document.querySelector("form") as HTMLElement | null
-      const nameInput = document.querySelector('input[autocomplete="name"]') as HTMLInputElement | null
-      const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement | null
-      const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement | null
+      const nameInput = document.querySelector('[data-testid="signup-name"]') as HTMLInputElement | null
+      const continueBtn = document.querySelector('[data-testid="signup-continue"]') as HTMLButtonElement | null
       function rectOf(el: HTMLElement | null) {
         if (!el) return null
         const r = el.getBoundingClientRect()
         return { top: r.top, bottom: r.bottom, h: r.height }
       }
       return {
-        formRect: rectOf(form),
-        submitRect: rectOf(submitBtn),
-        submitAboveFold: submitBtn ? submitBtn.getBoundingClientRect().bottom <= vh : null,
+        nameRect: rectOf(nameInput),
+        submitRect: rectOf(continueBtn),
+        submitAboveFold: continueBtn ? continueBtn.getBoundingClientRect().bottom <= vh : null,
         nameExists: !!nameInput,
-        emailExists: !!emailInput,
-        submitText: submitBtn?.textContent?.trim() ?? null,
+        submitText: continueBtn?.textContent?.trim() ?? null,
         viewportHeight: vh,
       }
     }, IPHONE_LANDING.height)
     console.log("SIGNUP FORM:", JSON.stringify(formData, null, 2))
 
     if (!formData.submitAboveFold) {
-      log({ severity: "high", area: "signup", msg: "Signup submit button NOT above the fold at 375x812", detail: formData })
+      log({ severity: "high", area: "signup", msg: "Signup continue button NOT above the fold at 375x812", detail: formData })
     }
 
     if (formData.submitRect && formData.submitRect.h < 44) {
-      log({ severity: "high", area: "signup", msg: `Submit button tap target under 44px (${formData.submitRect.h}px)` })
+      log({ severity: "high", area: "signup", msg: `Continue button tap target under 44px (${formData.submitRect.h}px)` })
     }
 
     fs.writeFileSync(path.join(OUT_DIR, "start-measurements.json"), JSON.stringify(formData, null, 2))
@@ -264,25 +269,28 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
     await collectErrors(page, "signup-journey")
 
     await page.goto(`${BASE}/register`, { waitUntil: "domcontentloaded" })
-    await page.waitForSelector('form input[type="email"]', { timeout: 15_000 }).catch(() => {
-      log({ severity: "critical", area: "signup-fill", msg: "Form inputs never appeared on /register" })
+    await page.getByTestId("signup-name").waitFor({ state: "visible", timeout: 15_000 }).catch(() => {
+      log({ severity: "critical", area: "signup-fill", msg: "Wizard name step never appeared on /register" })
     })
 
     const ts = Date.now()
-    const email = `diag${ts}@paytree-test.com`
+    const email = `diag${ts}@paytree-e2e.test`
     const password = "TestPass123!"
 
-    // Fill the form
-    await page.fill('input[type="text"]', "Diagnostic User").catch((e) => log({ severity: "high", area: "signup-fill", msg: `Name input fill failed: ${e.message}` }))
-    await page.fill('input[type="email"]', email).catch((e) => log({ severity: "high", area: "signup-fill", msg: `Email input fill failed: ${e.message}` }))
-    await page.fill('input[type="password"]', password).catch((e) => log({ severity: "high", area: "signup-fill", msg: `Password input fill failed: ${e.message}` }))
+    // Drive the 3-step wizard (name → email → password), one input per step.
+    await page.getByTestId("signup-name").fill("Diagnostic User").catch((e) => log({ severity: "high", area: "signup-fill", msg: `Name input fill failed: ${e.message}` }))
+    await page.getByTestId("signup-continue").click().catch((e) => log({ severity: "high", area: "signup-fill", msg: `Continue (name) failed: ${e.message}` }))
+    await page.getByTestId("signup-email").fill(email).catch((e) => log({ severity: "high", area: "signup-fill", msg: `Email input fill failed: ${e.message}` }))
+    await page.getByTestId("signup-continue").click().catch((e) => log({ severity: "high", area: "signup-fill", msg: `Continue (email) failed: ${e.message}` }))
+    await page.getByTestId("signup-password").fill(password).catch((e) => log({ severity: "high", area: "signup-fill", msg: `Password input fill failed: ${e.message}` }))
 
     const submitStart = Date.now()
-    await page.click('button[type="submit"]').catch((e) => log({ severity: "critical", area: "signup-submit", msg: `Submit click failed: ${e.message}` }))
+    await page.getByTestId("signup-continue").click().catch((e) => log({ severity: "critical", area: "signup-submit", msg: `Submit click failed: ${e.message}` }))
 
-    // Wait for navigation
+    // Wait for navigation — /verify-pending is the expected landing since
+    // the 2026-07-07 mandatory-verification gate.
     const ended = await Promise.race([
-      page.waitForURL(/\/onboarding|\/dashboard/, { timeout: 15_000 }).then(() => "navigated"),
+      page.waitForURL(/\/verify-pending|\/onboarding|\/dashboard/, { timeout: 15_000 }).then(() => "navigated").catch(() => null),
       page.waitForSelector('[class*="ff5555"], [class*="red"]', { timeout: 15_000 }).then(() => "error-shown").catch(() => null),
       new Promise<string>((r) => setTimeout(() => r("timeout"), 15_000)),
     ])
@@ -298,9 +306,9 @@ test.describe("PAYTREE DIAGNOSTIC", () => {
 
     await page.screenshot({ path: path.join(OUT_DIR, "after-signup.png"), fullPage: true }).catch(() => {})
 
-    // If on onboarding, screenshot it
-    if (page.url().includes("/onboarding")) {
-      await page.screenshot({ path: path.join(OUT_DIR, "onboarding-welcome-375px.png"), fullPage: false })
+    // The verification gate is the expected post-signup state — screenshot it.
+    if (page.url().includes("/verify-pending")) {
+      await page.screenshot({ path: path.join(OUT_DIR, "verify-pending-375px.png"), fullPage: false })
     }
 
     await context.close()

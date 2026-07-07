@@ -447,6 +447,9 @@ export function OnboardingFlow({ user }: { user: UserData }) {
           </button>
 
           <button
+            // Test contract: tests/activation.spec.ts drives the smart-skip
+            // path through this testid (lost in the fe28b9a revert).
+            data-testid="onboarding-skip"
             onClick={skipAll}
             disabled={isSkipping}
             style={{

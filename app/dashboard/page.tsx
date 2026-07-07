@@ -835,11 +835,13 @@ export default function DashboardPage() {
         {/* Go-live checklist + completion meter — the first-five-minutes
             experience. The checklist replaces the old free-plan publish nudge
             (its step 3 is the publish CTA, for every plan). */}
-        {/* Verify-email nudge — informational, gates nothing. Also handles
-            the ?verified=1 / &error= landing from the email link. */}
+        {/* Verify-email safety net — normally unreachable since the 2026-07-07
+            hard gate (proxy.ts bounces unverified sessions to /verify-pending
+            before this page loads). Renders only if the middleware gate failed
+            open. Also handles the ?verified=1 / &error= landing from pre-gate
+            verification emails. */}
         {authUser && (
           <VerifyEmailBanner
-            userId={authUser.id}
             email={authUser.email}
             verified={authUser.emailVerified}
           />
