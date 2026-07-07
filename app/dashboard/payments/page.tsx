@@ -288,6 +288,30 @@ function ConnectionCard({
   disconnecting: boolean
   userPlan: PlanId
 }) {
+  // Guards the double-click race on /api/stripe/connect: two concurrent
+  // requests could both see stripeAccountId=null and create two Stripe
+  // accounts (the server also claims the id race-safely, but don't even
+  // send the second request). Full-page navigation, so the state naturally
+  // dies with the document…
+  const [connecting, setConnecting] = useState(false)
+
+  // …except when the user comes BACK via bfcache — the restored page would
+  // keep the button stuck on "Connecting…" forever without this reset.
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => {
+      if (e.persisted) setConnecting(false)
+    }
+    window.addEventListener("pageshow", reset)
+    return () => window.removeEventListener("pageshow", reset)
+  }, [])
+
+  const startConnect = (source: string) => {
+    if (connecting) return
+    setConnecting(true)
+    track("click_stripe_connect", { source })
+    window.location.href = "/api/stripe/connect"
+  }
+
   if (status === "active") {
     return (
       <GlassCard>
@@ -358,13 +382,13 @@ function ConnectionCard({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
-          <Link
-            href="/api/stripe/connect"
-            onClick={() => track("click_stripe_connect", { source: "continue_setup" })}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity"
+          <button
+            onClick={() => startConnect("continue_setup")}
+            disabled={connecting}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
           >
-            Continue setup <ArrowUpRight size={12} />
-          </Link>
+            {connecting ? "Connecting…" : <>Continue setup <ArrowUpRight size={12} /></>}
+          </button>
           <button
             onClick={onDisconnect}
             disabled={disconnecting}
@@ -408,13 +432,13 @@ function ConnectionCard({
           })}
         </div>
 
-        <Link
-          href="/api/stripe/connect"
-          onClick={() => track("click_stripe_connect", { source: "first_time" })}
-          className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px]"
+        <button
+          onClick={() => startConnect("first_time")}
+          disabled={connecting}
+          className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px] disabled:opacity-60 cursor-pointer"
         >
-          Connect Stripe <ArrowUpRight size={14} />
-        </Link>
+          {connecting ? "Connecting…" : <>Connect Stripe <ArrowUpRight size={14} /></>}
+        </button>
         <p className="text-[11px] font-mono text-[#b8b8b8] mt-4 max-w-[360px]">
           Stripe handles all verification and compliance. Your data is secure.
         </p>
