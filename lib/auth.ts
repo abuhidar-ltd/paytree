@@ -2,6 +2,8 @@ import { randomBytes } from "crypto"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "@/lib/prisma"
+import { sendVerificationEmail } from "@/lib/email"
+import { trackServer } from "@/lib/analytics-server"
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -123,8 +125,40 @@ const config: BetterAuthOptions = {
   }),
   emailAndPassword: {
     enabled: true,
+    // Deliberately false: verification is visibility, not a gate. Flipping
+    // this true would lock out every pre-verification account (all users
+    // before July 2026) and add friction to a signup flow we just fixed.
     requireEmailVerification: false,
     minPasswordLength: 8,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    // Links get clicked from an inbox hours later — the 1h default expires
+    // for anyone who signs up on mobile and opens email on desktop at night.
+    expiresIn: 60 * 60 * 24,
+    sendVerificationEmail: async ({ user, url }) => {
+      // Better Auth builds `url` with callbackURL "/" unless the caller sent
+      // one (signup doesn't). Point the default at the dashboard so success
+      // lands with a toast; error codes append as &error=<CODE>. Explicit
+      // callbackURLs (e.g. a future change-email flow) pass through.
+      const link = new URL(url)
+      const cb = link.searchParams.get("callbackURL")
+      if (!cb || cb === "/") {
+        link.searchParams.set("callbackURL", "/dashboard?verified=1")
+      }
+      // sendVerificationEmail catches internally — a Resend failure logs
+      // instead of failing the signup this hook runs inside of.
+      await sendVerificationEmail({
+        to: user.email,
+        name: user.name,
+        verificationUrl: link.toString(),
+      })
+    },
+    afterEmailVerification: async (user) => {
+      console.log(`[auth] email verified userId=${user.id}`)
+      await trackServer("verify_email")
+    },
   },
   // Rate limit only in production — bots hammering /sign-up eat Prisma pool
   // slots and cascade into real users seeing 500s. 10 requests per minute

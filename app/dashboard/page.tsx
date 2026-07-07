@@ -18,6 +18,7 @@ import { resolveUserPlan } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { BottomSheet } from "@/components/ui/bottom-sheet"
 import { GoLiveChecklist } from "@/components/ui/go-live-checklist"
+import { VerifyEmailBanner } from "@/components/ui/verify-email-banner"
 import { CompletionMeter } from "@/components/ui/completion-meter"
 import { PublishCelebration } from "@/components/ui/publish-celebration"
 import { glass, glassReflection } from "@/lib/glass"
@@ -834,6 +835,16 @@ export default function DashboardPage() {
         {/* Go-live checklist + completion meter — the first-five-minutes
             experience. The checklist replaces the old free-plan publish nudge
             (its step 3 is the publish CTA, for every plan). */}
+        {/* Verify-email nudge — informational, gates nothing. Also handles
+            the ?verified=1 / &error= landing from the email link. */}
+        {authUser && (
+          <VerifyEmailBanner
+            userId={authUser.id}
+            email={authUser.email}
+            verified={authUser.emailVerified}
+          />
+        )}
+
         {!loading && profile && (
           <>
             <GoLiveChecklist

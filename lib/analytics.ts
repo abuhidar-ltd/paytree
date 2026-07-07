@@ -83,6 +83,11 @@ export type EventName =
   | "submit_vault_email"
   | "unlock_vault"
   | "open_ai_agent"
+  // Email verification — both fire SERVER-SIDE: send from lib/email.ts
+  // (signup hook AND banner resend), verify from Better Auth's
+  // afterEmailVerification hook in lib/auth.ts.
+  | "send_verification_email"
+  | "verify_email"
   // Money metrics — fired SERVER-SIDE (lib/analytics-server.ts); listed here
   // so the taxonomy has one registry.
   | "publish_page"
