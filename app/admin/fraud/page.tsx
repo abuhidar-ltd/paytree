@@ -19,9 +19,28 @@ export default async function AdminFraudPage() {
   noStore()
   await requireAdmin()
 
-  const clusters = await getFraudClusters()
-  const deviceClusters = clusters.filter((c) => c.kind === "device")
-  const ipClusters = clusters.filter((c) => c.kind === "ip")
+  // Null = the SignupFingerprint table isn't in this environment's DB yet
+  // (scripts/push-prod-schema.sh) — show a pointed message, not a 500.
+  const clusters = await getFraudClusters().catch((err) => {
+    console.error("[admin] fraud clusters failed (run scripts/push-prod-schema.sh?):", err)
+    return null
+  })
+  const deviceClusters = (clusters ?? []).filter((c) => c.kind === "device")
+  const ipClusters = (clusters ?? []).filter((c) => c.kind === "ip")
+
+  if (clusters === null) {
+    return (
+      <>
+        <PageTitle title="Fraud review" subtitle="signup fingerprint data unavailable" />
+        <Card>
+          <p className="text-xs font-mono text-[#f59e0b]">
+            Couldn&apos;t query SignupFingerprint — if this is production, the schema push is
+            pending: <span className="text-[#c9c9d1]">bash scripts/push-prod-schema.sh &lt;prod-url&gt;</span>
+          </p>
+        </Card>
+      </>
+    )
+  }
 
   return (
     <>

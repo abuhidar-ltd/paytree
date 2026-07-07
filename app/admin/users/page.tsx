@@ -123,8 +123,13 @@ export default async function AdminUsersPage({
   ])
 
   // Duplicate-signup risk for the visible page of users — two queries total
-  // (lib/fraud-detection.ts), not per-row.
-  const riskMap = await getRiskForUsers(users.map((u) => u.id))
+  // (lib/fraud-detection.ts), not per-row. Degrades to empty (all "—") if the
+  // SignupFingerprint table hasn't been pushed to this environment yet —
+  // the users table must never 500 over a missing fraud signal.
+  const riskMap = await getRiskForUsers(users.map((u) => u.id)).catch((err) => {
+    console.error("[admin] risk lookup failed (run scripts/push-prod-schema.sh?):", err)
+    return new Map<string, never>()
+  })
 
   // The audit log stores userId only (rows must outlive account deletion) —
   // resolve emails for display in one lookup.
