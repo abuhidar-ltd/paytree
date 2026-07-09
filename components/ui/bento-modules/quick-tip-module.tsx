@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { paymentsUnderMaintenance } from "@/lib/payments-live"
+import { PaymentsMaintenancePill } from "@/components/ui/payments-maintenance"
 
 interface QuickTipModuleConfig {
   amounts?: number[] // Preset amounts in dollars, e.g., [5, 10, 20]
@@ -30,7 +32,20 @@ export function QuickTipModule({
   
   const spanClass = span === 2 ? "col-span-2" : ""
   const amounts = config.amounts || [5, 10, 20]
-  
+
+  // TEMPORARY: live tips paused while Stripe reviews our live application. Show
+  // the "back soon" state instead of the tip button (the API is gated too).
+  // Test mode is never gated. See lib/payments-live.ts.
+  const maintenance = paymentsUnderMaintenance()
+  if (maintenance) {
+    return (
+      <div className={`glass-brick ${spanClass} ${className} flex flex-col items-center justify-center gap-2 p-4 ${span === 1 ? "aspect-square" : ""}`}>
+        <div className="text-2xl">💸</div>
+        <PaymentsMaintenancePill fullWidth={span !== 1} />
+      </div>
+    )
+  }
+
   const handleTip = async () => {
     setIsLoading(true)
     try {

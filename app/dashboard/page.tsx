@@ -21,6 +21,8 @@ import { GoLiveChecklist } from "@/components/ui/go-live-checklist"
 import { VerifyEmailBanner } from "@/components/ui/verify-email-banner"
 import { CompletionMeter } from "@/components/ui/completion-meter"
 import { PublishCelebration } from "@/components/ui/publish-celebration"
+import { PaymentsMaintenanceNotice } from "@/components/ui/payments-maintenance"
+import { paymentsUnderMaintenance } from "@/lib/payments-live"
 import { glass, glassReflection } from "@/lib/glass"
 import { getURLMeta } from "@/components/ui/block-renderer"
 import { track } from "@/lib/analytics"
@@ -1846,6 +1848,12 @@ function EditPanelContent({ block, editTab, setEditTab, onUpdate, onDelete, onCl
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* TEMPORARY: live payments paused for Stripe review. Money-card editors
+            stay fully usable — this just sets expectations and reassures the
+            draft is saved. See lib/payments-live.ts. */}
+        {(block.type === "product" || block.type === "drop" || block.lockType === "payment") && paymentsUnderMaintenance() && (
+          <PaymentsMaintenanceNotice body="You can set this up now — your draft is saved, and it'll start taking live payments the moment we're back. Very soon." />
+        )}
         {editTab === "content" && (
           <ContentTab
             key={block.id}

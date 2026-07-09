@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { ProfileClient } from "@/app/[username]/profile-client"
+import { paymentsUnderMaintenance } from "@/lib/payments-live"
 
 export const metadata = {
   robots: 'noindex, nofollow',
@@ -151,6 +152,7 @@ export default async function PreviewPage({
             buttonStyle={user.buttonStyle ?? undefined}
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
+            paymentsMaintenance={paymentsUnderMaintenance()}
             removeBranding={true}
             isPreview={true}
           />

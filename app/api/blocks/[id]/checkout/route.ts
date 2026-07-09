@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import Stripe from "stripe"
+import { paymentsUnderMaintenance, PAYMENTS_MAINTENANCE_RESPONSE } from "@/lib/payments-live"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -9,6 +10,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // TEMPORARY: live payments paused while Stripe reviews our live application.
+    // Enforced here too so hitting the endpoint directly returns the same
+    // friendly state. Test mode is never gated. See lib/payments-live.ts.
+    if (paymentsUnderMaintenance()) {
+      return NextResponse.json(PAYMENTS_MAINTENANCE_RESPONSE, { status: 503 })
+    }
+
     const { id: blockId } = await params
 
     const block = await prisma.block.findUnique({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import Stripe from "stripe"
 import { z } from "zod"
+import { paymentsUnderMaintenance, PAYMENTS_MAINTENANCE_RESPONSE } from "@/lib/payments-live"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -14,6 +15,13 @@ const tipSchema = z.object({
 // POST - Create a Stripe checkout session for a tip
 export async function POST(request: NextRequest) {
   try {
+    // TEMPORARY: live payments paused while Stripe reviews our live application.
+    // Enforced here too so hitting the endpoint directly returns the same
+    // friendly state. Test mode is never gated. See lib/payments-live.ts.
+    if (paymentsUnderMaintenance()) {
+      return NextResponse.json(PAYMENTS_MAINTENANCE_RESPONSE, { status: 503 })
+    }
+
     const body = await request.json()
     const { amount, userId, recipientName } = tipSchema.parse(body)
 

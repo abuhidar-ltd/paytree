@@ -10,6 +10,8 @@ import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { PromoRedeem } from "@/components/promo-redeem"
 import { ConnectWithCountry } from "@/components/payments/connect-with-country"
+import { paymentsUnderMaintenance } from "@/lib/payments-live"
+import { PaymentsMaintenancePill } from "@/components/ui/payments-maintenance"
 import { toast } from "sonner"
 
 interface SubscriptionInfo {
@@ -216,6 +218,10 @@ export default function SettingsPage() {
   const isCanceling = profile?.subscriptionStatus === 'canceling'
   const isCanceled = profile?.subscriptionStatus === 'canceled'
   const stripeStatus = profile?.stripeAccountStatus ?? "not_connected"
+  // TEMPORARY: live Connect paused while Stripe reviews our live application.
+  // Pending/restricted "continue" links become a "back soon" pill (the connect
+  // route also redirects to ?stripe=maintenance). See lib/payments-live.ts.
+  const stripeMaintenance = paymentsUnderMaintenance()
 
   return (
     <div className="min-h-screen bg-[#080808] text-white">
@@ -412,12 +418,16 @@ export default function SettingsPage() {
                   Your Stripe account is created but onboarding isn&apos;t complete yet. Finish setup to start accepting payments.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/api/stripe/connect"
-                    className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
-                  >
-                    Continue Onboarding →
-                  </Link>
+                  {stripeMaintenance ? (
+                    <PaymentsMaintenancePill className="flex-1" label="Setup reopens shortly" />
+                  ) : (
+                    <Link
+                      href="/api/stripe/connect"
+                      className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
+                    >
+                      Continue Onboarding →
+                    </Link>
+                  )}
                   <button
                     onClick={() => setConfirmDisconnect(true)}
                     disabled={disconnecting}
@@ -437,12 +447,16 @@ export default function SettingsPage() {
                   You submitted your details, but Stripe needs a bit more to enable payouts. Finish verification to start getting paid.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/api/stripe/connect"
-                    className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
-                  >
-                    Finish Verification →
-                  </Link>
+                  {stripeMaintenance ? (
+                    <PaymentsMaintenancePill className="flex-1" label="Verification reopens shortly" />
+                  ) : (
+                    <Link
+                      href="/api/stripe/connect"
+                      className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
+                    >
+                      Finish Verification →
+                    </Link>
+                  )}
                   <button
                     onClick={() => setConfirmDisconnect(true)}
                     disabled={disconnecting}
