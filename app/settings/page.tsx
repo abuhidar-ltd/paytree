@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react"
 import { PremiumBackground } from "@/components/backgrounds/premium-background"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { PromoRedeem } from "@/components/promo-redeem"
+import { ConnectWithCountry } from "@/components/payments/connect-with-country"
 import { toast } from "sonner"
 
 interface SubscriptionInfo {
@@ -23,6 +24,7 @@ interface SettingsProfile {
   subscriptionStatus?: string
   subscriptionEndsAt?: string
   stripeAccountStatus?: string
+  country?: string | null
   [key: string]: unknown
 }
 
@@ -425,6 +427,31 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+            ) : stripeStatus === "restricted" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                  <span className="text-red-400 text-sm font-mono font-semibold">Needs Attention</span>
+                </div>
+                <p className="text-[#c9c9d1] text-sm">
+                  You submitted your details, but Stripe needs a bit more to enable payouts. Finish verification to start getting paid.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/api/stripe/connect"
+                    className="flex-1 text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
+                  >
+                    Finish Verification →
+                  </Link>
+                  <button
+                    onClick={() => setConfirmDisconnect(true)}
+                    disabled={disconnecting}
+                    className="flex-1 bg-transparent border border-red-500/30 text-red-400 font-mono rounded-xl px-4 py-2.5 text-sm hover:border-red-500/60 transition-colors disabled:opacity-50"
+                  >
+                    {disconnecting ? "Disconnecting..." : "Disconnect"}
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-[#c9c9d1] text-sm">
@@ -435,12 +462,7 @@ export default function SettingsPage() {
                     <span className="text-[#00ff88]">0% platform fees</span> on every paid plan · Stripe processing fees apply
                   </p>
                 </div>
-                <Link
-                  href="/api/stripe/connect"
-                  className="block w-full text-center bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity"
-                >
-                  Connect Stripe →
-                </Link>
+                <ConnectWithCountry savedCountry={profile?.country} source="settings" />
               </div>
             )}
           </div>

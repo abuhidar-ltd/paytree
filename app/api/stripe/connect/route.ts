@@ -3,6 +3,7 @@ import Stripe from "stripe"
 import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { resolveUserPlan } from "@/lib/plans"
+import { isStripeSupportedCountry } from "@/lib/stripe-countries"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -34,6 +35,7 @@ export async function GET() {
     where: { id: user.id },
     select: {
       stripeAccountId: true,
+      country: true,
       subscriptionStatus: true,
       subscriptionPlan: true,
       trialEndsAt: true,
@@ -57,10 +59,26 @@ export async function GET() {
   let stripeAccountId: string | null = dbUser?.stripeAccountId || null
 
   if (!stripeAccountId) {
+    // Country is REQUIRED to create the Express account in the creator's own
+    // country. Without it Stripe defaults to the platform's country (US),
+    // which silently blocks non-US creators from adding a real bank account.
+    // The payments/settings UI collects it before firing this route; this is
+    // the hard backstop for any stale link that reaches here without one.
+    const country = dbUser?.country?.toUpperCase()
+    if (!country) {
+      console.warn(`[stripe-connect] no country set userId=${user.id} — redirecting to country step`)
+      return NextResponse.redirect(`${appUrl}/dashboard/payments?stripe=country_required`)
+    }
+    if (!isStripeSupportedCountry(country)) {
+      console.warn(`[stripe-connect] unsupported country ${country} userId=${user.id}`)
+      return NextResponse.redirect(`${appUrl}/dashboard/payments?stripe=country_unsupported`)
+    }
+
     let account: Stripe.Account
     try {
       account = await stripe.accounts.create({
         type: "express",
+        country,
         email: user.email,
         capabilities: {
           card_payments: { requested: true },
@@ -70,10 +88,13 @@ export async function GET() {
     } catch (err) {
       // The SDK throws typed errors — this is the failure the old fetch()
       // version swallowed into "No such account: 'undefined'".
-      console.error(
-        `[stripe-connect] accounts.create FAILED userId=${user.id}:`,
-        err instanceof Error ? err.message : err
-      )
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[stripe-connect] accounts.create FAILED userId=${user.id} country=${country}: ${msg}`)
+      // Final backstop: if Stripe itself rejects the country (our list drifted
+      // from theirs), surface it clearly instead of a generic error.
+      if (msg.toLowerCase().includes("support")) {
+        return NextResponse.redirect(`${appUrl}/dashboard/payments?stripe=country_unsupported`)
+      }
       return errorRedirect()
     }
 
@@ -130,7 +151,9 @@ export async function GET() {
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
       refresh_url: `${appUrl}/api/stripe/connect`,
-      return_url: `${appUrl}/dashboard/payments?stripe=success`,
+      // The callback asks Stripe for the account's REAL state (return_url fires
+      // even on abandon) and syncs our DB before landing on the payments page.
+      return_url: `${appUrl}/api/stripe/connect/callback`,
       type: "account_onboarding",
     })
     return NextResponse.redirect(accountLink.url)

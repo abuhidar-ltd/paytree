@@ -12,6 +12,7 @@ import {
 import { glass, glassReflection } from "@/lib/glass"
 import { resolveUserPlan, type PlanId } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ConnectWithCountry } from "@/components/payments/connect-with-country"
 import { track } from "@/lib/analytics"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,11 +25,12 @@ interface Profile {
   subscriptionEndsAt?: string | null
   stripeAccountId?: string | null
   stripeAccountStatus?: string | null
+  country?: string | null
 }
 
 interface ProductSummary { totalRevenue: number; salesCount: number }
 
-type StripeStatus = "not_connected" | "pending" | "active"
+type StripeStatus = "not_connected" | "pending" | "restricted" | "active"
 
 // ─── Glass primitives ────────────────────────────────────────────────────────
 
@@ -123,33 +125,61 @@ export default function PaymentsPage() {
     Promise.allSettled([loadProfile(), loadProducts()]).finally(() => setLoading(false))
   }, [])
 
-  // Handle ?stripe=success when the user navigates back here manually after onboarding.
+  // Handle ?stripe=<status> — set by the connect callback (active/restricted/
+  // pending/error), the connect route's country backstops, and legacy links.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const stripeParam = params.get("stripe")
-    if (stripeParam === "success") {
-      ;(async () => {
-        try {
-          const res = await fetch("/api/stripe/connect/status")
-          const data = await res.json()
-          if (data.status === "active") {
+    if (!stripeParam) return
+
+    switch (stripeParam) {
+      case "active":
+        toast.success("Stripe connected — you can accept payments.")
+        track("connect_stripe", { status: "active" })
+        break
+      case "restricted":
+        toast("Almost there — Stripe needs a little more info to finish activating payouts.")
+        track("connect_stripe", { status: "restricted" })
+        break
+      case "pending":
+        toast("Stripe onboarding started. Finish setup to activate payments.")
+        track("connect_stripe", { status: "pending" })
+        break
+      case "country_required":
+        toast.error("Choose your country below before connecting Stripe.")
+        break
+      case "country_unsupported":
+        toast.error("Stripe payouts aren't available in your country yet.")
+        break
+      case "error":
+        toast.error("Failed to connect Stripe. Please try again.")
+        break
+      case "success": {
+        // Legacy return_url (pre-callback) / stale links: ask the status route.
+        ;(async () => {
+          try {
+            const res = await fetch("/api/stripe/connect/status")
+            const data = await res.json()
+            if (data.status === "active") {
+              toast.success("Stripe account connected!")
+              track("connect_stripe", { status: "active" })
+            } else {
+              toast.success("Stripe onboarding started. Finish setup to activate payments.")
+              track("connect_stripe", { status: "pending" })
+            }
+          } catch {
             toast.success("Stripe account connected!")
-            track("connect_stripe", { status: "active" })
-          } else {
-            toast.success("Stripe onboarding started. Finish setup to activate payments.")
-            track("connect_stripe", { status: "pending" })
+            track("connect_stripe", { status: "unknown" })
           }
-        } catch {
-          toast.success("Stripe account connected!")
-          track("connect_stripe", { status: "unknown" })
-        }
-        loadProfile()
-        router.replace("/dashboard/payments")
-      })()
-    } else if (stripeParam === "error") {
-      toast.error("Failed to connect Stripe. Please try again.")
-      router.replace("/dashboard/payments")
+          loadProfile()
+          router.replace("/dashboard/payments")
+        })()
+        return
+      }
     }
+
+    loadProfile()
+    router.replace("/dashboard/payments")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -239,6 +269,7 @@ export default function PaymentsPage() {
           <motion.div variants={cardVariants}>
             <ConnectionCard
               status={stripeStatus}
+              country={profile?.country}
               onDisconnect={() => setConfirmDisconnect(true)}
               disconnecting={disconnecting}
               userPlan={userPlan}
@@ -281,9 +312,10 @@ export default function PaymentsPage() {
 // ─── Connection status card ──────────────────────────────────────────────────
 
 function ConnectionCard({
-  status, onDisconnect, disconnecting, userPlan,
+  status, country, onDisconnect, disconnecting, userPlan,
 }: {
   status: StripeStatus
+  country?: string | null
   onDisconnect: () => void
   disconnecting: boolean
   userPlan: PlanId
@@ -401,6 +433,50 @@ function ConnectionCard({
     )
   }
 
+  if (status === "restricted") {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,85,85,0.1)", border: "1px solid rgba(255,85,85,0.25)" }}
+          >
+            <AlertCircle size={18} className="text-red-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-white">Needs attention</p>
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                style={{ background: "rgba(255,85,85,0.12)", color: "#ff8080", border: "1px solid rgba(255,85,85,0.25)" }}>
+                Restricted
+              </span>
+            </div>
+            <p className="text-xs text-[#b0b0b0] mt-0.5">
+              You submitted your details, but Stripe needs a bit more to enable payouts. Finish verification to start getting paid.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
+          <button
+            onClick={() => startConnect("finish_verification")}
+            disabled={connecting}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
+          >
+            {connecting ? "Connecting…" : <>Finish verification <ArrowUpRight size={12} /></>}
+          </button>
+          <button
+            onClick={onDisconnect}
+            disabled={disconnecting}
+            className="flex-1 bg-transparent border border-red-500/25 text-red-400 font-mono rounded-xl px-4 py-2.5 text-xs hover:border-red-500/60 transition-colors disabled:opacity-50"
+          >
+            {disconnecting ? "Disconnecting…" : "Disconnect"}
+          </button>
+        </div>
+      </GlassCard>
+    )
+  }
+
   // ── Not connected ──
   return (
     <GlassCard padding="p-8">
@@ -432,13 +508,9 @@ function ConnectionCard({
           })}
         </div>
 
-        <button
-          onClick={() => startConnect("first_time")}
-          disabled={connecting}
-          className="mt-6 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-5 py-3 text-sm hover:opacity-90 transition-opacity w-full max-w-[280px] disabled:opacity-60 cursor-pointer"
-        >
-          {connecting ? "Connecting…" : <>Connect Stripe <ArrowUpRight size={14} /></>}
-        </button>
+        <div className="mt-6 w-full max-w-[360px]">
+          <ConnectWithCountry savedCountry={country} source="first_time" />
+        </div>
         <p className="text-[11px] font-mono text-[#b8b8b8] mt-4 max-w-[360px]">
           Stripe handles all verification and compliance. Your data is secure.
         </p>

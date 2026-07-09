@@ -34,6 +34,12 @@ model User {
   stripeAccountId     String?
   stripeAccountStatus String?  @default("not_connected")
   platformFeePercent  Int?     @default(8)
+  // Creator's payout country (ISO 3166-1 alpha-2, e.g. "US", "AE"). Used to
+  // create the Stripe Express account in the RIGHT country — omitting it makes
+  // Stripe default to the PLATFORM's country (US), silently blocking non-US
+  // creators' bank setup. Set once, before the connect flow fires; locked at
+  // Stripe after the account is created.
+  country             String?
 
   // Theme customization
   theme           String? @default("dark") // dark, light, custom

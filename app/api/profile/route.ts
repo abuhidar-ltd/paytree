@@ -28,6 +28,9 @@ const profileSchema = z.object({
   // onboarded=true; null means abandoned. Read by the /admin dashboard.
   onboardingOutcome: z.enum(["completed", "skipped"]).optional(),
   aiAgentEnabled: z.boolean().optional(),
+  // Stripe payout country (ISO 3166-1 alpha-2). Normalized to uppercase and
+  // validated against the supported set before it can create a Stripe account.
+  country: z.string().length(2).transform((c) => c.toUpperCase()).optional(),
 }).strict() // Reject any extra fields to prevent pageStatus injection
 
 export async function GET() {
@@ -75,12 +78,13 @@ export async function GET() {
         aiChatMessages: true,
         stripeAccountId: true,
         stripeAccountStatus: true,
+        country: true,
         subscriptionPlan: true,
         trialEndsAt: true,
         subscriptionEndsAt: true,
       }
     })
-    
+
     // Convert Decimal to number for JSON serialization
     const serializedUser = user ? {
       ...user,
@@ -118,7 +122,7 @@ export async function PATCH(req: Request) {
       name, username, bio, image, theme, primaryColor, backgroundColor, buttonStyle, fontFamily,
       backgroundStyle, backgroundImageUrl, accentColor, textColor, socialIconPosition, heroStyle,
       heroImage, cornerRadius,
-      onboarded, onboardingOutcome, aiAgentEnabled,
+      onboarded, onboardingOutcome, aiAgentEnabled, country,
     } = profileSchema.parse(body)
 
     // Check username uniqueness if being changed
@@ -160,6 +164,7 @@ export async function PATCH(req: Request) {
         ...(onboarded !== undefined && { onboarded }),
         ...(onboardingOutcome !== undefined && { onboardingOutcome }),
         ...(aiAgentEnabled !== undefined && { aiAgentEnabled }),
+        ...(country !== undefined && { country }),
         ...(referralCode !== undefined && { referralCode }),
       },
       select: {
@@ -183,6 +188,7 @@ export async function PATCH(req: Request) {
         heroImage: true,
         cornerRadius: true,
         subscriptionStatus: true,
+        country: true,
       }
     })
 

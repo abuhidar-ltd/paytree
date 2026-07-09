@@ -147,6 +147,17 @@ export async function POST(req: Request) {
         break
       }
 
+      case "account.updated": {
+        // Connect account status sync. This is the SOURCE OF TRUTH for status
+        // changes that happen with no user in the loop — Stripe finishing an
+        // async review, or flagging an account for more info days later. The
+        // connect/callback route only catches the moment the user returns.
+        console.log("[STRIPE WEBHOOK] 🔗 Processing account.updated...")
+        const account = event.data.object as Stripe.Account
+        await handleConnectAccountUpdated(account)
+        break
+      }
+
       default:
         console.log(`[STRIPE WEBHOOK] ℹ️  Unhandled event type: ${event.type}`)
     }
@@ -643,6 +654,59 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   } else {
     console.error("[STRIPE WEBHOOK] ❌ Cannot find user for subscription:", subscription.id)
   }
+}
+
+/**
+ * Handle account.updated for a Connect (Express) account.
+ *
+ * Webhooks carry NO session, so we match the connected account to a user by
+ * stripeAccountId — never by any assumed user context. Uses the SAME status
+ * logic as /api/stripe/connect/callback so the two never disagree:
+ *   charges_enabled && payouts_enabled → active
+ *   details_submitted only            → restricted
+ *   neither                           → pending
+ */
+async function handleConnectAccountUpdated(account: Stripe.Account) {
+  const accountId = account.id
+  if (!accountId) {
+    console.error("[STRIPE WEBHOOK] ❌ account.updated with no account id")
+    return
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { stripeAccountId: accountId },
+    select: { id: true, username: true, stripeAccountStatus: true },
+  })
+
+  if (!user) {
+    // Not necessarily an error — could be an account we never saved (or one
+    // deleted on our side). Log and move on so Stripe still gets a 200.
+    console.warn(`[STRIPE WEBHOOK] ⚠️  account.updated for ${accountId} — no matching user`)
+    return
+  }
+
+  let status: "active" | "restricted" | "pending"
+  if (account.charges_enabled && account.payouts_enabled) {
+    status = "active"
+  } else if (account.details_submitted) {
+    status = "restricted"
+  } else {
+    status = "pending"
+  }
+
+  if (user.stripeAccountStatus === status) {
+    console.log(`[STRIPE WEBHOOK] ℹ️  account.updated ${accountId} — status unchanged (${status})`)
+    return
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { stripeAccountStatus: status },
+  })
+
+  console.log(
+    `[STRIPE WEBHOOK] ✅ account.updated ${user.username}: ${user.stripeAccountStatus} → ${status} (charges=${account.charges_enabled} payouts=${account.payouts_enabled} submitted=${account.details_submitted})`
+  )
 }
 
 /**
