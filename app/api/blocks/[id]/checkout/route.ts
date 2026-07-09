@@ -74,7 +74,10 @@ export async function POST(
           blockId: block.id,
           sellerId: block.userId,
         },
-        success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+        // block id lets /purchase/success → /api/purchase/verify resolve the
+        // seller's connected account (the session lives on it, not the platform)
+        // and load download details — block products have no Purchase row.
+        success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}&block=${block.id}`,
         cancel_url: `${origin}/${block.user.username}`,
       },
       { stripeAccount: block.user.stripeAccountId }
