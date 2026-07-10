@@ -49,7 +49,6 @@ export default async function AdminUserDetailPage({
       stripeSubscriptionId: true,
       stripeAccountId: true,
       stripeAccountStatus: true,
-      platformFeePercent: true,
       aiAgentEnabled: true,
       aiChatSessions: true,
       aiChatMessages: true,
@@ -214,7 +213,6 @@ export default async function AdminUserDetailPage({
             <Row label="Stripe subscription" value={maskId(user.stripeSubscriptionId)} mono />
             <Row label="Connect account" value={maskId(user.stripeAccountId)} mono />
             <Row label="Connect status" value={user.stripeAccountStatus ?? "—"} />
-            <Row label="Platform fee %" value={user.platformFeePercent != null ? `${user.platformFeePercent}%` : "—"} />
           </dl>
         </Card>
       </div>

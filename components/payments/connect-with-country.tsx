@@ -5,8 +5,6 @@ import { toast } from "sonner"
 import { ArrowUpRight, ChevronDown } from "lucide-react"
 import { track } from "@/lib/analytics"
 import { STRIPE_COUNTRIES } from "@/lib/stripe-countries"
-import { paymentsUnderMaintenance } from "@/lib/payments-live"
-import { PaymentsMaintenanceNotice } from "@/components/ui/payments-maintenance"
 
 /**
  * Country picker + "Connect Stripe" button, used anywhere a NEW Stripe Express
@@ -30,11 +28,6 @@ export function ConnectWithCountry({
   // prop-sync effect needed.
   const [country, setCountry] = useState(savedCountry?.toUpperCase() ?? "")
   const [connecting, setConnecting] = useState(false)
-
-  // TEMPORARY: live Stripe Connect onboarding is paused while Stripe reviews our
-  // live application. Show the "back soon" notice instead of the connect form.
-  // Test mode is never gated. Lift by flipping PAYMENTS_LIVE in lib/payments-live.ts.
-  const maintenance = paymentsUnderMaintenance()
 
   // Full-page nav means this component dies with the document — but coming
   // BACK via bfcache would restore a stuck "Connecting…" button without this.
@@ -67,14 +60,6 @@ export function ConnectWithCountry({
       return
     }
     window.location.href = "/api/stripe/connect"
-  }
-
-  if (maintenance) {
-    return (
-      <div className="w-full">
-        <PaymentsMaintenanceNotice body="You'll be able to connect Stripe and start getting paid the moment we're back — very soon. Everything else on your page works as normal." />
-      </div>
-    )
   }
 
   return (

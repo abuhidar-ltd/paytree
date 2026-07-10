@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
 import { resolveUserPlan } from "@/lib/plans"
 import { isStripeSupportedCountry } from "@/lib/stripe-countries"
-import { paymentsUnderMaintenance } from "@/lib/payments-live"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -31,14 +30,6 @@ export async function GET() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const errorRedirect = () =>
     NextResponse.redirect(`${appUrl}/dashboard/payments?stripe=error`)
-
-  // TEMPORARY: live Stripe Connect onboarding is paused while Stripe reviews
-  // our live application. Browser-navigated route → redirect (a JSON body would
-  // render as a raw page), matching the ?stripe= convention above. Test mode is
-  // never gated. Lift by flipping PAYMENTS_LIVE in lib/payments-live.ts.
-  if (paymentsUnderMaintenance()) {
-    return NextResponse.redirect(`${appUrl}/dashboard/payments?stripe=maintenance`)
-  }
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },

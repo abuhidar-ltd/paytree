@@ -85,9 +85,6 @@ interface ProfileClientProps {
   showAiAgent?: boolean
   accentColor?: string
   creatorStripeReady?: boolean
-  // TEMPORARY: live payments paused for Stripe review — buy/tip/unlock actions
-  // render a "back soon" state instead of firing checkout. See lib/payments-live.ts.
-  paymentsMaintenance?: boolean
   removeBranding?: boolean
   isPreview?: boolean
   isOwner?: boolean
@@ -109,7 +106,6 @@ export function ProfileClient({
   showAiAgent = false,
   accentColor,
   creatorStripeReady = false,
-  paymentsMaintenance = false,
   removeBranding = false,
   isPreview = false,
   isOwner = false,
@@ -214,7 +210,6 @@ export function ProfileClient({
               buttonStyle: buttonStyle || "glass",
               username: user.username,
               creatorStripeReady,
-              paymentsMaintenance,
               isOwner,
               creatorPlan,
             }}
@@ -466,7 +461,6 @@ function CardsGrid({ blocks, commonProps, onOpenCollection }: {
     buttonStyle: string
     username: string
     creatorStripeReady: boolean
-    paymentsMaintenance: boolean
     isOwner?: boolean
     creatorPlan?: "free" | "pro" | "ultra"
   }

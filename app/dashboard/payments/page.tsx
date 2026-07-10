@@ -14,8 +14,6 @@ import { resolveUserPlan, type PlanId } from "@/lib/plans"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ConnectWithCountry } from "@/components/payments/connect-with-country"
 import { track } from "@/lib/analytics"
-import { paymentsUnderMaintenance } from "@/lib/payments-live"
-import { PaymentsMaintenanceNotice, PaymentsMaintenancePill } from "@/components/ui/payments-maintenance"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -147,10 +145,6 @@ export default function PaymentsPage() {
         toast("Stripe onboarding started. Finish setup to activate payments.")
         track("connect_stripe", { status: "pending" })
         break
-      case "maintenance":
-        // TEMPORARY: live Connect paused while Stripe reviews our application.
-        toast("Payments are getting a final tune-up — back very soon.")
-        break
       case "country_required":
         toast.error("Choose your country below before connecting Stripe.")
         break
@@ -271,15 +265,6 @@ export default function PaymentsPage() {
         {/* ── Connection status + how-it-works + fees ── */}
         <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
 
-          {/* TEMPORARY: live payments paused while Stripe reviews our live
-              application. One honest banner covering every connection state.
-              Lift by flipping PAYMENTS_LIVE in lib/payments-live.ts. */}
-          {paymentsUnderMaintenance() && (
-            <motion.div variants={cardVariants}>
-              <PaymentsMaintenanceNotice body="Live payments are getting a final tune-up — connecting Stripe and taking real payments is paused for a moment. Back very soon; everything else on your page works as normal." />
-            </motion.div>
-          )}
-
           {/* Connection status card */}
           <motion.div variants={cardVariants}>
             <ConnectionCard
@@ -359,12 +344,6 @@ function ConnectionCard({
     window.location.href = "/api/stripe/connect"
   }
 
-  // TEMPORARY: live onboarding paused while Stripe reviews our live application.
-  // When true, the connect CTAs become a non-clickable "back soon" pill (the
-  // /api/stripe/connect route also redirects to ?stripe=maintenance as a
-  // backstop). Disconnect stays available. See lib/payments-live.ts.
-  const maintenance = paymentsUnderMaintenance()
-
   if (status === "active") {
     return (
       <GlassCard>
@@ -435,17 +414,13 @@ function ConnectionCard({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
-          {maintenance ? (
-            <PaymentsMaintenancePill className="flex-1" label="Setup reopens shortly" />
-          ) : (
-            <button
-              onClick={() => startConnect("continue_setup")}
-              disabled={connecting}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
-            >
-              {connecting ? "Connecting…" : <>Continue setup <ArrowUpRight size={12} /></>}
-            </button>
-          )}
+          <button
+            onClick={() => startConnect("continue_setup")}
+            disabled={connecting}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
+          >
+            {connecting ? "Connecting…" : <>Continue setup <ArrowUpRight size={12} /></>}
+          </button>
           <button
             onClick={onDisconnect}
             disabled={disconnecting}
@@ -483,17 +458,13 @@ function ConnectionCard({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
-          {maintenance ? (
-            <PaymentsMaintenancePill className="flex-1" label="Verification reopens shortly" />
-          ) : (
-            <button
-              onClick={() => startConnect("finish_verification")}
-              disabled={connecting}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
-            >
-              {connecting ? "Connecting…" : <>Finish verification <ArrowUpRight size={12} /></>}
-            </button>
-          )}
+          <button
+            onClick={() => startConnect("finish_verification")}
+            disabled={connecting}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#00ff88] text-black font-mono font-semibold rounded-xl px-4 py-2.5 text-xs hover:opacity-90 transition-opacity disabled:opacity-60 cursor-pointer"
+          >
+            {connecting ? "Connecting…" : <>Finish verification <ArrowUpRight size={12} /></>}
+          </button>
           <button
             onClick={onDisconnect}
             disabled={disconnecting}

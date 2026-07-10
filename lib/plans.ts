@@ -37,7 +37,6 @@ export interface PlanDefinition {
     vaultItems: number  // -1 = unlimited
   }
   canPublish: boolean
-  platformFeePercent: number
   hasAnalytics: boolean          // basic views + clicks
   hasAdvancedAnalytics: boolean  // globe + country breakdown
   hasAiFeatures: boolean         // AI sales agent
@@ -74,7 +73,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     ],
     limits: UNLIMITED,
     canPublish: true,
-    platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: false,
     hasAiFeatures: false,
@@ -102,7 +100,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     ],
     limits: UNLIMITED,
     canPublish: true,
-    platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: true,
     hasAiFeatures: false,
@@ -126,7 +123,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     ],
     limits: UNLIMITED,
     canPublish: true,
-    platformFeePercent: 0,
     hasAnalytics: true,
     hasAdvancedAnalytics: true,
     hasAiFeatures: true,

@@ -10,7 +10,6 @@ import { ProfileLocked } from "./profile-locked"
 import { PublishBanner } from "./publish-banner"
 import { resolveUserPlan, getUserFeatures } from "@/lib/plans"
 import { detectDevice, normalizeReferrer } from "@/lib/tracking"
-import { paymentsUnderMaintenance } from "@/lib/payments-live"
 
 // Public profile must render dynamically so notFound() returns a real 404 status
 // and view tracking (headers, IP, geo) runs on every request instead of being
@@ -310,7 +309,6 @@ export default async function ProfilePage({
             showAiAgent={showAiAgent}
             accentColor={user.accentColor ?? undefined}
             creatorStripeReady={!!(user.stripeAccountId && user.stripeAccountStatus === "active")}
-            paymentsMaintenance={paymentsUnderMaintenance()}
             removeBranding={userFeatures.removeBranding}
             isOwner={isOwner}
             creatorPlan={userPlan}

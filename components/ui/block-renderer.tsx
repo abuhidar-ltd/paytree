@@ -8,8 +8,6 @@ import { LiveStatusPill } from "./live-status-pill"
 import { track } from "@/lib/analytics"
 import { glass, glassReflection } from "@/lib/glass"
 import { Link as LinkIcon, ChevronRight, ArrowUpRight, Folder, ShoppingBag, MessageCircle } from "lucide-react"
-import { PaymentsMaintenancePill, PaymentsMaintenanceSticker } from "@/components/ui/payments-maintenance"
-import { PAYMENTS_MAINTENANCE } from "@/lib/payments-live"
 
 // ─── Interfaces ───────────────────────────────────────────────
 
@@ -70,10 +68,6 @@ interface BaseBlockProps {
   userId: string
   username: string
   creatorStripeReady: boolean
-  // TEMPORARY: live payments paused for Stripe review. When true, product buy
-  // and paid-unlock actions render a "back soon" state instead of firing
-  // checkout. Threaded from the server. See lib/payments-live.ts.
-  paymentsMaintenance?: boolean
   // True when the viewer is the page owner. Used to show owner-only nudges
   // (e.g. legacy drop/vault upgrade notice on the Free plan).
   isOwner?: boolean
@@ -281,7 +275,7 @@ function LegacyProBanner({ feature }: { feature: "drop" | "vault" }) {
 
 // ─── Main BlockRenderer ──────────────────────────────────────
 
-export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, paymentsMaintenance = false, isOwner = false, creatorPlan, onOpenCollection, isReveal = false }: BaseBlockProps & { block: Block; isReveal?: boolean }) {
+export function BlockRenderer({ block, userId, accentColor, buttonStyle, username, creatorStripeReady = false, isOwner = false, creatorPlan, onOpenCollection, isReveal = false }: BaseBlockProps & { block: Block; isReveal?: boolean }) {
   const cfg = (block.config || {}) as Record<string, unknown>
 
   useEffect(() => {
@@ -303,7 +297,6 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
           buttonStyle={buttonStyle}
           username={username}
           creatorStripeReady={creatorStripeReady}
-          paymentsMaintenance={paymentsMaintenance}
           isOwner={isOwner}
           creatorPlan={creatorPlan}
           onOpenCollection={onOpenCollection}
@@ -317,8 +310,8 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
   const isStarred = block.priority === "starred"
 
   const content = block.lockType && block.lockType !== "none"
-    ? <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} paymentsMaintenance={paymentsMaintenance} />
-    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} paymentsMaintenance={paymentsMaintenance} isOwner={isOwner} creatorPlan={creatorPlan} onOpenCollection={onOpenCollection} />
+    ? <LockedBlock block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
+    : <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} isOwner={isOwner} creatorPlan={creatorPlan} onOpenCollection={onOpenCollection} />
 
   const animationClass =
     animation === "pulse" ? "animate-pulse"
@@ -349,7 +342,7 @@ export function BlockRenderer({ block, userId, accentColor, buttonStyle, usernam
 // BlockRenderer with isReveal=true (prevents nested reveals).
 
 function RevealedPayload({
-  block, userId, accentColor, buttonStyle, username, creatorStripeReady, paymentsMaintenance, onOpenCollection,
+  block, userId, accentColor, buttonStyle, username, creatorStripeReady, onOpenCollection,
 }: { block: RevealBlock } & Omit<BaseBlockProps, "block">) {
   const asBlock: Block = {
     ...block,
@@ -376,7 +369,6 @@ function RevealedPayload({
         buttonStyle={buttonStyle}
         username={username}
         creatorStripeReady={creatorStripeReady}
-        paymentsMaintenance={paymentsMaintenance}
         onOpenCollection={onOpenCollection}
         isReveal={true}
       />
@@ -386,10 +378,10 @@ function RevealedPayload({
 
 // ─── Block Type Router ───────────────────────────────────────
 
-function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, paymentsMaintenance, isOwner, creatorPlan, onOpenCollection }: {
-  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; paymentsMaintenance?: boolean; isOwner?: boolean; creatorPlan?: "free" | "pro" | "ultra"; onOpenCollection?: (block: Block) => void
+function BlockContent({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, isOwner, creatorPlan, onOpenCollection }: {
+  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; isOwner?: boolean; creatorPlan?: "free" | "pro" | "ultra"; onOpenCollection?: (block: Block) => void
 }) {
-  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady, paymentsMaintenance, isOwner, creatorPlan, onOpenCollection }
+  const baseProps: BaseBlockProps = { block, accentColor, buttonStyle, userId, username, creatorStripeReady, isOwner, creatorPlan, onOpenCollection }
 
   switch (block.type) {
     case "link":
@@ -1384,7 +1376,7 @@ function ProfileYouTubeCard({ block }: BaseBlockProps) {
 
 // ─── ProfileProductCard ──────────────────────────────────────
 
-function ProfileProductCard({ block, creatorStripeReady, paymentsMaintenance }: BaseBlockProps) {
+function ProfileProductCard({ block, creatorStripeReady }: BaseBlockProps) {
   const cfg = (block.config || {}) as Record<string, unknown>
   const [loading, setLoading] = useState(false)
   const price = cfg.price as number | undefined
@@ -1425,17 +1417,12 @@ function ProfileProductCard({ block, creatorStripeReady, paymentsMaintenance }: 
         </div>
       )}
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <p className="text-sm font-medium text-white">{block.title}</p>
-          {paymentsMaintenance && <PaymentsMaintenanceSticker short className="flex-shrink-0 mt-0.5" />}
-        </div>
+        <p className="text-sm font-medium text-white mb-1">{block.title}</p>
         {block.description && <p className="text-xs text-[#b0b0b0] mb-2 line-clamp-2">{block.description}</p>}
         {formattedPrice && (
           <p className="text-base font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{formattedPrice}</p>
         )}
-        {paymentsMaintenance ? (
-          <PaymentsMaintenancePill />
-        ) : !creatorStripeReady ? (
+        {!creatorStripeReady ? (
           <div
             className="rounded-xl px-3 py-2.5"
             style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.06)" }}
@@ -1620,8 +1607,8 @@ function TwitchBlock({ block, cfg }: { block: Block; cfg: Record<string, unknown
 
 // ─── Lock Wrapper ────────────────────────────────────────────
 
-function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady, paymentsMaintenance }: {
-  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean; paymentsMaintenance?: boolean
+function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, creatorStripeReady }: {
+  block: Block; userId: string; cfg: Record<string, unknown>; accentColor: string; buttonStyle: string; username: string; creatorStripeReady: boolean
 }) {
   const [unlocked, setUnlocked] = useState(false)
   const [email, setEmail] = useState("")
@@ -1650,11 +1637,10 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
           buttonStyle={buttonStyle}
           username={username}
           creatorStripeReady={creatorStripeReady}
-          paymentsMaintenance={paymentsMaintenance}
         />
       )
     }
-    return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} paymentsMaintenance={paymentsMaintenance} />
+    return <BlockContent block={block} userId={userId} cfg={cfg} accentColor={accentColor} buttonStyle={buttonStyle} username={username} creatorStripeReady={creatorStripeReady} />
   }
 
   if (block.lockType === "email") {
@@ -1756,35 +1742,28 @@ function LockedBlock({ block, userId, cfg, accentColor, buttonStyle, username, c
     const price = (cfg.price as number) ? `$${((cfg.price as number) / 100).toFixed(2)}` : null
     return (
       <div className="bg-white/[0.02] border border-white/[0.07] rounded-2xl p-5">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-lg">💰</span>
-            <span className="text-sm font-semibold text-white truncate">{block.title}</span>
-          </div>
-          {paymentsMaintenance && <PaymentsMaintenanceSticker short className="flex-shrink-0" />}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">💰</span>
+          <span className="text-sm font-semibold text-white">{block.title}</span>
         </div>
         {price && <p className="text-lg font-mono font-bold mb-3" style={{ color: "var(--accent, #00ff88)" }}>{price}</p>}
-        {paymentsMaintenance ? (
-          <PaymentsMaintenancePill label={`${PAYMENTS_MAINTENANCE.pill} — unlock reopens shortly`} />
-        ) : (
-          <button
-            onClick={async () => {
-              setLoading(true)
-              try {
-                const res = await fetch(`/api/blocks/${block.id}/checkout`, { method: "POST" })
-                const data = await res.json()
-                if (data.url) window.location.href = data.url
-                else toast.error(data.error || "Checkout failed")
-              } catch { toast.error("Network error") }
-              finally { setLoading(false) }
-            }}
-            disabled={loading}
-            className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm disabled:opacity-50"
-            style={{ background: "var(--accent, #00ff88)" }}
-          >
-            {loading ? "Loading..." : "Buy to unlock →"}
-          </button>
-        )}
+        <button
+          onClick={async () => {
+            setLoading(true)
+            try {
+              const res = await fetch(`/api/blocks/${block.id}/checkout`, { method: "POST" })
+              const data = await res.json()
+              if (data.url) window.location.href = data.url
+              else toast.error(data.error || "Checkout failed")
+            } catch { toast.error("Network error") }
+            finally { setLoading(false) }
+          }}
+          disabled={loading}
+          className="w-full text-black font-mono font-semibold rounded-xl px-4 py-3 text-sm disabled:opacity-50"
+          style={{ background: "var(--accent, #00ff88)" }}
+        >
+          {loading ? "Loading..." : "Buy to unlock →"}
+        </button>
       </div>
     )
   }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/get-user"
 import { prisma } from "@/lib/prisma"
-import { getUserFeatures } from "@/lib/plans"
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -9,13 +8,7 @@ export async function GET() {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: {
-      stripeAccountId: true,
-      subscriptionStatus: true,
-      subscriptionPlan: true,
-      trialEndsAt: true,
-      subscriptionEndsAt: true, isComped: true, compedExpiresAt: true,
-    },
+    select: { stripeAccountId: true },
   })
 
   if (!dbUser?.stripeAccountId) {
@@ -28,10 +21,9 @@ export async function GET() {
   const account = await res.json()
 
   if (account.charges_enabled) {
-    const features = getUserFeatures(dbUser)
     await prisma.user.update({
       where: { id: user.id },
-      data: { stripeAccountStatus: "active", platformFeePercent: features.platformFeePercent },
+      data: { stripeAccountStatus: "active" },
     })
     return NextResponse.json({ status: "active", charges_enabled: true })
   }
