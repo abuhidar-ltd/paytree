@@ -53,7 +53,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     "0 0 24px rgba(0,255,136,0.45), 0 0 52px rgba(0,255,136,0.22), 0 2px 8px rgba(0,0,0,0.35)",
                 }}
               >
-                The all-in-one page for creators and freelancers
+                One page to sell, share links &amp; get paid
               </span>
             </h1>
 
@@ -61,15 +61,14 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-4 text-center text-lg leading-[1.4] sm:text-xl lg:text-2xl font-semibold tracking-tight text-white max-w-xl mx-auto"
               style={{ animation: "slideUp 0.5s ease 0.14s both" }}
             >
-              Sell products, services, and content. Share all your links{" "}
-              <span className="text-[#00ff88]">&amp;</span> get paid instantly.
+              0% platform fees
             </p>
 
             <p
               className="mt-2 text-center text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-[#00ff88]"
               style={{ animation: "slideUp 0.5s ease 0.17s both" }}
             >
-              0% platform commission
+              + AI Sales Agent that works for you 24/7
             </p>
 
             {/* Green accent divider — centered with a symmetric fade so it sits
