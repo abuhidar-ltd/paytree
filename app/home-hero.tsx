@@ -12,7 +12,7 @@ interface HomeHeroProps {
 // the local @keyframes below) — no framer-motion in the first-paint chunk.
 export function HomeHero({ isLoggedIn }: HomeHeroProps) {
   return (
-    <section className="min-h-[calc(100svh-64px)] flex items-start pt-24 sm:pt-28 lg:pt-32 pb-0 sm:pb-1 relative overflow-hidden">
+    <section className="flex items-start pt-24 sm:pt-28 lg:pt-32 pb-14 sm:pb-16 relative overflow-hidden">
       {/* Background glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -57,7 +57,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-2 text-center text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-[#00ff88]"
               style={{ animation: "slideUp 0.5s ease 0.17s both" }}
             >
-              + <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#f59e0b]">AI Sales Agent</span> that works for you 24/7
+              + <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#FFFF00]">AI Sales Agent</span> that works for you 24/7
             </p>
 
             {/* Green accent divider — centered with a symmetric fade so it sits
