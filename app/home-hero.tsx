@@ -1,23 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Sparkles, Bot, Lock, Timer, Globe, type LucideIcon } from "lucide-react"
 import { PhoneMockup } from "./home-phone-mockup"
 import { track } from "@/lib/analytics"
 
 interface HomeHeroProps {
   isLoggedIn: boolean
 }
-
-// Full feature set, rendered as a single-column list split by the green
-// accent line. Icons are lucide-react outline glyphs in green glass squares.
-const FEATURES: { Icon: LucideIcon; label: string }[] = [
-  { Icon: Sparkles, label: "Sell products, services and content, share your links, & get paid instantly" },
-  { Icon: Bot, label: "24/7 AI Sales Agent" },
-  { Icon: Lock, label: "Vault — lock premium content" },
-  { Icon: Timer, label: "Countdown Link" },
-  { Icon: Globe, label: "Globe Analytics" },
-]
 
 // All hero animations are CSS keyframes (slideUp / fadeIn in globals.css, plus
 // the local @keyframes below) — no framer-motion in the first-paint chunk.
@@ -68,7 +57,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               className="mt-2 text-center text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-[#00ff88]"
               style={{ animation: "slideUp 0.5s ease 0.17s both" }}
             >
-              + AI Sales Agent that works for you 24/7
+              + <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#f59e0b]">AI Sales Agent</span> that works for you 24/7
             </p>
 
             {/* Green accent divider — centered with a symmetric fade so it sits
@@ -95,8 +84,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                   onClick={() => {
                     track("click_cta", { variant: "dashboard", source: "hero" })
                   }}
-                  className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)]"
-                  style={{ minHeight: 56 }}
+                  className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-5 py-3 sm:px-6 sm:py-4 rounded-2xl text-sm sm:text-base items-center justify-center transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)] min-h-11 sm:min-h-14"
                 >
                   Go to dashboard
                   <span className="ml-2 transition-transform group-hover:translate-x-0.5">→</span>
@@ -117,8 +105,7 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
                     onClick={() => {
                       track("click_cta", { variant: "register", source: "hero" })
                     }}
-                    className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-6 py-4 rounded-2xl text-base items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)]"
-                    style={{ minHeight: 56 }}
+                    className="group flex w-full bg-[#00ff88] text-black font-mono font-bold px-5 py-3 sm:px-6 sm:py-4 rounded-2xl text-sm sm:text-base items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_56px_rgba(0,255,136,0.5)] hover:brightness-110 active:scale-[0.98] shadow-[0_0_40px_rgba(0,255,136,0.35)] min-h-11 sm:min-h-14"
                   >
                     Create your free business page
                     <span className="transition-transform group-hover:translate-x-0.5">→</span>
@@ -130,44 +117,6 @@ export function HomeHero({ isLoggedIn }: HomeHeroProps) {
               )}
             </div>
 
-            {/* Feature list — moved below the CTA: most of these (AI agent,
-                vault, drops, globe analytics) are Pro/Ultra features, so they
-                shouldn't compete with "free page" as the first thing a free
-                signup sees. Rows are split by the same green accent line used
-                between the headline and CTA, instead of boxed cards. */}
-            <ul
-              className="mt-8 sm:mt-9 max-w-xl mx-auto"
-              style={{ animation: "slideUp 0.5s ease 0.24s both" }}
-            >
-              {FEATURES.map(({ Icon, label }, i) => (
-                <li key={label}>
-                  {i > 0 && (
-                    <div
-                      aria-hidden
-                      className="mx-auto h-px w-full max-w-[200px]"
-                      style={{
-                        background: "linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent)",
-                      }}
-                    />
-                  )}
-                  <div className="group flex items-center gap-3 px-3 py-3">
-                    <span
-                      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-transform group-hover:scale-105"
-                      style={{
-                        background: "rgba(0,255,136,0.06)",
-                        border: "0.5px solid rgba(0,255,136,0.25)",
-                        boxShadow: "inset 0 1px 0 rgba(0,255,136,0.15), 0 0 14px rgba(0,255,136,0.12)",
-                      }}
-                    >
-                      <Icon size={15} strokeWidth={2.25} className="text-[#00ff88]" />
-                    </span>
-                    <span className="text-sm sm:text-[15px] leading-snug font-medium text-white/90">
-                      {label}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Right column — phone (desktop only, so mobile reaches the CTA faster) */}
